@@ -119,7 +119,7 @@ def get(ctx, variable_path):
 @click.command(short_help='Sets values to PP parameters')
 @click.argument('variable-path-set', nargs=-1, required=True)
 @click.option('-w', '--write', is_flag=True,
-              help='Write changes to PP binary', default='False')
+              help='Write changes to PP binary', default=False)
 @click.pass_context
 def set(ctx, variable_path_set, write):
     """Sets values to one or multiple PP parameters
