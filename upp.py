@@ -27,7 +27,7 @@ def _validate_set_pair(set_pair):
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option('-i', '--input-file', help='Path to PP table binary file',
               default='/sys/class/drm/card0/device/pp_table')
-@click.option('-d', '--debug', is_flag=True, default='False',
+@click.option('--debug/--no-debug', '-d/ ', default='False',
               help='Debug mode')
 @click.pass_context
 def cli(ctx, debug, input_file):
@@ -63,10 +63,9 @@ def cli(ctx, debug, input_file):
     ctx.obj['DEBUG'] = debug
     ctx.obj['PPBINARY'] = input_file
 
-
 @click.command(short_help='Dumps all PowerPlay parameters to console')
-@click.option('-r', '--raw', is_flag=True,
-              help='Show raw binary data', default='False')
+@click.option('--raw/--no-raw', '-r/ ', help='Show raw binary data',
+              default='False')
 @click.pass_context
 def dump(ctx, raw):
     """Dumps all PowerPlay data to console
