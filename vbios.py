@@ -119,8 +119,51 @@ PowerPlayTable_v11 = [
     { 'name': "PowerSavingClockTable"          , 'type': 'ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD' }, # PowerSavingClock Mode Clock Min/Max array
     { 'name': "OverDrive8Table"                , 'type': 'ATOM_VEGA20_OVERDRIVE8_RECORD' },         # OverDrive8 Feature capabilities and Settings Range (Max and Min)
     { 'name': "Reserved"                       , 'type': 'uint16_t'  , 'max_count': 5 },
-    { 'name': "smcPPTable"                     , 'type': 'PPTable_t' }
+    { 'name': "smcPPTable"                     , 'type': 'Vega_PPTable_t' }
 ]
+
+# Navi10, another flat table without any offsets & sub-table revision info :|
+# drivers/gpu/drm/amd/powerplay/inc/smu_v11_0_pptable.h
+PowerPlayTable_v12 = [
+    { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
+    { 'name': "TableSize"                      , 'type': 'uint16_t' },
+    { 'name': "GoldenPPId"                     , 'type': 'uint32_t' },
+    { 'name': "GoldenRevision"                 , 'type': 'uint32_t' },
+    { 'name': "FormatId"                       , 'type': 'uint16_t' },
+    { 'name': "PlatformCaps"                   , 'type': 'uint32_t' },
+    { 'name': "ThermalControllerType"          , 'type': 'uint8_t'  },
+    { 'name': "SmallPowerLimit1"               , 'type': 'uint16_t' },
+    { 'name': "SmallPowerLimit2"               , 'type': 'uint16_t' },
+    { 'name': "BoostPowerLimit"                , 'type': 'uint16_t' },
+    { 'name': "ODTurboPowerLimit"              , 'type': 'uint16_t' },
+    { 'name': "ODPowerSavePowerLimit"          , 'type': 'uint16_t' },
+    { 'name': "SoftwareShutdownTemp"           , 'type': 'uint16_t' },
+    { 'name': "Reserved0"                      , 'type': 'uint16_t'  , 'max_count': 6 },
+    { 'name': "PowerSavingClockTable"          , 'type': 'smu_11_0_power_saving_clock_table' },     # PowerSavingClock Mode Clock Min/Max array
+    { 'name': "OverDrive8Table"                , 'type': 'smu_11_0_overdrive_table' },              # OverDrive8 Feature capabilities and Settings Range (Max and Min)
+    { 'name': "smcPPTable"                     , 'type': 'Navi10_PPTable_t' }
+]
+
+SMU_11_0_MAX_PPCLOCK = 16
+smu_11_0_power_saving_clock_table = [
+    { 'name': "ucTableRevision"                , 'type': 'uint8_t'  },
+    { 'name': "Reserve"                        , 'type': 'PaddingByte', 'max_count': 3 },
+    { 'name': "PowerSavingClockCount"          , 'type': 'uint32_t' },
+    { 'name': "PowerSavingClockMax"            , 'type': 'PowerSavingClockMax', 'max_count': SMU_11_0_MAX_PPCLOCK },
+    { 'name': "PowerSavingClockMin"            , 'type': 'PowerSavingClockMin', 'max_count': SMU_11_0_MAX_PPCLOCK }
+]
+
+SMU_11_0_MAX_ODFEATURE = SMU_11_0_MAX_ODSETTING = 32
+smu_11_0_overdrive_table = [
+    { 'name': "ucODTableRevision"              , 'type': 'uint8_t'  },
+    { 'name': "Reserve"                        , 'type': 'PaddingByte', 'max_count': 3 },
+    { 'name': "ODFeatureCount"                 , 'type': 'uint32_t' },
+    { 'name': "ODFeatureCapabilities"          , 'type': 'ODFeatureCapabilities', 'max_count': SMU_11_0_MAX_ODFEATURE },
+    { 'name': "ODSettingCount"                 , 'type': 'uint32_t' },
+    { 'name': "ODSettingsMax"                  , 'type': 'ODSettingsMax', 'max_count': SMU_11_0_MAX_ODSETTING },
+    { 'name': "ODSettingsMin"                  , 'type': 'ODSettingsMin', 'max_count': SMU_11_0_MAX_ODSETTING }
+]
+
 
 ATOM_VEGA20_PPCLOCK_MAX_COUNT = 16
 ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD = [
@@ -502,7 +545,7 @@ PhyClockDependencyEntry_v0 = [
 ]
 
 # drivers/gpu/drm/amd/powerplay/inc/smu11_driver_if.h
-PPCLK_COUNT = 11
+Vega_PPCLK_COUNT = 11
 NUM_GFXCLK_DPM_LEVELS = 16
 NUM_VCLK_DPM_LEVELS = NUM_DCLK_DPM_LEVELS = NUM_ECLK_DPM_LEVELS = \
 NUM_SOCCLK_DPM_LEVELS = NUM_FCLK_DPM_LEVELS = NUM_DCEFCLK_DPM_LEVELS = \
@@ -540,21 +583,35 @@ FreqTableGfx = FreqTableVclk = FreqTableDclk = FreqTableEclk = \
 FreqTableSocclk = FreqTableUclk = FreqTableFclk = FreqTableDcefclk = \
 FreqTableDispclk = FreqTablePixclk = FreqTablePhyclk = DcModeMaxFreq = \
 Mp0clkFreq = LclkFreq = XgmiFclkFreq = XgmiUclkFreq = XgmiSocclkFreq = \
+SsFmin = \
 [
     { 'name': "Frequency"                      , 'type': 'uint16_t' }
 ]
 
 Mp0DpmVoltage = XgmiSocVoltage = DcTol = DcBtcMin = DcBtcMax = DcBtcGb = \
+MemVddciVoltage = MemMvddVoltage =\
 [
     { 'name': "Voltage"                        , 'type': 'uint16_t' }
 ]
 
+PowerLimit = \
+[
+    { 'name': "Wattage"                        , 'type': 'uint16_t' }
+]
+PowerLimitTau = \
+[
+    { 'name': "Time"                           , 'type': 'uint16_t' }
+]
+
+
 Padding567 = Padding8_Uclk = Padding8_Avfs = OverrideAvfsGb = \
-Padding8_GfxBtc = DcBtcEnabled = XgmiLinkWidth = \
+Padding8_GfxBtc = DcBtcEnabled = XgmiLinkWidth = PaddingByte = \
+FreqTableUclkDiv = PaddingMem = \
 [
     { 'name': "Byte"                           , 'type': 'uint8_t'  }
 ]
-Padding32 = [
+Padding32 = PaddingAPCC = \
+[
     { 'name': "Padding32"                      , 'type': 'uint32_t' }
 ]
 
@@ -565,7 +622,7 @@ PcieLaneCount  = [
     { 'name': "Count"                          , 'type': 'uint8_t'  }
 ]
 
-I2cControllerConfig_t = [
+Vega_I2cControllerConfig_t = [
     { 'name': "Enabled"                        , 'type': 'uint32_t' },
     { 'name': "SlaveAddress"                   , 'type': 'uint32_t' },
     { 'name': "ControllerPort"                 , 'type': 'uint32_t' },
@@ -576,7 +633,7 @@ I2cControllerConfig_t = [
 ]
 
 # Megalomaniac Vega VII PP table
-PPTable_t = [
+Vega_PPTable_t = [
     { 'name': "TableVersion"                   , 'type': 'uint32_t' },
 
     { 'name': "FeaturesToRun"                  , 'type': 'FeaturesToRun', 'max_count': 2 },
@@ -625,7 +682,7 @@ PPTable_t = [
     { 'name': "LoadLineResistanceGfx"          , 'type': 'uint16_t' },
     { 'name': "LoadLineResistanceSoc"          , 'type': 'uint16_t' },
 
-    { 'name': "DpmDescriptor"                  , 'type': 'DpmDescriptor_t'  , 'max_count': PPCLK_COUNT            },
+    { 'name': "DpmDescriptor"                  , 'type': 'DpmDescriptor_t'  , 'max_count': Vega_PPCLK_COUNT       },
 
     { 'name': "FreqTableGfx"                   , 'type': 'FreqTableGfx'     , 'max_count': NUM_GFXCLK_DPM_LEVELS  },
     { 'name': "FreqTableVclk"                  , 'type': 'FreqTableVclk'    , 'max_count': NUM_VCLK_DPM_LEVELS    },
@@ -639,7 +696,7 @@ PPTable_t = [
     { 'name': "FreqTablePixclk"                , 'type': 'FreqTablePixclk'  , 'max_count': NUM_PIXCLK_DPM_LEVELS  },
     { 'name': "FreqTablePhyclk"                , 'type': 'FreqTablePhyclk'  , 'max_count': NUM_PHYCLK_DPM_LEVELS  },
 
-    { 'name': "DcModeMaxFreq"                  , 'type': 'DcModeMaxFreq'    , 'max_count': PPCLK_COUNT            },
+    { 'name': "DcModeMaxFreq"                  , 'type': 'DcModeMaxFreq'    , 'max_count': Vega_PPCLK_COUNT       },
     { 'name': "Padding8_Clks"                  , 'type': 'uint16_t' },
 
     { 'name': "Mp0clkFreq"                     , 'type': 'Mp0clkFreq'       , 'max_count': NUM_MP0CLK_DPM_LEVELS  },
@@ -798,10 +855,321 @@ PPTable_t = [
     { 'name': "FllGfxclkSpreadPercent"         , 'type': 'uint8_t'  },
     { 'name': "FllGfxclkSpreadFreq"            , 'type': 'uint16_t' },
 
-    { 'name': "I2cControllers"                 , 'type': 'I2cControllerConfig_t', 'max_count': I2C_CONTROLLER_NAME_COUNT },
+    { 'name': "I2cControllers"                 , 'type': 'Vega_I2cControllerConfig_t', 'max_count': I2C_CONTROLLER_NAME_COUNT },
 
     { 'name': "BoardReserved"                  , 'type': 'Padding32'           , 'max_count': 10 },
 
     { 'name': "MmHubPadding"                   , 'type': 'Padding32'           , 'max_count': 8 }
 ]
 
+# Another megalomaniac PP table, this time for Navi10 (at least some values are documented)
+# drivers/gpu/drm/amd/powerplay/inc/smu11_driver_if_navi10.h
+
+Navi_I2cControllerConfig_t = [
+    { 'name': "Enabled"                        , 'type': 'uint8_t'  },
+    { 'name': "Speed"                          , 'type': 'uint8_t'  },
+    { 'name': "Padding0"                       , 'type': 'uint8_t'  },
+    { 'name': "Padding1"                       , 'type': 'uint8_t'  },
+    { 'name': "SlaveAddress"                   , 'type': 'uint32_t' },
+    { 'name': "ControllerPort"                 , 'type': 'uint8_t'  },
+    { 'name': "ControllerName"                 , 'type': 'uint8_t'  },
+    { 'name': "ThermalThrottler"               , 'type': 'uint8_t'  },
+    { 'name': "I2cProtocol"                    , 'type': 'uint8_t'  },
+]
+
+Navi_PPCLK_COUNT = 9
+PPT_THROTTLER_COUNT = 4
+NUM_I2C_CONTROLLERS = 8
+
+Navi10_PPTable_t = [
+    { 'name': "TableVersion"                   , 'type': 'uint32_t' },
+
+    # SECTION: Feature Enablement
+    { 'name': "FeaturesToRun"                  , 'type': 'FeaturesToRun'    , 'max_count': 2 },
+
+    # SECTION: Infrastructure Limits
+    { 'name': "SocketPowerLimitAc"             , 'type': 'PowerLimit'       , 'max_count': PPT_THROTTLER_COUNT },
+    { 'name': "SocketPowerLimitAcTau"          , 'type': 'PowerLimitTau'    , 'max_count': PPT_THROTTLER_COUNT },
+    { 'name': "SocketPowerLimitDc"             , 'type': 'PowerLimit'       , 'max_count': PPT_THROTTLER_COUNT },
+    { 'name': "SocketPowerLimitDcTau"          , 'type': 'PowerLimitTau'    , 'max_count': PPT_THROTTLER_COUNT },
+
+    { 'name': "TdcLimitSoc"                    , 'type': 'uint16_t' }, # Amps
+    { 'name': "TdcLimitSocTau"                 , 'type': 'uint16_t' }, # Time constant of LPF in ms
+    { 'name': "TdcLimitGfx"                    , 'type': 'uint16_t' }, # Amps
+    { 'name': "TdcLimitGfxTau"                 , 'type': 'uint16_t' }, # Time constant of LPF in ms
+
+    { 'name': "TedgeLimit"                     , 'type': 'uint16_t' }, # Celsius
+    { 'name': "ThotspotLimit"                  , 'type': 'uint16_t' }, # Celsius
+    { 'name': "TmemLimit"                      , 'type': 'uint16_t' }, # Celsius
+    { 'name': "Tvr_gfxLimit"                   , 'type': 'uint16_t' }, # Celsius
+    { 'name': "Tvr_mem0Limit"                  , 'type': 'uint16_t' }, # Celsius
+    { 'name': "Tvr_mem1Limit"                  , 'type': 'uint16_t' }, # Celsius
+    { 'name': "Tvr_socLimit"                   , 'type': 'uint16_t' }, # Celsius
+    { 'name': "Tliquid0Limit"                  , 'type': 'uint16_t' }, # Celsius
+    { 'name': "Tliquid1Limit"                  , 'type': 'uint16_t' }, # Celsius
+    { 'name': "TplxLimit"                      , 'type': 'uint16_t' }, # Celsius
+    { 'name': "FitLimit"                       , 'type': 'uint32_t' }, # Failures in time (failures per million parts over the defined lifetime)
+
+    { 'name': "PpmPowerLimit"                  , 'type': 'uint16_t' }, # Switch this power limit when temperature is above PpmTempThreshold
+    { 'name': "PpmTemperatureThreshold"        , 'type': 'uint16_t' },
+
+    # SECTION: Throttler settings
+    { 'name': "ThrottlerControlMask"           , 'type': 'uint32_t' }, # See Throtter masks defines
+
+    # SECTION: FW DSTATE Settings
+    { 'name': "FwDStateMask"                   , 'type': 'uint32_t' }, # See FW DState masks defines
+
+    # SECTION: ULV Settings
+    { 'name': "UlvVoltageOffsetSoc"            , 'type': 'uint16_t' }, # In mV(Q2)
+    { 'name': "UlvVoltageOffsetGfx"            , 'type': 'uint16_t' }, # In mV(Q2)
+
+    { 'name': "GceaLinkMgrIdleThreshold"       , 'type': 'uint8_t'  }, # Set by SMU FW during enablment of SOC_ULV. Controls delay for GFX SDP port disconnection during idle events
+    { 'name': "paddingRlcUlvParams0"           , 'type': 'uint8_t'  },
+    { 'name': "paddingRlcUlvParams1"           , 'type': 'uint8_t'  },
+    { 'name': "paddingRlcUlvParams2"           , 'type': 'uint8_t'  },
+
+    { 'name': "UlvSmnclkDid"                   , 'type': 'uint8_t'  }, # DID for ULV mode. 0 means CLK will not be modified in ULV.
+    { 'name': "UlvMp1clkDid"                   , 'type': 'uint8_t'  }, # DID for ULV mode. 0 means CLK will not be modified in ULV.
+    { 'name': "UlvGfxclkBypass"                , 'type': 'uint8_t'  }, # 1 to turn off/bypass Gfxclk during ULV, 0 to leave Gfxclk on during ULV
+    { 'name': "Padding234"                     , 'type': 'uint8_t'  },
+
+    { 'name': "MinVoltageUlvGfx"               , 'type': 'uint16_t' }, # In mV(Q2)  Minimum Voltage ("Vmin") of VDD_GFX in ULV mode
+    { 'name': "MinVoltageUlvSoc"               , 'type': 'uint16_t' }, # In mV(Q2)  Minimum Voltage ("Vmin") of VDD_SOC in ULV mode
+
+    # SECTION: Voltage Control Parameters
+    { 'name': "MinVoltageGfx"                  , 'type': 'uint16_t' }, # In mV(Q2) Minimum Voltage ("Vmin") of VDD_GFX
+    { 'name': "MinVoltageSoc"                  , 'type': 'uint16_t' }, # In mV(Q2) Minimum Voltage ("Vmin") of VDD_SOC
+    { 'name': "MaxVoltageGfx"                  , 'type': 'uint16_t' }, # In mV(Q2) Maximum Voltage allowable of VDD_GFX
+    { 'name': "MaxVoltageSoc"                  , 'type': 'uint16_t' }, # In mV(Q2) Maximum Voltage allowable of VDD_SOC
+
+    { 'name': "LoadLineResistanceGfx"          , 'type': 'uint16_t' }, # In mOhms with 8 fractional bits
+    { 'name': "LoadLineResistanceSoc"          , 'type': 'uint16_t' }, # In mOhms with 8 fractional bits
+
+    # SECTION: DPM Config 1
+    { 'name': "DpmDescriptor"                  , 'type': 'DpmDescriptor_t'  , 'max_count': Navi_PPCLK_COUNT       },
+
+    { 'name': "FreqTableGfx"                   , 'type': 'FreqTableGfx'     , 'max_count': NUM_GFXCLK_DPM_LEVELS  }, # In MHz
+    { 'name': "FreqTableVclk"                  , 'type': 'FreqTableVclk'    , 'max_count': NUM_VCLK_DPM_LEVELS    }, # In MHz
+    { 'name': "FreqTableDclk"                  , 'type': 'FreqTableDclk'    , 'max_count': NUM_DCLK_DPM_LEVELS    }, # In MHz
+    { 'name': "FreqTableSocclk"                , 'type': 'FreqTableSocclk'  , 'max_count': NUM_SOCCLK_DPM_LEVELS  }, # In MHz
+    { 'name': "FreqTableUclk"                  , 'type': 'FreqTableUclk'    , 'max_count': NUM_UCLK_DPM_LEVELS    }, # In MHz
+    { 'name': "FreqTableDcefclk"               , 'type': 'FreqTableDcefclk' , 'max_count': NUM_DCEFCLK_DPM_LEVELS }, # In MHz
+    { 'name': "FreqTableDispclk"               , 'type': 'FreqTableDispclk' , 'max_count': NUM_DISPCLK_DPM_LEVELS }, # In MHz
+    { 'name': "FreqTablePixclk"                , 'type': 'FreqTablePixclk'  , 'max_count': NUM_PIXCLK_DPM_LEVELS  }, # In MHz
+    { 'name': "FreqTablePhyclk"                , 'type': 'FreqTablePhyclk'  , 'max_count': NUM_PHYCLK_DPM_LEVELS  }, # In MHz
+    { 'name': "Paddingclks"                    , 'type': 'Padding32'        , 'max_count': 16                     },
+
+    { 'name': "DcModeMaxFreq"                  , 'type': 'DcModeMaxFreq'    , 'max_count': Navi_PPCLK_COUNT       }, # In MHz
+    { 'name': "Padding8_Clks"                  , 'type': 'uint16_t' },
+
+    { 'name': "FreqTableUclkDiv"               , 'type': 'FreqTableUclkDiv' , 'max_count': NUM_UCLK_DPM_LEVELS    }, # 0:Div-1, 1:Div-1/2, 2:Div-1/4, 3:Div-1/8
+
+    # SECTION: DPM Config 2
+    { 'name': "Mp0clkFreq"                     , 'type': 'Mp0clkFreq'       , 'max_count': NUM_MP0CLK_DPM_LEVELS  }, # In MHz
+    { 'name': "Mp0DpmVoltage"                  , 'type': 'Mp0DpmVoltage'    , 'max_count': NUM_MP0CLK_DPM_LEVELS  }, # mV(Q2)
+    { 'name': "MemVddciVoltage"                , 'type': 'MemVddciVoltage'  , 'max_count': NUM_UCLK_DPM_LEVELS    }, # mV(Q2)
+    { 'name': "MemMvddVoltage"                 , 'type': 'MemMvddVoltage'   , 'max_count': NUM_UCLK_DPM_LEVELS    }, # mV(Q2)
+
+    # SECTION: GFXCLK DPM
+    { 'name': "GfxclkFgfxoffEntry"             , 'type': 'uint16_t' }, # in Mhz
+    { 'name': "GfxclkFinit"                    , 'type': 'uint16_t' }, # in Mhz
+    { 'name': "GfxclkFidle"                    , 'type': 'uint16_t' }, # in Mhz
+    { 'name': "GfxclkSlewRate"                 , 'type': 'uint16_t' }, # for PLL babystepping?
+    { 'name': "GfxclkFopt"                     , 'type': 'uint16_t' }, # in Mhz
+    { 'name': "Padding567"                     , 'type': 'Padding567'          , 'max_count': 2},
+    { 'name': "GfxclkDsMaxFreq"                , 'type': 'uint16_t' }, # in Mhz
+    { 'name': "GfxclkSource"                   , 'type': 'uint8_t'  }, # 0 = PLL, 1 = DFLL
+    { 'name': "Padding456"                     , 'type': 'uint8_t'  },
+
+    # SECTION: UCLK
+    { 'name': "LowestUclkReservedForUlv"       , 'type': 'uint8_t'  }, # Set this to 1 if UCLK DPM0 is reserved for ULV-mode only
+    { 'name': "Padding8_Uclk"                  , 'type': 'Padding8_Uclk'       , 'max_count': 3},
+
+    { 'name': "MemoryType"                     , 'type': 'uint8_t'  }, # 0-GDDR6, 1-HBM
+    { 'name': "MemoryChannels"                 , 'type': 'uint8_t'  },
+    { 'name': "PaddingMem"                     , 'type': 'PaddingMem'          , 'max_count': 2},
+
+    # SECTION: Link DPM Settings
+    { 'name': "PcieGenSpeed"                   , 'type': 'PcieGenSpeed'        , 'max_count': NUM_LINK_LEVELS        }, # 0:PciE-gen1 1:PciE-gen2 2:PciE-gen3 3:PciE-gen4
+    { 'name': "PcieLaneCount"                  , 'type': 'PcieLaneCount'       , 'max_count': NUM_LINK_LEVELS        }, # 1=x1, 2=x2, 3=x4, 4=x8, 5=x12, 6=x16
+    { 'name': "LclkFreq"                       , 'type': 'LclkFreq'            , 'max_count': NUM_LINK_LEVELS        },
+
+    # SECTION: GFXCLK Thermal DPM (formerly 'Boost' Settings)
+    { 'name': "EnableTdpm"                     , 'type': 'uint16_t' },
+    { 'name': "TdpmHighHystTemperature"        , 'type': 'uint16_t' },
+    { 'name': "TdpmLowHystTemperature"         , 'type': 'uint16_t' },
+    { 'name': "GfxclkFreqHighTempLimit"        , 'type': 'uint16_t' }, # High limit on GFXCLK when temperature is high, for reliability
+
+    # SECTION: Fan Control
+    { 'name': "FanStopTemp"                    , 'type': 'uint16_t' }, # Celsius
+    { 'name': "FanStartTemp"                   , 'type': 'uint16_t' }, # Celsius
+
+    { 'name': "FanGainEdge"                    , 'type': 'uint16_t' },
+    { 'name': "FanGainHotspot"                 , 'type': 'uint16_t' },
+    { 'name': "FanGainLiquid0"                 , 'type': 'uint16_t' },
+    { 'name': "FanGainLiquid1"                 , 'type': 'uint16_t' },
+    { 'name': "FanGainVrGfx"                   , 'type': 'uint16_t' },
+    { 'name': "FanGainVrSoc"                   , 'type': 'uint16_t' },
+    { 'name': "FanGainVrMem0"                  , 'type': 'uint16_t' },
+    { 'name': "FanGainVrMem1"                  , 'type': 'uint16_t' },
+    { 'name': "FanGainPlx"                     , 'type': 'uint16_t' },
+    { 'name': "FanGainMem"                     , 'type': 'uint16_t' },
+    { 'name': "FanPwmMin"                      , 'type': 'uint16_t' },
+    { 'name': "FanAcousticLimitRpm"            , 'type': 'uint16_t' },
+    { 'name': "FanThrottlingRpm"               , 'type': 'uint16_t' },
+    { 'name': "FanMaximumRpm"                  , 'type': 'uint16_t' },
+    { 'name': "FanTargetTemperature"           , 'type': 'uint16_t' },
+    { 'name': "FanTargetGfxclk"                , 'type': 'uint16_t' },
+    { 'name': "FanTempInputSelect"             , 'type': 'uint8_t'  },
+    { 'name': "FanPadding"                     , 'type': 'uint8_t'  },
+    { 'name': "FanZeroRpmEnable"               , 'type': 'uint8_t'  },
+    { 'name': "FanTachEdgePerRev"              , 'type': 'uint8_t'  },
+
+    # The following are AFC override parameters. Leave at 0 to use FW defaults
+    { 'name': "FuzzyFan_ErrorSetDelta"         , 'type': 'int16_t'  },
+    { 'name': "FuzzyFan_ErrorRateSetDelta"     , 'type': 'int16_t'  },
+    { 'name': "FuzzyFan_PwmSetDelta"           , 'type': 'int16_t'  },
+    { 'name': "FuzzyFan_Reserved"              , 'type': 'uint16_t' },
+
+    # SECTION: AVFS
+    # Overrides
+    { 'name': "OverrideAvfsGb"                 , 'type': 'OverrideAvfsGb'      , 'max_count': AVFS_VOLTAGE_COUNT     },
+    { 'name': "Padding8_Avfs"                  , 'type': 'Padding8_Avfs'       , 'max_count': 2                      },
+
+    { 'name': "qAvfsGb"                        , 'type': 'QuadraticInt_t'      , 'max_count': AVFS_VOLTAGE_COUNT     }, # GHz->V Override of fused curve
+    { 'name': "dBtcGbGfxPll"                   , 'type': 'DroopInt_t' }, # GHz->V BtcGb
+    { 'name': "dBtcGbGfxDfll"                  , 'type': 'DroopInt_t' }, # GHz->V BtcGb
+    { 'name': "dBtcGbSoc"                      , 'type': 'DroopInt_t' }, # GHz->V BtcGb
+    { 'name': "qAgingGb"                       , 'type': 'LinearInt_t'         , 'max_count': AVFS_VOLTAGE_COUNT     }, # GHz->V
+
+    { 'name': "qStaticVoltageOffset"           , 'type': 'QuadraticInt_t'      , 'max_count': AVFS_VOLTAGE_COUNT     }, # GHz->V
+
+    { 'name': "DcTol"                          , 'type': 'DcTol'               , 'max_count': AVFS_VOLTAGE_COUNT     }, # mV Q2
+
+    { 'name': "DcBtcEnabled"                   , 'type': 'DcBtcEnabled'        , 'max_count': AVFS_VOLTAGE_COUNT     },
+    { 'name': "Padding8_GfxBtc"                , 'type': 'Padding8_GfxBtc'     , 'max_count': 2                      },
+
+    { 'name': "DcBtcMin"                       , 'type': 'DcBtcMin'            , 'max_count': AVFS_VOLTAGE_COUNT     }, # mV Q2
+    { 'name': "DcBtcMax"                       , 'type': 'DcBtcMax'            , 'max_count': AVFS_VOLTAGE_COUNT     }, # mV Q2
+
+    # SECTION: Advanced Options
+    { 'name': "DebugOverrides"                 , 'type': 'uint32_t' },
+    { 'name': "ReservedEquation0"              , 'type': 'QuadraticInt_t' },
+    { 'name': "ReservedEquation1"              , 'type': 'QuadraticInt_t' },
+    { 'name': "ReservedEquation2"              , 'type': 'QuadraticInt_t' },
+    { 'name': "ReservedEquation3"              , 'type': 'QuadraticInt_t' },
+
+    # Total Power configuration, use defines from PwrConfig_e
+    { 'name': "TotalPowerConfig"               , 'type': 'uint8_t'  }, # 0-TDP, 1-TGP, 2-TCP Estimated, 3-TCP Measured
+    { 'name': "TotalPowerSpare1"               , 'type': 'uint8_t'  },
+    { 'name': "TotalPowerSpare2"               , 'type': 'uint16_t' },
+
+    # APCC Settings
+    { 'name': "PccThresholdLow"                , 'type': 'uint16_t' },
+    { 'name': "PccThresholdHigh"               , 'type': 'uint16_t' },
+    { 'name': "PaddingAPCC"                    , 'type': 'PaddingAPCC'         , 'max_count': 6 }, # FIXME pending SPEC
+
+    # Temperature Dependent Vmin
+    { 'name': "VDDGFX_TVmin"                   , 'type': 'uint16_t' }, # Celsius
+    { 'name': "VDDSOC_TVmin"                   , 'type': 'uint16_t' }, # Celsius
+    { 'name': "VDDGFX_Vmin_HiTemp"             , 'type': 'uint16_t' }, # mV Q2
+    { 'name': "VDDGFX_Vmin_LoTemp"             , 'type': 'uint16_t' }, # mV Q2
+    { 'name': "VDDSOC_Vmin_HiTemp"             , 'type': 'uint16_t' }, # mV Q2
+    { 'name': "VDDSOC_Vmin_LoTemp"             , 'type': 'uint16_t' }, # mV Q2
+
+    { 'name': "VDDGFX_TVminHystersis"          , 'type': 'uint16_t' }, # Celsius
+    { 'name': "VDDSOC_TVminHystersis"          , 'type': 'uint16_t' }, # Celsius
+
+    # BTC Setting
+    { 'name': "BtcConfig"                      , 'type': 'uint32_t' },
+
+    { 'name': "SsFmin"                         , 'type': 'SsFmin'              , 'max_count': 10 }, # PPtable value to function similar to VFTFmin for SS Curve; Size is PPCLK_COUNT rounded to nearest multiple of 2
+    { 'name': "DcBtcGb"                        , 'type': 'DcBtcGb'             , 'max_count': AVFS_VOLTAGE_COUNT },
+
+    # SECTION: Board Reserved
+    { 'name': "Reserved"                       , 'type': 'Padding32'           , 'max_count': 8 },
+
+    # SECTION: Board Parameters
+    # I2C Control
+    { 'name': "I2cControllers"                 , 'type': 'Navi_I2cControllerConfig_t', 'max_count': NUM_I2C_CONTROLLERS },
+
+    # SVI2 Board Parameters
+    { 'name': "MaxVoltageStepGfx"              , 'type': 'uint16_t' }, # In mV(Q2) Max voltage step that SMU will request. Multiple steps are taken if voltage change exceeds this value
+    { 'name': "MaxVoltageStepSoc"              , 'type': 'uint16_t' }, # In mV(Q2) Max voltage step that SMU will request. Multiple steps are taken if voltage change exceeds this value
+
+    { 'name': "VddGfxVrMapping"                , 'type': 'uint8_t'  }, # Use VR_MAPPING* bitfields
+    { 'name': "VddSocVrMapping"                , 'type': 'uint8_t'  }, # Use VR_MAPPING* bitfields
+    { 'name': "VddMem0VrMapping"               , 'type': 'uint8_t'  }, # Use VR_MAPPING* bitfields
+    { 'name': "VddMem1VrMapping"               , 'type': 'uint8_t'  }, # Use VR_MAPPING* bitfields
+
+    { 'name': "GfxUlvPhaseSheddingMask"        , 'type': 'uint8_t'  }, # set this to 1 to set PSI0/1 to 1 in ULV mode
+    { 'name': "SocUlvPhaseSheddingMask"        , 'type': 'uint8_t'  }, # set this to 1 to set PSI0/1 to 1 in ULV mode
+    { 'name': "ExternalSensorPresent"          , 'type': 'uint8_t'  }, # External RDI connected to TMON (aka TEMP IN)
+    { 'name': "Padding8_V"                     , 'type': 'uint8_t'  },
+
+    # Telemetry Settings
+    { 'name': "GfxMaxCurrent"                  , 'type': 'uint16_t' }, # in Amps
+    { 'name': "GfxOffset"                      , 'type': 'int8_t'   }, # in Amps
+    { 'name': "Padding_TelemetryGfx"           , 'type': 'uint8_t'  },
+
+    { 'name': "SocMaxCurrent"                  , 'type': 'uint16_t' }, # in Amps
+    { 'name': "SocOffset"                      , 'type': 'int8_t'   }, # in Amps
+    { 'name': "Padding_TelemetrySoc"           , 'type': 'uint8_t'  },
+
+    { 'name': "Mem0MaxCurrent"                 , 'type': 'uint16_t' }, # in Amps
+    { 'name': "Mem0Offset"                     , 'type': 'int8_t'   }, # in Amps
+    { 'name': "Padding_TelemetryMem0"          , 'type': 'uint8_t'  },
+
+    { 'name': "Mem1MaxCurrent"                 , 'type': 'uint16_t' }, # in Amps
+    { 'name': "Mem1Offset"                     , 'type': 'int8_t'   }, # in Amps
+    { 'name': "Padding_TelemetryMem1"          , 'type': 'uint8_t'  },
+
+    # GPIO Settings
+    { 'name': "AcDcGpio"                       , 'type': 'uint8_t'  }, # GPIO pin configured for AC/DC switching
+    { 'name': "AcDcPolarity"                   , 'type': 'uint8_t'  }, # GPIO polarity for AC/DC switching
+    { 'name': "VR0HotGpio"                     , 'type': 'uint8_t'  }, # GPIO pin configured for VR0 HOT event
+    { 'name': "VR0HotPolarity"                 , 'type': 'uint8_t'  }, # GPIO polarity for VR0 HOT event
+
+    { 'name': "VR1HotGpio"                     , 'type': 'uint8_t'  }, # GPIO pin configured for VR1 HOT event
+    { 'name': "VR1HotPolarity"                 , 'type': 'uint8_t'  }, # GPIO polarity for VR1 HOT event
+    { 'name': "GthrGpio"                       , 'type': 'uint8_t'  }, # GPIO pin configured for GTHR Event
+    { 'name': "GthrPolarity"                   , 'type': 'uint8_t'  }, # replace GPIO polarity for GTHR
+
+    # LED Display Settings
+    { 'name': "LedPin0"                        , 'type': 'uint8_t'  }, # GPIO number for LedPin[0]
+    { 'name': "LedPin1"                        , 'type': 'uint8_t'  }, # GPIO number for LedPin[1]
+    { 'name': "LedPin2"                        , 'type': 'uint8_t'  }, # GPIO number for LedPin[2]
+    { 'name': "padding8_4"                     , 'type': 'uint8_t'  },
+
+    # GFXCLK PLL Spread Spectrum
+    { 'name': "PllGfxclkSpreadEnabled"         , 'type': 'uint8_t'  }, # on or off
+    { 'name': "PllGfxclkSpreadPercent"         , 'type': 'uint8_t'  }, # Q4.4
+    { 'name': "PllGfxclkSpreadFreq"            , 'type': 'uint16_t' }, # kHz
+
+    # GFXCLK DFLL Spread Spectrum
+    { 'name': "DfllGfxclkSpreadEnabled"        , 'type': 'uint8_t'  }, # on or off
+    { 'name': "DfllGfxclkSpreadPercent"        , 'type': 'uint8_t'  }, # Q4.4
+    { 'name': "DfllGfxclkSpreadFreq"           , 'type': 'uint16_t' }, # kHz
+
+    # UCLK Spread Spectrum
+    { 'name': "UclkSpreadEnabled"              , 'type': 'uint8_t'  }, # on or off
+    { 'name': "UclkSpreadPercent"              , 'type': 'uint8_t'  }, # Q4.4
+    { 'name': "UclkSpreadFreq"                 , 'type': 'uint16_t' }, # kHz
+
+    # SOCCLK Spread Spectrum
+    { 'name': "SoclkSpreadEnabled"             , 'type': 'uint8_t'  }, # on or off
+    { 'name': "SocclkSpreadPercent"            , 'type': 'uint8_t'  }, # Q4.4
+    { 'name': "SocclkSpreadFreq"               , 'type': 'uint16_t' }, # kHz
+
+    # Total board power
+    { 'name': "TotalBoardPower"                , 'type': 'uint16_t' }, # Only needed for TCP Estimated case, where TCP = TGP+Total Board Power
+    { 'name': "BoardPadding"                   , 'type': 'uint16_t' },
+
+    # Mvdd Svi2 Div Ratio Setting
+    { 'name': "MvddRatio"                      , 'type': 'uint32_t' }, # This is used for MVDD Vid workaround. It has 16 fractional bits (Q16.16)
+
+    { 'name': "BoardReserved"                  , 'type': 'Padding32', 'max_count': 9 },
+
+    # Padding for MMHUB - do not modify this
+    { 'name': "MmHubPadding"                   , 'type': 'Padding32', 'max_count': 8 } # SMU internal use
+]
