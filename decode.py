@@ -261,7 +261,7 @@ def get_value(pp_bin_file, var_path, data_dict=None, debug=False):
     else:
         data = data_dict.copy()
     for category in var_path:
-        if category:
+        if category is not None:
             # helper that allows skipping the 'Entries' key name
             if (isinstance(category, int)
                and isinstance(data, dict) and 'Entries' in data):
