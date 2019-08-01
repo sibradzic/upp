@@ -51,6 +51,7 @@ def cli(ctx, debug, input_file):
       - Polaris
       - Vega
       - Radeon VII
+      - Navi 10
 
     Note: iGPUs found in many recent AMD APUs are using completely different
     PowerPlay control methods, this tool does not support them.
