@@ -12,10 +12,19 @@ def _normalize_var_path(var_path_str):
       int(item) if item.isdigit() else item for item in var_path_list]
     return normalized_var_path_list
 
+def _is_int_or_float(value):
+    if value.isdigit():
+        return True
+    try:
+        float(value)
+        return True
+    except ValueError:
+        pass
+    return False
 
 def _validate_set_pair(set_pair):
     valid = False
-    if '=' in set_pair and set_pair.split('=')[-1].isdigit():
+    if '=' in set_pair and _is_int_or_float(set_pair.split('=')[-1]):
         return set_pair.split('=')
     else:
         print("ERROR: Invalid variable assignment '{}'. ".format(set_pair),
@@ -142,7 +151,10 @@ def set(ctx, variable_path_set, write):
             var_path = _normalize_var_path(var)
             res = decode.get_value(input_file, var_path)
             if res:
-                set_pairs += [var_path + [int(val)]]
+                if (val.isdigit()):
+                    set_pairs += [var_path + [int(val)]]
+                else:
+                    set_pairs += [var_path + [float(val)]]
             else:
                 print('ERROR: Incorrect variable path:', var)
                 return 2
