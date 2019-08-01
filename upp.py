@@ -127,8 +127,7 @@ def set(ctx, variable_path_set, write):
     "/<param>=<value> notation", for example:
 
     \b
-        /PowerTuneTable/TDP=75
-        /SocClockDependencyTable/7/SocClock=107000
+        /PowerTuneTable/TDP=75 /SocClockDependencyTable/7/SocClock=107000
 
     Multiple PP parameters can be set at the same time.
     The PP tables will not be changed unless additional

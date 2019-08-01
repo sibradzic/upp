@@ -43,6 +43,7 @@ At its current form this is a CLI only tool. Getting help:
         - Polaris
         - Vega
         - Radeon VII
+        - Navi 10
 
       Note: iGPUs found in many recent AMD APUs are using completely different
       PowerPlay control methods, this tool does not support them.
@@ -109,8 +110,7 @@ Setting parameters:
       The parameter path and value must be specified in "/<param>=<value>
       notation", for example:
 
-          /PowerTuneTable/TDP=75
-          /SocClockDependencyTable/7/SocClock=107000
+          /PowerTuneTable/TDP=75 /SocClockDependencyTable/7/SocClock=107000
 
       Multiple PP parameters can be set at the same time. The PP tables will not
       be changed unless additional --write option is set.
