@@ -461,11 +461,12 @@ PowerTuneTable_v7 = [
     { 'name': "Reserved2"                      , 'type': 'uint32_t' }
 ]
 
-HardLimitTable_v52 = [
+# "Special" revision 1, found on some Laptops with embedded Polaris GPUs 
+HardLimitTable_v1 = HardLimitTable_v52 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
     { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'HardLimitEntry' }
 ]
-HardLimitEntry_v52 = [
+HardLimitEntry_v1 = HardLimitEntry_v52 = [
     { 'name': "SocClockLimit"                  , 'type': 'uint32_t' },
     { 'name': "MemClockLimit"                  , 'type': 'uint32_t' },
     { 'name': "VddcLimit"                      , 'type': 'uint16_t' },
