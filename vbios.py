@@ -22,6 +22,7 @@ PowerPlay_header = [
 ]
 
 # Polaris, Tonga
+# drivers/gpu/drm/amd/powerplay/hwmgr/pptable_v1_0.h
 PowerPlayTable_v7 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
     { 'name': "TableSize"                      , 'type': 'uint16_t' },
@@ -39,7 +40,7 @@ PowerPlayTable_v7 = [
     { 'name': "ThermalController"              , 'type': 'uint16_t' , 'ref': 'ThermalController'        },
     { 'name': "Reserved1"                      , 'type': 'uint16_t' },
     { 'name': "MemClockDependencyTable"        , 'type': 'uint16_t' , 'ref': 'MemClockDependencyTable'  },
-    { 'name': "SocClockDependencyTable"        , 'type': 'uint16_t' , 'ref': 'SocClockDependencyTable'  },
+    { 'name': "SocClockDependencyTable"        , 'type': 'uint16_t' , 'ref': 'Tonga_SocClockDependencyTable' },
     { 'name': "VddcLookupTable"                , 'type': 'uint16_t' , 'ref': 'VoltageLookupTable'       },
     { 'name': "VddGfxLookupTable"              , 'type': 'uint16_t' , 'ref': 'VoltageLookupTable'       },
     { 'name': "MMDependencyTable"              , 'type': 'uint16_t' , 'ref': 'MMDependencyTable'        },
@@ -56,7 +57,9 @@ PowerPlayTable_v7 = [
     { 'name': "Reserved6"                      , 'type': 'uint16_t' },
     { 'name': "Reserved7"                      , 'type': 'uint16_t' }
 ]
+
 # Vega 10
+# drivers/gpu/drm/amd/powerplay/hwmgr/vega10_pptable.h
 PowerPlayTable_v8 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
     { 'name': "TableSize"                      , 'type': 'uint16_t' },
@@ -82,7 +85,7 @@ PowerPlayTable_v8 = [
     { 'name': "StateTable"                     , 'type': 'uint16_t' , 'ref': 'StateTable'               },
     { 'name': "FanTable"                       , 'type': 'uint16_t' , 'ref': 'FanTable'                 },
     { 'name': "ThermalController"              , 'type': 'uint16_t' , 'ref': 'ThermalController'        },
-    { 'name': "SocClockDependencyTable"        , 'type': 'uint16_t' , 'ref': 'SocClockDependencyTable'  },
+    { 'name': "SocClockDependencyTable"        , 'type': 'uint16_t' , 'ref': 'Vega_SocClockDependencyTable' },
     { 'name': "MemClockDependencyTable"        , 'type': 'uint16_t' , 'ref': 'MemClockDependencyTable'  },
     { 'name': "GfxClockDependencyTable"        , 'type': 'uint16_t' , 'ref': 'GfxClockDependencyTable'  },
     { 'name': "DcefClockDependencyTable"       , 'type': 'uint16_t' , 'ref': 'DcefClockDependencyTable' },
@@ -211,15 +214,6 @@ StateEntry_v1 = StateEntry_v2 = [
     { 'name': "Reserved1"                      , 'type': 'uint32_t' }
 ]
 
-DcefClockDependencyTable_v0 = [
-    { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
-    { 'name': "NumEntries"                     , 'type': 'uint8_t', 'ref': 'DcefClockDependencyEntry' },
-]
-DcefClockDependencyEntry_v0 = [
-    { 'name': "Clock"                          , 'type': 'uint32_t' },
-    { 'name': "VddIndex"                       , 'type': 'uint8_t'  }  # Base voltage.
-]
-
 FanTable_v9 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
     { 'name': "THyst"                          , 'type': 'uint8_t'  }, # Temperature hysteresis.
@@ -293,11 +287,11 @@ MemClockDependencyEntry_v1 = [
     { 'name': "VddciIndex"                     , 'type': 'uint8_t'  }
 ]
 
-SocClockDependencyTable_v0 = SocClockDependencyTable_v1 = [
+Tonga_SocClockDependencyTable_v0 = Tonga_SocClockDependencyTable_v1 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
-    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'SocClockDependencyEntry' }
+    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'Tonga_SocClockDependencyEntry' }
 ]
-SocClockDependencyEntry_v0 = [
+Tonga_SocClockDependencyEntry_v0 = [
     { 'name': "VddIndex"                       , 'type': 'uint8_t'  }, # Base voltage.
     { 'name': "VddcOffset"                     , 'type': 'int16_t'  }, # Offset relative to base voltage.
     { 'name': "SocClock"                       , 'type': 'uint32_t' },
@@ -305,7 +299,7 @@ SocClockDependencyEntry_v0 = [
     { 'name': "ReliabilityTemperature"         , 'type': 'uint8_t'  },
     { 'name': "CKSOffsetAndDisable"            , 'type': 'uint8_t'  }  # Bits 0~6: Voltage offset for CKS, Bit 7: Disable/enable for the SOC clock level.
 ]
-SocClockDependencyEntry_v1 = [
+Tonga_SocClockDependencyEntry_v1 = [
     { 'name': "Vddc"                           , 'type': 'uint8_t'  }, # Base voltage.
     { 'name': "VddcOffset"                     , 'type': 'int16_t'  }, # Offset relative to base voltage.
     { 'name': "SocClock"                       , 'type': 'uint32_t' },
@@ -461,7 +455,7 @@ PowerTuneTable_v7 = [
     { 'name': "Reserved2"                      , 'type': 'uint32_t' }
 ]
 
-# "Special" revision 1, found on some Laptops with embedded Polaris GPUs 
+# "Special" revision 1, found on some Laptops with embedded Polaris GPUs
 HardLimitTable_v1 = HardLimitTable_v52 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
     { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'HardLimitEntry' }
@@ -518,32 +512,31 @@ GfxClockDependencyEntry_v1 = [
     { 'name': "Reserved2"                      , 'type': 'uint8_t'  }
 ]
 
+Vega_SocClockDependencyTable_v0 = [
+    { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
+    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'Vega10_CLK_Dependency_Record' }
+]
+DcefClockDependencyTable_v0 = [
+    { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
+    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'Vega10_CLK_Dependency_Record' }
+]
 PixClockDependencyTable_v0 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
-    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'PixClockDependencyEntry' },
+    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'Vega10_CLK_Dependency_Record' }
 ]
-PixClockDependencyEntry_v0 = [
-    { 'name': "Clock"                          , 'type': 'uint32_t' },
-    { 'name': "VddIndex"                       , 'type': 'uint8_t'  }  # Base voltage.
-]
-
 DispClockDependencyTable_v0 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
-    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'DispClockDependencyEntry' },
+    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'Vega10_CLK_Dependency_Record' }
 ]
-DispClockDependencyEntry_v0 = [
-    { 'name': "Clock"                          , 'type': 'uint32_t' },
-    { 'name': "VddIndex"                       , 'type': 'uint8_t'  }  # Base voltage.
-]
-
 PhyClockDependencyTable_v0 = [
     { 'name': "RevisionId"                     , 'type': 'uint8_t'  },
-    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'PhyClockDependencyEntry' },
+    { 'name': "NumEntries"                     , 'type': 'uint8_t'  , 'ref': 'Vega10_CLK_Dependency_Record' }
 ]
-PhyClockDependencyEntry_v0 = [
-    { 'name': "Clock"                          , 'type': 'uint32_t' },
-    { 'name': "VddIndex"                       , 'type': 'uint8_t'  }  # Base voltage.
+Vega10_CLK_Dependency_Record_v0 = [
+    { 'name': "ulClk"                          , 'type': 'uint32_t' }, # Frequency of Clock
+    { 'name': "ucVddInd"                       , 'type': 'uint8_t'  }  # Base voltage.
 ]
+
 
 # drivers/gpu/drm/amd/powerplay/inc/smu11_driver_if.h
 Vega_PPCLK_COUNT = 11
