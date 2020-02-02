@@ -274,7 +274,7 @@ def get_value(pp_bin_file, var_path, data_dict=None, debug=False):
                 return None
             except (TypeError, IndexError):
                 if isinstance(data, list):
-                    indices = [str(i) for i in range(len(data)-1)]
+                    indices = [str(i) for i in range(len(data))]
                 else:
                     indices = []
                 msg = 'ERROR: Invalid parameter "{}", available ones are: {}'
