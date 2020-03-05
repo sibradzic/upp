@@ -125,7 +125,7 @@ def decode_pp_table(pp_bin_file, data_struct=vbios.PowerPlay_header,
         # immediately folllowing data tables or arrays (no jumping to offset)
         else:
             if debug:
-                dbg_msg = ' 0x{:04x} Recursive dive into following {}'
+                dbg_msg = ' 0x{:04x} Recursive dive into {}'
                 print(dbg_msg.format(offset, name))
             decoded_data[name] = odict()
             # 'max_count' here indicates complex array of pre-determined size

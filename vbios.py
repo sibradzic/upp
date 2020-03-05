@@ -161,8 +161,8 @@ smu_11_0_overdrive_table = [
     { 'name': "ucODTableRevision"              , 'type': 'uint8_t'  },
     { 'name': "Reserve"                        , 'type': 'PaddingByte', 'max_count': 3 },
     { 'name': "ODFeatureCount"                 , 'type': 'uint32_t' },
-    { 'name': "ODFeatureCapabilities"          , 'type': 'ODFeatureCapabilities', 'max_count': SMU_11_0_MAX_ODFEATURE },
     { 'name': "ODSettingCount"                 , 'type': 'uint32_t' },
+    { 'name': "ODFeatureCapabilities"          , 'type': 'ODFeatureCapabilities', 'max_count': SMU_11_0_MAX_ODFEATURE },
     { 'name': "ODSettingsMax"                  , 'type': 'ODSettingsMax', 'max_count': SMU_11_0_MAX_ODSETTING },
     { 'name': "ODSettingsMin"                  , 'type': 'ODSettingsMin', 'max_count': SMU_11_0_MAX_ODSETTING }
 ]
@@ -202,16 +202,13 @@ StateTable_v1 = StateTable_v2 = [
 StateEntry_v1 = StateEntry_v2 = [
     { 'name': "SocClockIndexHigh"              , 'type': 'uint8_t'  },
     { 'name': "SocClockIndexLow"               , 'type': 'uint8_t'  },
+    { 'name': "GfxClockIndexHigh"              , 'type': 'uint8_t'  },
+    { 'name': "GfxClockIndexLow"               , 'type': 'uint8_t'  },
     { 'name': "MemClockIndexHigh"              , 'type': 'uint8_t'  },
     { 'name': "MemClockIndexLow"               , 'type': 'uint8_t'  },
-    { 'name': "PCIEGenLow"                     , 'type': 'uint8_t'  },
-    { 'name': "PCIEGenHigh"                    , 'type': 'uint8_t'  },
-    { 'name': "PCIELaneLow"                    , 'type': 'uint8_t'  },
-    { 'name': "PCIELaneHigh"                   , 'type': 'uint8_t'  },
     { 'name': "Classification"                 , 'type': 'uint16_t' },
     { 'name': "CapsAndSettings"                , 'type': 'uint32_t' },
-    { 'name': "Classification2"                , 'type': 'uint16_t' },
-    { 'name': "Reserved1"                      , 'type': 'uint32_t' }
+    { 'name': "Classification2"                , 'type': 'uint16_t' }
 ]
 
 FanTable_v9 = [
@@ -264,7 +261,6 @@ ThermalController_v1 = [
     { 'name': "FanParameters"                  , 'type': 'uint8_t'  },
     { 'name': "FanMinRPM"                      , 'type': 'uint8_t'  }, # Minimum RPM (hundreds), for display purposes only.
     { 'name': "FanMaxRPM"                      , 'type': 'uint8_t'  }, # Maximum RPM (hundreds), for display purposes only.
-    { 'name': "Reserved1"                      , 'type': 'uint8_t'  },
     { 'name': "Flags"                          , 'type': 'uint8_t'  }
 ]
 
@@ -275,7 +271,7 @@ MemClockDependencyTable_v0 = MemClockDependencyTable_v1 = [
 MemClockDependencyEntry_v0 = [
     { 'name': "Vddc"                           , 'type': 'uint8_t'  },
     { 'name': "Vddci"                          , 'type': 'uint16_t' },
-    { 'name': "VddcGfxOffset"                  , 'type': 'int16_t'  }, # Offset relative to Vddc voltage.
+    { 'name': "VddcGfxOffset"                  , 'type': 'uint16_t' }, # Offset relative to Vddc voltage.
     { 'name': "Mvdd"                           , 'type': 'uint16_t' },
     { 'name': "MemClock"                       , 'type': 'uint32_t' },
     { 'name': "Reserved1"                      , 'type': 'uint16_t' }
@@ -293,7 +289,7 @@ Tonga_SocClockDependencyTable_v0 = Tonga_SocClockDependencyTable_v1 = [
 ]
 Tonga_SocClockDependencyEntry_v0 = [
     { 'name': "VddIndex"                       , 'type': 'uint8_t'  }, # Base voltage.
-    { 'name': "VddcOffset"                     , 'type': 'int16_t'  }, # Offset relative to base voltage.
+    { 'name': "VddcOffset"                     , 'type': 'uint16_t' }, # Offset relative to base voltage.
     { 'name': "SocClock"                       , 'type': 'uint32_t' },
     { 'name': "EDCCurrent"                     , 'type': 'uint16_t' },
     { 'name': "ReliabilityTemperature"         , 'type': 'uint8_t'  },
@@ -301,7 +297,7 @@ Tonga_SocClockDependencyEntry_v0 = [
 ]
 Tonga_SocClockDependencyEntry_v1 = [
     { 'name': "Vddc"                           , 'type': 'uint8_t'  }, # Base voltage.
-    { 'name': "VddcOffset"                     , 'type': 'int16_t'  }, # Offset relative to base voltage.
+    { 'name': "VddcOffset"                     , 'type': 'uint16_t' }, # Offset relative to base voltage.
     { 'name': "SocClock"                       , 'type': 'uint32_t' },
     { 'name': "EDCCurrent"                     , 'type': 'uint16_t' },
     { 'name': "ReliabilityTemperature"         , 'type': 'uint8_t'  },
@@ -329,7 +325,7 @@ MMDependencyTable_v0 = MMDependencyTable_v1 = [
 ]
 MMDependencyEntry_v0 = [
     { 'name': "Vddc"                           , 'type': 'uint8_t'  }, # Vddc voltage.
-    { 'name': "VddcGfxOffset"                  , 'type': 'int16_t'  }, # Offset relative to Vddc voltage.
+    { 'name': "VddcGfxOffset"                  , 'type': 'uint16_t' }, # Offset relative to Vddc voltage.
     { 'name': "DCLK"                           , 'type': 'uint32_t' }, # UVD D-clock.
     { 'name': "VCLK"                           , 'type': 'uint32_t' }, # UVD V-clock.
     { 'name': "ECLK"                           , 'type': 'uint32_t' }, # VCE clock.
@@ -1061,7 +1057,8 @@ Navi10_PPTable_t = [
     # APCC Settings
     { 'name': "PccThresholdLow"                , 'type': 'uint16_t' },
     { 'name': "PccThresholdHigh"               , 'type': 'uint16_t' },
-    { 'name': "PaddingAPCC"                    , 'type': 'PaddingAPCC'         , 'max_count': 6 }, # FIXME pending SPEC
+    { 'name': "MGpuFanBoostLimitRpm"           , 'type': 'uint32_t' },
+    { 'name': "PaddingAPCC"                    , 'type': 'PaddingAPCC'         , 'max_count': 5 }, # FIXME pending SPEC
 
     # Temperature Dependent Vmin
     { 'name': "VDDGFX_TVmin"                   , 'type': 'uint16_t' }, # Celsius
@@ -1162,7 +1159,12 @@ Navi10_PPTable_t = [
     # Mvdd Svi2 Div Ratio Setting
     { 'name': "MvddRatio"                      , 'type': 'uint32_t' }, # This is used for MVDD Vid workaround. It has 16 fractional bits (Q16.16)
 
-    { 'name': "BoardReserved"                  , 'type': 'Padding32', 'max_count': 9 },
+    { 'name': "RenesesLoadLineEnabled"         , 'type': 'uint8_t'  },
+    { 'name': "GfxLoadlineResistance"          , 'type': 'uint8_t'  },
+    { 'name': "SocLoadlineResistance"          , 'type': 'uint8_t'  },
+    { 'name': "Padding8_Loadline"              , 'type': 'uint8_t'  },
+
+    { 'name': "BoardReserved"                  , 'type': 'Padding32', 'max_count': 8 },
 
     # Padding for MMHUB - do not modify this
     { 'name': "MmHubPadding"                   , 'type': 'Padding32', 'max_count': 8 } # SMU internal use
