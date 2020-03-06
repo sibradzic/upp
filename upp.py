@@ -34,12 +34,13 @@ def _validate_set_pair(set_pair):
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.option('-i', '--input-file', help='Path to PP table binary file',
+@click.option('-i', '--pp-file', help='Input/output PP table binary file',
+              metavar='<filename>',
               default='/sys/class/drm/card0/device/pp_table')
 @click.option('--debug/--no-debug', '-d/ ', default='False',
               help='Debug mode')
 @click.pass_context
-def cli(ctx, debug, input_file):
+def cli(ctx, debug, pp_file):
     """UPP: Uplift Power Play
 
     A tool for parsing, dumping and modifying data in Radeon PowerPlay tables.
@@ -47,8 +48,8 @@ def cli(ctx, debug, input_file):
     UPP is able to parse and modify binary data structures of PowerPlay
     tables commonly found on certain AMD Radeon GPUs. Drivers on recent
     AMD GPUs allow PowerPlay tables to be dynamically modified on runtime,
-    which may be known as "soft-PowerPlay" in coin-mining community. On
-    Linux, the PP table is by default found at:
+    which may be known as "soft PowerPlay tables". On Linux, the PowerPlay
+    table is by default found at:
 
     \b
        /sys/class/drm/card0/device/pp_table
@@ -61,24 +62,26 @@ def cli(ctx, debug, input_file):
       - Vega
       - Radeon VII
       - Navi 10
+      - Navi 14
 
     Note: iGPUs found in many recent AMD APUs are using completely different
     PowerPlay control methods, this tool does not support them.
 
-    I you have bugs to report or features to request please check:
+    If you have bugs to report or features to request please check:
 
       github.com/sibradzic/upp
     """
     ctx.ensure_object(dict)
     ctx.obj['DEBUG'] = debug
-    ctx.obj['PPBINARY'] = input_file
+    ctx.obj['PPBINARY'] = pp_file
+
 
 @click.command(short_help='Dumps all PowerPlay parameters to console')
 @click.option('--raw/--no-raw', '-r/ ', help='Show raw binary data',
               default='False')
 @click.pass_context
 def dump(ctx, raw):
-    """Dumps all PowerPlay data to console
+    """Dump all PowerPlay data to console
 
     De-serializes PowerPlay binary data into a Python dictionary.
 
@@ -89,18 +92,31 @@ def dump(ctx, raw):
     as variable names and values, will be dumped.
     """
     debug = ctx.obj['DEBUG']
-    input_file = ctx.obj['PPBINARY']
+    pp_file = ctx.obj['PPBINARY']
     msg = "Dumping {} PP table from '{}' binary..."
-    if raw:
-        print(msg.format('raw', input_file))
-        decode.decode_pp_table(input_file, debug=True)
-    else:
-        print(msg.format('the', input_file))
-        decode.dump_pp_table(input_file, debug=debug)
+    decode.dump_pp_table(pp_file, rawdump=raw, debug=debug)
     return 0
 
 
-@click.command(short_help='Gets current value of a particular PP parameter')
+@click.command(short_help='Extract PowerPlay table from Video BIOS ROM image')
+@click.option('-r', '--video-rom', required=True, metavar='<filename>',
+              help='Input Video ROM binary image file ',)
+@click.pass_context
+def extract(ctx, video_rom):
+    """Extracts PowerPlay data from full VBIOS ROM image
+
+    Putput is original file with additional .pp_table extension.
+    """
+    pp_file = ctx.obj['PPBINARY']
+    ctx.obj['ROMBINARY'] = video_rom
+    msg = "Extracting PP table from '{}' ROM image..."
+    print(msg.format(video_rom))
+    decode.extract_rom(video_rom, pp_file)
+    print('Done')
+    return 0
+
+
+@click.command(short_help='Get current value of a PowerPlay parameter')
 @click.argument('variable-path')
 @click.pass_context
 def get(ctx, variable_path):
@@ -117,15 +133,15 @@ def get(ctx, variable_path):
     decoded and displayed on console.
     """
     debug = ctx.obj['DEBUG']
-    input_file = ctx.obj['PPBINARY']
+    pp_file = ctx.obj['PPBINARY']
     var_path = _normalize_var_path(variable_path)
-    res = decode.get_value(input_file, var_path, debug=debug)
+    res = decode.get_value(pp_file, var_path, debug=debug)
     if res:
         print(res['value'])
     return 0
 
 
-@click.command(short_help='Sets values to PP parameters')
+@click.command(short_help='Set value(s) to PowerPlay parameter(s)')
 @click.argument('variable-path-set', nargs=-1, required=True)
 @click.option('-w', '--write', is_flag=True,
               help='Write changes to PP binary', default=False)
@@ -144,13 +160,13 @@ def set(ctx, variable_path_set, write):
     --write option is set.
     """
     debug = ctx.obj['DEBUG']
-    input_file = ctx.obj['PPBINARY']
+    pp_file = ctx.obj['PPBINARY']
     set_pairs = []
     for set_pair_str in variable_path_set:
         var, val = _validate_set_pair(set_pair_str)
         if var and val:
             var_path = _normalize_var_path(var)
-            res = decode.get_value(input_file, var_path)
+            res = decode.get_value(pp_file, var_path)
             if res:
                 if (val.isdigit()):
                     set_pairs += [var_path + [int(val)]]
@@ -161,20 +177,24 @@ def set(ctx, variable_path_set, write):
                 return 2
         else:
             return 2
-    data = decode.decode_pp_table(input_file, debug=debug)
+
+    pp_bytes = decode._read_binary_file(pp_file)
+    data = decode.select_pp_struct(pp_bytes)
+
     for set_list in set_pairs:
-        decode.set_value(input_file, set_list[:-1], set_list[-1],
+        decode.set_value(pp_file, pp_bytes, set_list[:-1], set_list[-1],
                          data_dict=data, write=False, debug=debug)
     if write:
-        print("Commiting changes to '{}'.".format(input_file))
-        decode._write_pp_tables_file(input_file, decode.pp_tbl_bytes)
+        print("Commiting changes to '{}'.".format(pp_file))
+        decode._write_pp_tables_file(pp_file, pp_bytes)
     else:
-        print("WARNING: Nothing was written to '{}'.".format(input_file),
+        print("WARNING: Nothing was written to '{}'.".format(pp_file),
               "Add --write option to commit the changes for real!")
 
     return 0
 
 
+cli.add_command(extract)
 cli.add_command(dump)
 cli.add_command(get)
 cli.add_command(set)
