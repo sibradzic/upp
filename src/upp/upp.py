@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+# To run without install relative imports needs to match the module ones, which
+# is true when in 'src' directory, then: python3 -m upp.upp --help
 
 import click
-import decode
+from upp import decode
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -201,5 +202,10 @@ cli.add_command(dump)
 cli.add_command(get)
 cli.add_command(set)
 
-if __name__ == "__main__":
+
+def main():
     cli(obj={})()
+
+
+if __name__ == "__main__":
+    main()

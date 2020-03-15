@@ -2,9 +2,9 @@ import codecs
 import struct
 import ctypes
 
-import atom_gen.atombios as atombios
+from upp.atom_gen import atombios
 
-from atom_gen.atom import ATOM_ROM_TABLE_PTR, ATOM_ROM_PART_NUMBER_PTR
+from upp.atom_gen.atom import ATOM_ROM_TABLE_PTR, ATOM_ROM_PART_NUMBER_PTR
 from collections import OrderedDict
 from importlib import import_module
 
@@ -230,10 +230,10 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
     total_len = 0
     revid = struct.unpack('B', header_bytes[:1])[0]
     pp_module = import_module(module)
-
-    if module == 'atom_gen.pptable_v1_0':
+    module_suffix = '.'.join(module.split('.')[-2:])
+    if module_suffix == 'atom_gen.pptable_v1_0':
         family = 'Tonga'
-    elif module == 'atom_gen.vega10_pptable':
+    elif module_suffix == 'atom_gen.vega10_pptable':
         family = 'Vega10'
     else:
         print('ERROR: Module {} does not contain jump structures.', module)
@@ -529,19 +529,19 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
 
     if pp_ver == (7, 1):        # Polaris
         gpugen = 'Polaris'
-        import atom_gen.pptable_v1_0 as pp_struct
+        from upp.atom_gen import pptable_v1_0 as pp_struct
         ctypes_strct = pp_struct.struct__ATOM_Tonga_POWERPLAYTABLE
     elif pp_ver == (8, 1):      # Vega 10
         gpugen = 'Vega 10'
-        import atom_gen.vega10_pptable as pp_struct
+        from upp.atom_gen import vega10_pptable as pp_struct
         ctypes_strct = pp_struct.struct__ATOM_Vega10_POWERPLAYTABLE
     elif pp_ver == (11, 0):     # Vega 20 aka Radeon 7
         gpugen = 'Vega 20'
-        import atom_gen.vega20_pptable as pp_struct
+        from upp.atom_gen import vega20_pptable as pp_struct
         ctypes_strct = pp_struct.struct__ATOM_VEGA20_POWERPLAYTABLE
     elif pp_ver == (12, 0):     # Navi 10, 14
         gpugen = 'Navi 10 or 14'
-        import atom_gen.smu_v11_0_navi10 as pp_struct
+        from upp.atom_gen import smu_v11_0_navi10 as pp_struct
         ctypes_strct = pp_struct.struct_smu_11_0_powerplay_table
     elif pp_ver is not None:
         msg = 'Can not decode PowerPlay table version {}.{}'
