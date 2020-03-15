@@ -22,6 +22,7 @@ primitives = [
     ctypes.c_uint32, ctypes.c_float
 ]
 
+
 def odict(init_data=None):
     """
     Returns ordered dictionary (for consistent behavior on Python 2.7 & 3.6+)
@@ -173,7 +174,7 @@ def decode_pp_table(rawdata, c_struct):
 def _get_bigcap_indices(string):
     indices = []
     i = 0
-    while i < len(string)-1: # yes, we finish with 2nd last char in the string
+    while i < len(string)-1:  # yes, finish with 2nd last char in the string
         is_i_big = True if string[i].isupper() else False
         is_i_plus1_big = True if string[i+1].isupper() else False
         is_i_plus1_small = not is_i_plus1_big
@@ -189,7 +190,7 @@ def _get_bigcap_indices(string):
 
 
 def _print_raw_value(offset, symbol, rawbytes, name, value):
-    hexval =  _bytes2hex(rawbytes)
+    hexval = _bytes2hex(rawbytes)
     raw_msg = ' 0x{:04x} ({:04n}) {} {:>8} {:32s}: {:n}'
     # Polaris variable names have small-caps prefixes that we don't want
     big_caps = _get_bigcap_indices(name)
@@ -245,10 +246,13 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
             i = big_caps.index(big_letter)
             last = None if big_letter == big_caps[-1] else big_caps[i+1]
             word = name[big_letter:last]
-            if word.endswith('clk'): word = word.upper()
-            if word.startswith('Vdd'): word = 'Voltage'
-            if word == 'PPM': word = 'PowerTune'
-            if word == 'Tune':    # 'Power' + 'Tune' -> 'PowerTune'
+            if word.endswith('clk'):
+                word = word.upper()
+            if word.startswith('Vdd'):
+                word = 'Voltage'
+            if word == 'PPM':
+                word = 'PowerTune'
+            elif word == 'Tune':  # 'Power' + 'Tune' -> 'PowerTune'
                 words[-1] = words[-1] + word
             elif word == 'Clk':   # 'Disp' + 'Clk' -> 'DISPCLK'
                 words[-1] = words[-1].upper() + word.upper()
@@ -274,48 +278,50 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         cs = getattr(pp_module, resolve_cstruct(name))
 
     # The rest are 'complex' tables, that may have versions and suffixes
-    elif name == 'SclkDependencyTable': # ATOM_Polaris_SCLK_Dependency_Table
+    elif name == 'SclkDependencyTable':  # ATOM_Polaris_SCLK_Dependency_Table
         cs = getattr(pp_module, resolve_cstruct(name, 'Polaris'))
     elif name == 'GfxclkDependencyTable':
         # This by default points to ATOM_Vega10_GFXCLK_Dependency_Record, but
         # we need to override it to ATOM_Vega10_GFXCLK_Dependency_Record_V2
-        if revid == 1:                  # ATOM_Vega10_GFXCLK_Dependency_Table
+        if revid == 1:                   # ATOM_Vega10_GFXCLK_Dependency_Table
             cs = getattr(pp_module, resolve_cstruct(name))
             entries_class = cs._fields_[-1][-1]
             entry_name, entry_type = cs._fields_[-1]
             assert entry_type._length_ == 1
             record_struct = 'ATOM_Vega10_GFXCLK_Dependency_Record_V2'
             entry_type = getattr(pp_module, record_struct)
+
             class FixedEntriesTypeArray(ctypes.LittleEndianStructure):
                 _pack_ = cs._pack_
                 _fields_ = cs._fields_[:-1] + [(entry_name, entry_type * 1)]
+
             cs = FixedEntriesTypeArray
         else:
             cs = getattr(pp_module, resolve_cstruct(name))
     elif name == 'FanTable':
-        if revid == 9:                  # ATOM_Tonga_Fan_Table (v9)
+        if revid == 9:                   # ATOM_Tonga_Fan_Table (v9)
             cs = getattr(pp_module, resolve_cstruct(name))
-        elif revid == 10:               # ATOM_Vega10_Fan_Table (v10)
+        elif revid == 10:                # ATOM_Vega10_Fan_Table (v10)
             cs = getattr(pp_module, resolve_cstruct(name))
-        elif revid == 11:               # ATOM_Vega10_Fan_Table_V2 (v11)
+        elif revid == 11:                # ATOM_Vega10_Fan_Table_V2 (v11)
             cs = getattr(pp_module, resolve_cstruct(name) + '_V2')
-        else:                           # ATOM_Vega10_Fan_Table_V3 (v12+)
+        else:                            # ATOM_Vega10_Fan_Table_V3 (v12+)
             cs = getattr(pp_module, resolve_cstruct(name) + '_V3')
     elif name == 'PCIETable':
-        if revid == 1:                  # ATOM_Polaris10_PCIE_Table (v1)
+        if revid == 1:                   # ATOM_Polaris10_PCIE_Table (v1)
             cs = getattr(pp_module, resolve_cstruct(name, 'Polaris10'))
-        else:                           # ATOM_Vega10_PCIE_Table (v2)
+        else:                            # ATOM_Vega10_PCIE_Table (v2)
             cs = getattr(pp_module, resolve_cstruct(name))
-    elif name in 'PPMTable':            # ATOM_Tonga_PowerTune_Table (v1)
+    elif name in 'PPMTable':             # ATOM_Tonga_PowerTune_Table (v1)
         cs = getattr(pp_module, resolve_cstruct(name))
     elif name in 'PowerTuneTable':
-        if revid == 4:                  # ATOM_Fiji_PowerTune_Table (v4)
+        if revid == 4:                   # ATOM_Fiji_PowerTune_Table (v4)
             cs = getattr(pp_module, resolve_cstruct(name, 'Fiji'))
-        elif revid == 5:                # ATOM_Vega10_PowerTune_Table (v5)
+        elif revid == 5:                 # ATOM_Vega10_PowerTune_Table (v5)
             cs = getattr(pp_module, resolve_cstruct(name))
-        elif revid == 6:                # ATOM_Vega10_PowerTune_Table_V2 (v6)
+        elif revid == 6:                 # ATOM_Vega10_PowerTune_Table_V2 (v6)
             cs = getattr(pp_module, resolve_cstruct(name) + '_V2')
-        else:                           # ATOM_Vega10_PowerTune_Table_V3 (v7+)
+        else:                            # ATOM_Vega10_PowerTune_Table_V3 (v7+)
             cs = getattr(pp_module, resolve_cstruct(name) + '_V3')
     else:
         print('ERROR: Unknown data structure {} v{}'.format(name, revid))
@@ -336,10 +342,12 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         # Vega10 and older C strutures all have number of entries set to 1, we
         # override it with real value that we get from an actual pp_table data
         entry_name, entry_type = cs._fields_[-1]
+
         class FixedEntriesCountArray(ctypes.LittleEndianStructure):
             _pack_ = cs._pack_
             _fields_ = cs._fields_[:-1] + [(entry_name,
                                             entry_type._type_ * entry_count)]
+
         cs = FixedEntriesCountArray
     else:
         total_len = 0
@@ -439,7 +447,7 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
             d_value = getattr(data, name)
             d_meta = getattr(type(data), name)
             d_size = d_meta.size
-            if name.startswith(('uc','us','ul')):
+            if name.startswith(('uc', 'us', 'ul')):
                 name = name[2:]
             if not meta:
                 d_offset = d_meta.offset
@@ -535,7 +543,7 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
         gpugen = 'Navi 10 or 14'
         import atom_gen.smu_v11_0_navi10 as pp_struct
         ctypes_strct = pp_struct.struct_smu_11_0_powerplay_table
-    elif pp_ver != None:
+    elif pp_ver is not None:
         msg = 'Can not decode PowerPlay table version {}.{}'
         print(msg.format(pp_ver[0], pp_ver[1]))
         return None

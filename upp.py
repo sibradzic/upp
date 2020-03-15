@@ -12,6 +12,7 @@ def _normalize_var_path(var_path_str):
       int(item) if item.isdigit() else item for item in var_path_list]
     return normalized_var_path_list
 
+
 def _is_int_or_float(value):
     if value.isdigit():
         return True
@@ -21,6 +22,7 @@ def _is_int_or_float(value):
     except ValueError:
         pass
     return False
+
 
 def _validate_set_pair(set_pair):
     valid = False
