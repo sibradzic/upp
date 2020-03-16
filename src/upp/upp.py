@@ -108,7 +108,8 @@ def dump(ctx, raw):
 def extract(ctx, video_rom):
     """Extracts PowerPlay data from full VBIOS ROM image
 
-    Putput is original file with additional .pp_table extension.
+    Default output file name will be an original ROM file name with an
+    additional .pp_table extension.
     """
     pp_file = ctx.obj['PPBINARY']
     ctx.obj['ROMBINARY'] = video_rom
@@ -130,7 +131,7 @@ def get(ctx, variable_path):
 
     \b
         /FanTable/TargetTemperature
-        /VddGfxLookupTable/7/Vdd
+        /VddgfxLookupTable/7/Vdd
 
     The raw value of the parameter will be retrieved,
     decoded and displayed on console.
@@ -156,7 +157,7 @@ def set(ctx, variable_path_set, write):
     "/<param>=<value> notation", for example:
 
     \b
-        /PowerTuneTable/TDP=75 /SocClockDependencyTable/7/SocClock=107000
+        /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
 
     Multiple PP parameters can be set at the same time.
     The PP tables will not be changed unless additional

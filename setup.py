@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='upp',
-    version='0.0.2',
+    version='0.0.3',
     author='Samir Ibradžić',
     description='Uplift Power Play',
     long_description=long_description,
@@ -21,6 +21,7 @@ setuptools.setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.6, <4',
+    install_requires=['click'],
     entry_points={
         'console_scripts': [
             'upp=upp.upp:main',

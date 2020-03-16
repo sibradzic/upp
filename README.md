@@ -22,8 +22,7 @@ of sysfs file.
 
 At its current form this is a CLI only tool. Getting help:
 
-    ./upp.py -h
-    Usage: upp.py [OPTIONS] COMMAND [ARGS]...
+    Usage: upp [OPTIONS] COMMAND [ARGS]...
 
       UPP: Uplift Power Play
 
@@ -32,8 +31,8 @@ At its current form this is a CLI only tool. Getting help:
       UPP is able to parse and modify binary data structures of PowerPlay tables
       commonly found on certain AMD Radeon GPUs. Drivers on recent AMD GPUs
       allow PowerPlay tables to be dynamically modified on runtime, which may be
-      known as "soft-PowerPlay" in coin-mining community. On Linux, the PP table
-      is by default found at:
+      known as "soft PowerPlay tables". On Linux, the PowerPlay table is by
+      default found at:
 
          /sys/class/drm/card0/device/pp_table
 
@@ -43,31 +42,32 @@ At its current form this is a CLI only tool. Getting help:
         - Polaris
         - Vega
         - Radeon VII
-        - Navi 10 & 14
+        - Navi 10
+        - Navi 14
 
       Note: iGPUs found in many recent AMD APUs are using completely different
       PowerPlay control methods, this tool does not support them.
 
-      I you have bugs to report or features to request please check:
+      If you have bugs to report or features to request please check:
 
         github.com/sibradzic/upp
 
     Options:
-      -i, --input-file TEXT  Path to PP table binary file
-      -d, --debug            Debug mode
-      -h, --help             Show this message and exit.
+      -i, --pp-file <filename>  Input/output PP table binary file
+      -d, --debug / --no-debug  Debug mode
+      -h, --help                Show this message and exit.
 
     Commands:
-      dump  Dumps all PowerPlay parameters to console
-      get   Gets current value of a particular PP parameter
-      set   Sets values to PP parameters
+      dump     Dumps all PowerPlay parameters to console
+      extract  Extract PowerPlay table from Video BIOS ROM image
+      get      Get current value of a PowerPlay parameter
+      set      Set value(s) to PowerPlay parameter(s)
 
 Dumping all data:
 
-    $ ./upp.py dump -h
-    Usage: upp.py dump [OPTIONS]
+    Usage: upp dump [OPTIONS]
 
-      Dumps all PowerPlay data to console
+      Dump all PowerPlay data to console
 
       De-serializes PowerPlay binary data into a Python dictionary.
 
@@ -78,13 +78,25 @@ Dumping all data:
       names and values, will be dumped.
 
     Options:
-      -r, --raw   Show raw binary data
-      -h, --help  Show this message and exit.
+      -r, --raw / --no-raw  Show raw binary data
+      -h, --help            Show this message and exit.
 
-Getting single parameter:
+Extracting PowerPlay table from Video ROM image:
 
-    $ ./upp.py get -h
-    Usage: upp.py get [OPTIONS] VARIABLE_PATH
+    Usage: upp extract [OPTIONS]
+
+      Extracts PowerPlay data from full VBIOS ROM image
+
+      Default output file name will be an original ROM file name with an
+      additional .pp_table extension.
+
+    Options:
+      -r, --video-rom <filename>  Input Video ROM binary image file   [required]
+      -h, --help                  Show this message and exit.
+
+Getting parameter:
+
+    Usage: upp get [OPTIONS] VARIABLE_PATH
 
       Retrieves current value of a particular PP parameter
 
@@ -92,7 +104,7 @@ Getting single parameter:
       example:
 
           /FanTable/TargetTemperature
-          /VddgfxLookupTable/0/Vdd
+          /VddgfxLookupTable/7/Vdd
 
       The raw value of the parameter will be retrieved, decoded and displayed on
       console.
@@ -102,8 +114,7 @@ Getting single parameter:
 
 Setting parameters:
 
-    $ ./upp.py set -h
-    Usage: upp.py set [OPTIONS] VARIABLE_PATH_SET...
+    Usage: upp set [OPTIONS] VARIABLE_PATH_SET...
 
       Sets values to one or multiple PP parameters
 
