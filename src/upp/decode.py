@@ -614,7 +614,7 @@ def get_value(pp_bin_file, var_path, data_dict=None, debug=False):
                 data = data[category]
             except KeyError:
                 msg = 'ERROR: Invalid parameter "{}", available ones are: {}'
-                print(msg.format(category, ', '.join([k for k in data])))
+                print(msg.format(category, ', '.join([str(k) for k in data])))
                 return None
             except (TypeError, IndexError):
                 if isinstance(data, list):

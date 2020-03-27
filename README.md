@@ -70,6 +70,9 @@ Dumping all data:
       Dump all PowerPlay data to console
 
       De-serializes PowerPlay binary data into a Python dictionary.
+      For example:
+
+          upp --pp-file=radeon.pp_table dump
 
       In standard mode all data will be dumped to console, where data hierarchy
       is indicated by indentation.
@@ -87,6 +90,12 @@ Extracting PowerPlay table from Video ROM image:
 
       Extracts PowerPlay data from full VBIOS ROM image
 
+      The source video ROM binary must be specified with -r/--video-rom
+      parameter, and extracted PowerPlay table will be saved into file
+      specified with -p/--pp-file. For example:
+
+          upp --pp-file=extracted.pp_table extract -r VIDEO.rom
+
       Default output file name will be an original ROM file name with an
       additional .pp_table extension.
 
@@ -96,18 +105,17 @@ Extracting PowerPlay table from Video ROM image:
 
 Getting parameter:
 
-    Usage: upp get [OPTIONS] VARIABLE_PATH
+    Usage: upp get [OPTIONS] VARIABLE_PATH_SET...
 
-      Retrieves current value of a particular PP parameter
+      Retrieves current value of one or multiple PP parameters
 
       The parameter variable path must be specified in "/<param> notation", for
       example:
 
-          /FanTable/TargetTemperature
-          /VddgfxLookupTable/7/Vdd
+          upp get /FanTable/TargetTemperature /VddgfxLookupTable/7/Vdd
 
       The raw value of the parameter will be retrieved, decoded and displayed on
-      console.
+      console. Multiple PP parameters can be specified at the same time.
 
     Options:
       -h, --help  Show this message and exit.
@@ -121,7 +129,7 @@ Setting parameters:
       The parameter path and value must be specified in "/<param>=<value>
       notation", for example:
 
-          /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
+          upp set /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
 
       Multiple PP parameters can be set at the same time. The PP tables will not
       be changed unless additional --write option is set.

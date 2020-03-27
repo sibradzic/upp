@@ -87,6 +87,10 @@ def dump(ctx, raw):
     """Dump all PowerPlay data to console
 
     De-serializes PowerPlay binary data into a Python dictionary.
+    For example:
+
+    \b
+        upp --pp-file=radeon.pp_table dump
 
     In standard mode all data will be dumped to console, where
     data hierarchy is indicated by indentation.
@@ -103,16 +107,26 @@ def dump(ctx, raw):
 
 @click.command(short_help='Extract PowerPlay table from Video BIOS ROM image')
 @click.option('-r', '--video-rom', required=True, metavar='<filename>',
-              help='Input Video ROM binary image file ',)
+              help='Input Video ROM binary image file')
 @click.pass_context
 def extract(ctx, video_rom):
     """Extracts PowerPlay data from full VBIOS ROM image
+
+    The source video ROM binary must be specified with -r/--video-rom
+    parameter, and extracted PowerPlay table will be saved into file
+    specified with -p/--pp-file. For example:
+
+    \b
+        upp --pp-file=extracted.pp_table extract -r VIDEO.rom
 
     Default output file name will be an original ROM file name with an
     additional .pp_table extension.
     """
     pp_file = ctx.obj['PPBINARY']
     ctx.obj['ROMBINARY'] = video_rom
+    # Override default, we don't want to extract any random VBIOS into sysfs
+    if pp_file.endswith('device/pp_table'):
+        pp_file = video_rom + '.pp_table'
     msg = "Extracting PP table from '{}' ROM image..."
     print(msg.format(video_rom))
     decode.extract_rom(video_rom, pp_file)
@@ -120,44 +134,54 @@ def extract(ctx, video_rom):
     return 0
 
 
-@click.command(short_help='Get current value of a PowerPlay parameter')
-@click.argument('variable-path')
+@click.command(short_help='Get current value of a PowerPlay parameter(s)')
+@click.argument('variable-path-set', nargs=-1, required=True)
 @click.pass_context
-def get(ctx, variable_path):
-    """Retrieves current value of a particular PP parameter
+def get(ctx, variable_path_set): 
+    """Retrieves current value of one or multiple PP parameters
 
     The parameter variable path must be specified in
     "/<param> notation", for example:
 
     \b
-        /FanTable/TargetTemperature
-        /VddgfxLookupTable/7/Vdd
+        upp get /FanTable/TargetTemperature /VddgfxLookupTable/7/Vdd
 
     The raw value of the parameter will be retrieved,
     decoded and displayed on console.
+    Multiple PP parameters can be specified at the same time.
     """
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
-    var_path = _normalize_var_path(variable_path)
-    res = decode.get_value(pp_file, var_path, debug=debug)
-    if res:
-        print(res['value'])
+
+    pp_bytes = decode._read_binary_file(pp_file)
+    data = decode.select_pp_struct(pp_bytes, debug=debug)
+
+    for set_pair_str in variable_path_set:
+        var_path = _normalize_var_path(set_pair_str)
+        res = decode.get_value(pp_file, var_path, data, debug=debug)
+        if res:
+            var_path_str = '/' + '/'.join([str(e) for e in var_path])
+            print('{}={}'.format(var_path_str, res['value']))
+        else:
+            print('ERROR: Incorrect variable path:', set_pair_str)
+            return 2
+
     return 0
 
 
-@click.command(short_help='Set value(s) to PowerPlay parameter(s)')
+@click.command(short_help='Set value to PowerPlay parameter(s)')
 @click.argument('variable-path-set', nargs=-1, required=True)
 @click.option('-w', '--write', is_flag=True,
               help='Write changes to PP binary', default=False)
 @click.pass_context
 def set(ctx, variable_path_set, write):
-    """Sets values to one or multiple PP parameters
+    """Sets value to one or multiple PP parameters
 
     The parameter path and value must be specified in
     "/<param>=<value> notation", for example:
 
     \b
-        /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
+        upp set /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
 
     Multiple PP parameters can be set at the same time.
     The PP tables will not be changed unless additional
