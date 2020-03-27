@@ -160,8 +160,7 @@ def get(ctx, variable_path_set):
         var_path = _normalize_var_path(set_pair_str)
         res = decode.get_value(pp_file, var_path, data, debug=debug)
         if res:
-            var_path_str = '/' + '/'.join([str(e) for e in var_path])
-            print('{}={}'.format(var_path_str, res['value']))
+            print(res['value'])
         else:
             print('ERROR: Incorrect variable path:', set_pair_str)
             return 2
