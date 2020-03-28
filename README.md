@@ -9,14 +9,14 @@ A tool for parsing, dumping and modifying data in Radeon PowerPlay tables
 UPP is able to parse and modify binary data structures of PowerPlay tables
 commonly found on certain AMD Radeon GPUs. Drivers on recent AMD GPUs
 allow PowerPlay tables to be dynamically modified on runtime, which may be
-known as "soft-PowerPlay" in coin-mining community. On Linux, the PP table
-is by default found at: `/sys/class/drm/card0/device/pp_table`.
+known as "soft" PowerPlay table. On Linux, the PowerPlay table is by default
+found at: `/sys/class/drm/card0/device/pp_table`.
 
 ### Requirements
 
-Python 2.7 or 3.6+, codecs, collections, struct, click. Should work on
-Windows as well, but modified table needs to be uploaded to registry instead
-of sysfs file.
+Python 2.7 or 3.6+, click library. Optionally, for reading "soft" PowerPlay
+table from Windows registry: python-registry. Should work on Windows as well
+(testers wanted).
 
 ### Usage
 
@@ -36,7 +36,16 @@ At its current form this is a CLI only tool. Getting help:
 
          /sys/class/drm/card0/device/pp_table
 
-      This tool currently supports reading and modifying PowerPlay tables found
+      There are also two alternative ways of getting PowerPlay data that this
+      tool supports:
+
+       - By extracting PowerPlay table from Video ROM image (see extract command)
+       - Import "Soft PowerPlay" table from Windows registry, directly from
+         offline Windows/System32/config/SYSTEM file on disk, so it would work
+         from Linux distro that has acces to mounted Windows partition
+         (path to SYSTEM registry file is specified with --from-registry option)
+
+      This tool currently supports parsing and modifying PowerPlay tables found
       on the following AMD GPU families:
 
         - Polaris
@@ -53,15 +62,17 @@ At its current form this is a CLI only tool. Getting help:
         github.com/sibradzic/upp
 
     Options:
-      -i, --pp-file <filename>  Input/output PP table binary file
-      -d, --debug / --no-debug  Debug mode
-      -h, --help                Show this message and exit.
+      -p, --pp-file <filename>        Input/output PP table binary file.
+      -f, --from-registry <filename>  Import PP_PhmSoftPowerPlayTable from Windows
+                                      registry (overrides -p / --pp-file option).
+      -d, --debug / --no-debug        Debug mode.
+      -h, --help                      Show this message and exit.
 
     Commands:
-      dump     Dumps all PowerPlay parameters to console
-      extract  Extract PowerPlay table from Video BIOS ROM image
-      get      Get current value of a PowerPlay parameter
-      set      Set value(s) to PowerPlay parameter(s)
+      dump     Dumps all PowerPlay parameters to console.
+      extract  Extract PowerPlay table from Video BIOS ROM image.
+      get      Get current value of a PowerPlay parameter(s).
+      set      Set value to PowerPlay parameter(s).
 
 Dumping all data:
 
@@ -69,19 +80,19 @@ Dumping all data:
 
       Dump all PowerPlay data to console
 
-      De-serializes PowerPlay binary data into a Python dictionary.
-      For example:
+      De-serializes PowerPlay binary data into a human-readable text output. For
+      example:
 
           upp --pp-file=radeon.pp_table dump
 
-      In standard mode all data will be dumped to console, where data hierarchy
-      is indicated by indentation.
+      In standard mode all data will be dumped to console, where data tree
+      hierarchy is indicated by indentation.
 
       In raw mode a table showing all hex and binary data, as well as variable
       names and values, will be dumped.
 
     Options:
-      -r, --raw / --no-raw  Show raw binary data
+      -r, --raw / --no-raw  Show raw binary data.
       -h, --help            Show this message and exit.
 
 Extracting PowerPlay table from Video ROM image:
@@ -91,8 +102,8 @@ Extracting PowerPlay table from Video ROM image:
       Extracts PowerPlay data from full VBIOS ROM image
 
       The source video ROM binary must be specified with -r/--video-rom
-      parameter, and extracted PowerPlay table will be saved into file
-      specified with -p/--pp-file. For example:
+      parameter, and extracted PowerPlay table will be saved into file specified
+      with -p/--pp-file. For example:
 
           upp --pp-file=extracted.pp_table extract -r VIDEO.rom
 
@@ -100,7 +111,7 @@ Extracting PowerPlay table from Video ROM image:
       additional .pp_table extension.
 
     Options:
-      -r, --video-rom <filename>  Input Video ROM binary image file   [required]
+      -r, --video-rom <filename>  Input Video ROM binary image file  [required].
       -h, --help                  Show this message and exit.
 
 Getting parameter:
@@ -124,7 +135,7 @@ Setting parameters:
 
     Usage: upp set [OPTIONS] VARIABLE_PATH_SET...
 
-      Sets values to one or multiple PP parameters
+      Sets value to one or multiple PP parameters
 
       The parameter path and value must be specified in "/<param>=<value>
       notation", for example:
@@ -134,7 +145,12 @@ Setting parameters:
       Multiple PP parameters can be set at the same time. The PP tables will not
       be changed unless additional --write option is set.
 
+      Optionally, if --to-reg output is used an additional Windows registry
+      format file will be generated, named same as PowerPlay output target
+      filename with an additional '.reg' extension.
+
     Options:
-      -w, --write  Write changes to PP binary
-      -h, --help   Show this message and exit.
+      -t, --to-reg  Save output to Windows registry .reg file as well.
+      -w, --write   Write changes to PP binary.
+      -h, --help    Show this message and exit.
 

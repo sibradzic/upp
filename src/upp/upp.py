@@ -2,9 +2,17 @@
 # is true when in 'src' directory, then: python3 -m upp.upp --help
 
 import click
+import tempfile
+from Registry import Registry
 from upp import decode
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+REG_CTRL_CLASS = 'Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000'
+REG_KEY = 'ControlSet001\\' + REG_CTRL_CLASS
+REG_KEY_VAL = 'PP_PhmSoftPowerPlayTable'
+REG_HEADER = 'Windows Registry Editor Version 5.00' + 2 * '\r\n' + \
+             '[HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\' + \
+             REG_CTRL_CLASS + ']\r\n'
 
 
 def _normalize_var_path(var_path_str):
@@ -36,14 +44,53 @@ def _validate_set_pair(set_pair):
         return None, None
 
 
+def _get_pp_data_from_registry(reg_file_path):
+    reg_path = 'HKLM\\SYSTEM\\' + REG_KEY + ':' + REG_KEY_VAL
+    tmp_pp_file = tempfile.NamedTemporaryFile(prefix='reg_pp_table_',
+                                              delete=False)
+    msg = ' Soft PowerPlay data from {}\n  key:value > {}\n'
+    try:
+        reg = Registry.Registry(reg_file_path)
+        key = reg.open(REG_KEY)
+        data_type = key.value(REG_KEY_VAL).value_type_str()
+        registry_data = key.value(REG_KEY_VAL).raw_data()
+    except Exception as e:
+        print(('ERROR: Can not get' + msg).format(reg_file_path, reg_path))
+        print(e)
+        return None
+    print(('Successfully loaded' + msg).format(reg_file_path, reg_path))
+    decode._write_pp_tables_file(tmp_pp_file.name, registry_data)
+    tmp_pp_file.close()
+
+    return tmp_pp_file.name
+
+
+def _write_pp_to_reg_file(filename, data, debug=False):
+    reg_string = REG_KEY_VAL[3:] + '"=hex:' + data.hex(',')
+    reg_lines = [reg_string[i:i+75] for i in range(0, len(reg_string), 75)]
+    reg_lines[0] = '"' + REG_KEY_VAL[:3] + reg_lines[0]
+    formatted_reg_string = '\\\r\n  '.join(reg_lines)
+    reg_pp_data = REG_HEADER + formatted_reg_string + 2 * '\r\n'
+    if debug:
+        print(reg_pp_data)
+    decode._write_pp_tables_file(filename, reg_pp_data.encode('utf-16'))
+    print('Written {} Soft PowerPlay bytes to {}'.format(len(data), filename))
+
+    return 0
+
+
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.option('-i', '--pp-file', help='Input/output PP table binary file',
+@click.option('-p', '--pp-file', help='Input/output PP table binary file.',
               metavar='<filename>',
               default='/sys/class/drm/card0/device/pp_table')
+@click.option('-f', '--from-registry',
+              help='Import PP_PhmSoftPowerPlayTable from Windows registry ' +
+                   '(overrides -p / --pp-file option).',
+              metavar='<filename>')
 @click.option('--debug/--no-debug', '-d/ ', default='False',
-              help='Debug mode')
+              help='Debug mode.')
 @click.pass_context
-def cli(ctx, debug, pp_file):
+def cli(ctx, debug, pp_file, from_registry):
     """UPP: Uplift Power Play
 
     A tool for parsing, dumping and modifying data in Radeon PowerPlay tables.
@@ -57,7 +104,17 @@ def cli(ctx, debug, pp_file):
     \b
        /sys/class/drm/card0/device/pp_table
 
-    This tool currently supports reading and modifying PowerPlay tables
+    There are also two alternative ways of getting PowerPlay data that this
+    tool supports:
+
+    \b
+     - By extracting PowerPlay table from Video ROM image (see extract command)
+     - Import "Soft PowerPlay" table from Windows registry, directly from
+       offline Windows/System32/config/SYSTEM file on disk, so it would work
+       from Linux distro that has acces to mounted Windows partition
+       (path to SYSTEM registry file is specified with --from-registry option)
+
+    This tool currently supports parsing and modifying PowerPlay tables
     found on the following AMD GPU families:
 
     \b
@@ -77,37 +134,40 @@ def cli(ctx, debug, pp_file):
     ctx.ensure_object(dict)
     ctx.obj['DEBUG'] = debug
     ctx.obj['PPBINARY'] = pp_file
+    ctx.obj['FROMREGISTRY'] = from_registry
 
 
-@click.command(short_help='Dumps all PowerPlay parameters to console')
-@click.option('--raw/--no-raw', '-r/ ', help='Show raw binary data',
+@click.command(short_help='Dumps all PowerPlay parameters to console.')
+@click.option('--raw/--no-raw', '-r/ ', help='Show raw binary data.',
               default='False')
 @click.pass_context
 def dump(ctx, raw):
     """Dump all PowerPlay data to console
 
-    De-serializes PowerPlay binary data into a Python dictionary.
+    De-serializes PowerPlay binary data into a human-readable text output.
     For example:
 
     \b
         upp --pp-file=radeon.pp_table dump
 
     In standard mode all data will be dumped to console, where
-    data hierarchy is indicated by indentation.
+    data tree hierarchy is indicated by indentation.
 
     In raw mode a table showing all hex and binary data, as well
     as variable names and values, will be dumped.
     """
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
-    msg = "Dumping {} PP table from '{}' binary..."
+    from_registry = ctx.obj['FROMREGISTRY']
+    if from_registry:
+        pp_file = _get_pp_data_from_registry(from_registry)
     decode.dump_pp_table(pp_file, rawdump=raw, debug=debug)
     return 0
 
 
-@click.command(short_help='Extract PowerPlay table from Video BIOS ROM image')
+@click.command(short_help='Extract PowerPlay table from Video BIOS ROM image.')
 @click.option('-r', '--video-rom', required=True, metavar='<filename>',
-              help='Input Video ROM binary image file')
+              help='Input Video ROM binary image file.')
 @click.pass_context
 def extract(ctx, video_rom):
     """Extracts PowerPlay data from full VBIOS ROM image
@@ -134,10 +194,10 @@ def extract(ctx, video_rom):
     return 0
 
 
-@click.command(short_help='Get current value of a PowerPlay parameter(s)')
+@click.command(short_help='Get current value of a PowerPlay parameter(s).')
 @click.argument('variable-path-set', nargs=-1, required=True)
 @click.pass_context
-def get(ctx, variable_path_set): 
+def get(ctx, variable_path_set):
     """Retrieves current value of one or multiple PP parameters
 
     The parameter variable path must be specified in
@@ -152,7 +212,9 @@ def get(ctx, variable_path_set):
     """
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
-
+    from_registry = ctx.obj['FROMREGISTRY']
+    if from_registry:
+        pp_file = _get_pp_data_from_registry(from_registry)
     pp_bytes = decode._read_binary_file(pp_file)
     data = decode.select_pp_struct(pp_bytes, debug=debug)
 
@@ -170,10 +232,12 @@ def get(ctx, variable_path_set):
 
 @click.command(short_help='Set value to PowerPlay parameter(s)')
 @click.argument('variable-path-set', nargs=-1, required=True)
+@click.option('-t', '--to-reg', is_flag=True, default=False,
+              help='Save output to Windows registry .reg file as well.')
 @click.option('-w', '--write', is_flag=True,
-              help='Write changes to PP binary', default=False)
+              help='Write changes to PP binary.', default=False)
 @click.pass_context
-def set(ctx, variable_path_set, write):
+def set(ctx, variable_path_set, to_reg, write):
     """Sets value to one or multiple PP parameters
 
     The parameter path and value must be specified in
@@ -185,6 +249,10 @@ def set(ctx, variable_path_set, write):
     Multiple PP parameters can be set at the same time.
     The PP tables will not be changed unless additional
     --write option is set.
+
+    Optionally, if --to-reg output is used an additional Windows registry
+    format file will be generated, named same as PowerPlay output target
+    filename with an additional '.reg' extension.
     """
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
@@ -217,6 +285,8 @@ def set(ctx, variable_path_set, write):
     else:
         print("WARNING: Nothing was written to '{}'.".format(pp_file),
               "Add --write option to commit the changes for real!")
+    if to_reg:
+        _write_pp_to_reg_file(pp_file + '.reg', pp_bytes, debug=debug)
 
     return 0
 
