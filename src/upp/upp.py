@@ -5,6 +5,7 @@ import click
 import tempfile
 from Registry import Registry
 from upp import decode
+import pkg_resources
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 REG_CTRL_CLASS = 'Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000'
@@ -78,7 +79,6 @@ def _write_pp_to_reg_file(filename, data, debug=False):
 
     return 0
 
-
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option('-p', '--pp-file', help='Input/output PP table binary file.',
               metavar='<filename>',
@@ -136,6 +136,11 @@ def cli(ctx, debug, pp_file, from_registry):
     ctx.obj['PPBINARY'] = pp_file
     ctx.obj['FROMREGISTRY'] = from_registry
 
+@click.command(short_help='Show UPP version.')
+def version():
+    """Show UPP version."""
+    version = pkg_resources.require("upp")[0].version
+    click.echo(version)
 
 @click.command(short_help='Dumps all PowerPlay parameters to console.')
 @click.option('--raw/--no-raw', '-r/ ', help='Show raw binary data.',
@@ -230,7 +235,7 @@ def get(ctx, variable_path_set):
     return 0
 
 
-@click.command(short_help='Set value to PowerPlay parameter(s)')
+@click.command(short_help='Set value to PowerPlay parameter(s).')
 @click.argument('variable-path-set', nargs=-1, required=True)
 @click.option('-t', '--to-reg', is_flag=True, default=False,
               help='Save output to Windows registry .reg file as well.')
@@ -295,7 +300,7 @@ cli.add_command(extract)
 cli.add_command(dump)
 cli.add_command(get)
 cli.add_command(set)
-
+cli.add_command(version)
 
 def main():
     cli(obj={})()
