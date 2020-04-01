@@ -6,6 +6,7 @@ import tempfile
 from Registry import Registry
 from upp import decode
 import pkg_resources
+import os.path
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 REG_CTRL_CLASS = 'Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000'
@@ -65,24 +66,37 @@ def _get_pp_data_from_registry(reg_file_path):
 
     return tmp_pp_file.name
 
+def _check_file_writeable(filename):
+    if os.path.exists(filename):
+        if os.path.isfile(filename):
+            return os.access(filename, os.W_OK)
+        else:
+            return False
+    pdir = os.path.dirname(filename)
+    if not pdir: pdir = '.'
+    return os.access(pdir, os.W_OK)
 
 def _write_pp_to_reg_file(filename, data, debug=False):
-    reg_string = REG_KEY_VAL[3:] + '"=hex:' + data.hex(',')
-    reg_lines = [reg_string[i:i+75] for i in range(0, len(reg_string), 75)]
-    reg_lines[0] = '"' + REG_KEY_VAL[:3] + reg_lines[0]
-    formatted_reg_string = '\\\r\n  '.join(reg_lines)
-    reg_pp_data = REG_HEADER + formatted_reg_string + 2 * '\r\n'
-    if debug:
-        print(reg_pp_data)
-    decode._write_pp_tables_file(filename, reg_pp_data.encode('utf-16'))
-    print('Written {} Soft PowerPlay bytes to {}'.format(len(data), filename))
-
+    if _check_file_writeable(filename):
+        reg_string = REG_KEY_VAL[3:] + '"=hex:' + data.hex(',')
+        reg_lines = [reg_string[i:i+75] for i in range(0, len(reg_string), 75)]
+        reg_lines[0] = '"' + REG_KEY_VAL[:3] + reg_lines[0]
+        formatted_reg_string = '\\\r\n  '.join(reg_lines)
+        reg_pp_data = REG_HEADER + formatted_reg_string + 2 * '\r\n'
+        if debug:
+            print(reg_pp_data)
+        decode._write_pp_tables_file(filename, reg_pp_data.encode('utf-16'))
+        print('Written {} Soft PowerPlay bytes to {}'.format(len(data), filename))
+    else: 
+        print('Can not write to {}'.format(filename))
     return 0
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option('-p', '--pp-file', help='Input/output PP table binary file.',
               metavar='<filename>',
               default='/sys/class/drm/card0/device/pp_table')
+@click.option('-t', '--to-registry', help='Output to Windows registry .reg file.',
+              metavar='<filename>')
 @click.option('-f', '--from-registry',
               help='Import PP_PhmSoftPowerPlayTable from Windows registry ' +
                    '(overrides -p / --pp-file option).',
@@ -90,7 +104,7 @@ def _write_pp_to_reg_file(filename, data, debug=False):
 @click.option('--debug/--no-debug', '-d/ ', default='False',
               help='Debug mode.')
 @click.pass_context
-def cli(ctx, debug, pp_file, from_registry):
+def cli(ctx, debug, pp_file, to_registry, from_registry):
     """UPP: Uplift Power Play
 
     A tool for parsing, dumping and modifying data in Radeon PowerPlay tables.
@@ -135,6 +149,7 @@ def cli(ctx, debug, pp_file, from_registry):
     ctx.obj['DEBUG'] = debug
     ctx.obj['PPBINARY'] = pp_file
     ctx.obj['FROMREGISTRY'] = from_registry
+    ctx.obj['REGFILE'] = to_registry
 
 @click.command(short_help='Show UPP version.')
 def version():
@@ -234,15 +249,12 @@ def get(ctx, variable_path_set):
 
     return 0
 
-
 @click.command(short_help='Set value to PowerPlay parameter(s).')
 @click.argument('variable-path-set', nargs=-1, required=True)
-@click.option('-t', '--to-reg', is_flag=True, default=False,
-              help='Save output to Windows registry .reg file as well.')
 @click.option('-w', '--write', is_flag=True,
               help='Write changes to PP binary.', default=False)
 @click.pass_context
-def set(ctx, variable_path_set, to_reg, write):
+def set(ctx, variable_path_set, write):
     """Sets value to one or multiple PP parameters
 
     The parameter path and value must be specified in
@@ -255,12 +267,17 @@ def set(ctx, variable_path_set, to_reg, write):
     The PP tables will not be changed unless additional
     --write option is set.
 
-    Optionally, if --to-reg output is used an additional Windows registry
-    format file will be generated, named same as PowerPlay output target
-    filename with an additional '.reg' extension.
+    Optionally, if -t/--to-registry output is specified an additional Windows registry
+    format file with a '.reg' extension will be generated, for example:
+
+    \b
+        upp --to-registry=test set /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
+
+    will produce the file test.reg in the current working directory.
     """
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
+    reg_file = ctx.obj['REGFILE']
     set_pairs = []
     for set_pair_str in variable_path_set:
         var, val = _validate_set_pair(set_pair_str)
@@ -290,8 +307,8 @@ def set(ctx, variable_path_set, to_reg, write):
     else:
         print("WARNING: Nothing was written to '{}'.".format(pp_file),
               "Add --write option to commit the changes for real!")
-    if to_reg:
-        _write_pp_to_reg_file(pp_file + '.reg', pp_bytes, debug=debug)
+    if ctx.obj['REGFILE']:
+        _write_pp_to_reg_file(reg_file + '.reg', pp_bytes, debug=debug)
 
     return 0
 
