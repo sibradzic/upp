@@ -95,8 +95,6 @@ def _write_pp_to_reg_file(filename, data, debug=False):
 @click.option('-p', '--pp-file', help='Input/output PP table binary file.',
               metavar='<filename>',
               default='/sys/class/drm/card0/device/pp_table')
-@click.option('-t', '--to-registry', help='Output to Windows registry .reg file.',
-              metavar='<filename>')
 @click.option('-f', '--from-registry',
               help='Import PP_PhmSoftPowerPlayTable from Windows registry ' +
                    '(overrides -p / --pp-file option).',
@@ -104,7 +102,7 @@ def _write_pp_to_reg_file(filename, data, debug=False):
 @click.option('--debug/--no-debug', '-d/ ', default='False',
               help='Debug mode.')
 @click.pass_context
-def cli(ctx, debug, pp_file, to_registry, from_registry):
+def cli(ctx, debug, pp_file, from_registry):
     """UPP: Uplift Power Play
 
     A tool for parsing, dumping and modifying data in Radeon PowerPlay tables.
@@ -149,7 +147,6 @@ def cli(ctx, debug, pp_file, to_registry, from_registry):
     ctx.obj['DEBUG'] = debug
     ctx.obj['PPBINARY'] = pp_file
     ctx.obj['FROMREGISTRY'] = from_registry
-    ctx.obj['REGFILE'] = to_registry
 
 @click.command(short_help='Show UPP version.')
 def version():
@@ -253,8 +250,10 @@ def get(ctx, variable_path_set):
 @click.argument('variable-path-set', nargs=-1, required=True)
 @click.option('-w', '--write', is_flag=True,
               help='Write changes to PP binary.', default=False)
+@click.option('-t', '--to-registry', help='Output to Windows registry .reg file.',
+              metavar='<filename>')
 @click.pass_context
-def set(ctx, variable_path_set, write):
+def set(ctx, variable_path_set, to_registry, write):
     """Sets value to one or multiple PP parameters
 
     The parameter path and value must be specified in
@@ -271,13 +270,12 @@ def set(ctx, variable_path_set, write):
     format file with a '.reg' extension will be generated, for example:
 
     \b
-        upp --to-registry=test set /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
+        upp set /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000 --to-registry=test 
 
     will produce the file test.reg in the current working directory.
     """
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
-    reg_file = ctx.obj['REGFILE']
     set_pairs = []
     for set_pair_str in variable_path_set:
         var, val = _validate_set_pair(set_pair_str)
@@ -307,8 +305,8 @@ def set(ctx, variable_path_set, write):
     else:
         print("WARNING: Nothing was written to '{}'.".format(pp_file),
               "Add --write option to commit the changes for real!")
-    if ctx.obj['REGFILE']:
-        _write_pp_to_reg_file(reg_file + '.reg', pp_bytes, debug=debug)
+    if to_registry:
+        _write_pp_to_reg_file(to_registry + '.reg', pp_bytes, debug=debug)
 
     return 0
 
