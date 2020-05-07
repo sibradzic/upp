@@ -244,6 +244,9 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         family = 'Tonga'
     elif module_suffix == 'atom_gen.vega10_pptable':
         family = 'Vega10'
+    # APU Experimantal
+    elif module_suffix == 'atom_gen.pptable_apu':
+        family = 'APU'
     else:
         print('ERROR: Module {} does not contain jump structures.', module)
         return cs, total_len
@@ -282,6 +285,13 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         'VddciLookupTable', 'PixclkDependencyTable', 'DispClkDependencyTable',
         'PhyClkDependencyTable', 'MMDependencyTable', 'HardLimitTable',
         'VCEStateTable', 'GPIOTable'
+    ]
+
+    # APU Experimantal
+    simple_tables += [
+        'Unknown09Table', 'Unknown0bTable', 'Unknown0dTable', 'Unknown13Table',
+        'Unknown2cTable', 'Unknown36Table', 'Unknown08Table', 'Unknown0aTable',
+        'Unknown10Table'
     ]
 
     if name in simple_tables:
@@ -361,13 +371,65 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         cs = FixedEntriesCountArray
     else:
         total_len = 0
+        index = 0
         for field in cs._fields_:
             if field[1] in primitives:
                 total_len += struct.calcsize(field[1]._type_)
+            # APU Experimental, special version-less jumptable at offset @ 0x36
+            elif (issubclass(field[1], ctypes.Array) and
+                  field[1]._type_ not in primitives):
+                entry_len = struct.unpack('B', header_bytes[:1])[0]
+                entry_name, entry_type = cs._fields_[-1]
+
+                class FixedEntriesArray(ctypes.LittleEndianStructure):
+                    _pack_ = cs._pack_
+                    _fields_ = cs._fields_[:-1] + [
+                      (entry_name, entry_type._type_ * entry_len)]
+
+                cs = FixedEntriesArray
+                total_bytes = 0
+                for f in field[1]._type_._fields_:
+                    fl = getattr(field[1]._type_, f[0])
+                    total_bytes += fl.size
+                total_len += entry_len * total_bytes
+
+            # APU Experimental, versioned tables containing multiple sub-arrays
+            elif issubclass(field[1], ctypes.Structure):
+                for subfield in field[1]._fields_:
+                    total_bytes = 0
+                    if 'ucNumEntries' == subfield[0]:
+                        entry_len = struct.unpack(
+                          'B', header_bytes[total_len:total_len+1])[0]
+                        total_len += 1
+                    elif 'entries' == subfield[0]:
+                        for f in subfield[1]._type_._fields_:
+                            fl = getattr(subfield[1]._type_, f[0])
+                            total_bytes += fl.size
+                        total_len += entry_len * total_bytes
+
+                # Here we need to fix the number of entries in sub-array...
+                entry_name, entry_type = field[1]._fields_[-1]
+
+                class FixedEntryArray(ctypes.LittleEndianStructure):
+                    _pack_ = field[1]._pack_
+                    _fields_ = field[1]._fields_[:-1] + [
+                      (entry_name, entry_type._type_ * entry_len)]
+
+                # ...as well as fix the top struct to contain correct subarrays
+                fixed_entry = FixedEntryArray
+                fix_fields = cs._fields_
+                fix_fields[index] = (cs._fields_[index][0], fixed_entry)
+
+                class FixedEntriesCountArray(ctypes.LittleEndianStructure):
+                    _pack_ = cs._pack_
+                    _fields_ = fix_fields
+
+                cs = FixedEntriesCountArray
             else:
                 entry_len = struct.calcsize(field[1]._type_._type_)
                 array_size = field[1]._length_
                 total_len += entry_len * array_size
+            index += 1
     if debug:
         print('DEBUG: Detected C structture of', len(cs._fields_),
               'elements, total size of', total_len, 'bytes')
@@ -473,6 +535,10 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
                 if name in ['a', 'b', 'c', 'm'] and ctyp_cls == ctypes.c_uint:
                     d_symbol = 'f'
                     d_value = struct.unpack(d_symbol, d_bytes)[0]
+                # Defined as uint in kernel, but some report these as signed?
+                elif name in ['VddcOffset', 'VddgfxOffset']:
+                    d_symbol = 'h'
+                    d_value = struct.unpack(d_symbol, d_bytes)[0]
                 if rawdump:
                     _print_raw_value(d_offset, d_symbol, d_bytes,
                                      name, d_value)
@@ -494,7 +560,7 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
                     else:
                         c_struct, size = _get_ofst_cstruct(data.__module__,
                                                            name,
-                                                           raw[ofst:ofst+2],
+                                                           raw[ofst:],
                                                            debug)
                         if c_struct:
                             top = ofst + size
@@ -537,7 +603,11 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
     pp_header = common_hdr.from_buffer(rawbytes[:4])
     pp_ver = validate_pp(pp_header, len(rawbytes), rawdump)
 
-    if pp_ver == (7, 1):        # Polaris
+    if pp_ver == (6, 1):        # APU Experimental
+        gpugen = 'APU'
+        from upp.atom_gen import pptable_apu as pp_struct
+        ctypes_strct = pp_struct.struct__ATOM_APU_POWERPLAYTABLE
+    elif pp_ver == (7, 1):      # Polaris
         gpugen = 'Polaris'
         from upp.atom_gen import pptable_v1_0 as pp_struct
         ctypes_strct = pp_struct.struct__ATOM_Tonga_POWERPLAYTABLE
