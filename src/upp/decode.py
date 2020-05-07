@@ -172,13 +172,21 @@ def decode_pp_table(rawdata, c_struct):
 
 
 def _get_bigcap_indices(string):
+    """
+    Returns list of positions in a string where separate words start
+
+    PowerPlay sub-tables have names like 'VddcLookupTable', 'VCEStateTable' or
+    'PCIETable'. We need to split this into separate words, but some words are
+    upper-caps acronyms, followed by another word starting with upper-cap.
+    Here we do special gymnastics to return the starting position of all words.
+    """
+
     indices = []
     i = 0
     while i < len(string)-1:  # yes, finish with 2nd last char in the string
         is_i_big = True if string[i].isupper() else False
         is_i_plus1_big = True if string[i+1].isupper() else False
         is_i_plus1_small = not is_i_plus1_big
-        cut_position = None
         if is_i_big:
             if (is_i_plus1_small and i not in indices) or i == 0:
                 indices.append(i)
@@ -186,6 +194,7 @@ def _get_bigcap_indices(string):
             if is_i_plus1_big:
                 indices.append(i+1)
         i = i + 1
+
     return indices
 
 
@@ -209,14 +218,14 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
     the master PowerPlay tables. Furthermore, some nested tables come in
     few different versions, depending on particular GPU chip. This function
     implements logic that does this guess game, some table versioning logic as
-    well as nested tables size calculation. Finally, some workarounds for
-    semi-broken (or just very unusual) fields in some nested tables.
+    well as nested tables size calculation. Finally, it has some workarounds
+    for semi-broken (or just very unusual) fields in some nested tables.
 
     Parameters:
     module (string): Points to cstruct module defining data structures for the
                      appropriate generation of GPUs
     name (string): Name of the child table used for data structure resolution
-    header_bytes (bytearray): A 2-bye array where 1st byte contains the nested
+    header_bytes (bytearray): A 2-byte array where 1st byte contains the nested
                               table revision id and 2nd byte number of entries
     debug (bool): Debbuging output enabled
 
@@ -239,6 +248,7 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         print('ERROR: Module {} does not contain jump structures.', module)
         return cs, total_len
 
+    # A helper for translating table names into resolvable ctype identifiers
     def resolve_cstruct(name, family=family):
         big_caps = _get_bigcap_indices(name)
         words = []
@@ -329,7 +339,7 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
 
     # Here we get the byte-length of the offset-ed C structures
     if 'ucNumEntries' in cs._fields_[1]:
-        entry_count = struct.unpack('B', header_bytes[1:])[0]
+        entry_count = struct.unpack('B', header_bytes[1:2])[0]
 
         # This workarounds the oddity of last field in ATOM_Vega10_State_Array
         # being named 'states', yet all other C structs names it 'entries'
@@ -568,7 +578,7 @@ def dump_pp_table(pp_bin_file, data_dict=None, indent=0, parent='',
         pp_bytes = _read_binary_file(pp_bin_file)
         data_dict = select_pp_struct(pp_bytes, rawdump, debug)
     # Raw dump is handled at build_data_tree() (via select_pp_struct())
-    if rawdump:
+    if not data_dict or rawdump:
         return
     for member in data_dict:
         name = member

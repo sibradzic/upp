@@ -20,6 +20,12 @@ table from Windows registry: python-registry. Should work on Windows as well
 
 ### Usage
 
+Note that if you need to run upp deployed with pip in '--user' mode with sudo,
+you'll need to add some parameters to sudo command to make user env available
+to super-user. For example:
+
+    sudo -E env "PATH=$PATH" upp --help
+
 At its current form this is a CLI only tool. Getting help:
 
     Usage: upp [OPTIONS] COMMAND [ARGS]...
@@ -73,6 +79,7 @@ At its current form this is a CLI only tool. Getting help:
       extract  Extract PowerPlay table from Video BIOS ROM image.
       get      Get current value of a PowerPlay parameter(s).
       set      Set value to PowerPlay parameter(s).
+      version  Show UPP version.
 
 Dumping all data:
 
