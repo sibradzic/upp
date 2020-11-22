@@ -59,7 +59,7 @@ At its current form this is a CLI only tool. Getting help:
         - Radeon VII
         - Navi 10
         - Navi 14
-        - Navi 20 (Sienna Cichlid)
+        - Navi 21 (Sienna Cichlid)
 
       Note: iGPUs found in many recent AMD APUs are using completely different
       PowerPlay control methods, this tool does not support them.
