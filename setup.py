@@ -23,7 +23,10 @@ setuptools.setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.6, <4',
-    install_requires=['click'],
+    install_requires=[
+        'click'
+        'setuptools'
+    ],
     entry_points={
         'console_scripts': [
             'upp=upp.upp:main',
