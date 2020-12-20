@@ -24,7 +24,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6, <4',
     install_requires=[
-        'click'
+        'click',
         'setuptools'
     ],
     entry_points={
