@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='upp',
-    version='0.0.7.post2',
+    version='0.0.8',
     author='Samir Ibradžić',
     description='Uplift Power Play',
     long_description=long_description,

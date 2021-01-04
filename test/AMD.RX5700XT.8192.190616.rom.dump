@@ -1,0 +1,817 @@
+header:
+  structuresize: 1674
+  format_revision: 12
+  content_revision: 0
+table_revision: 1
+table_size: 482
+golden_pp_id: 2247
+golden_revision: 14368
+format_id: 125
+platform_caps: 8
+thermal_controller_type: 27
+small_power_limit1: 0
+small_power_limit2: 0
+boost_power_limit: 0
+od_turbo_power_limit: 0
+od_power_save_power_limit: 0
+software_shutdown_temp: 118
+reserve:
+  reserve 0: 0
+  reserve 1: 0
+  reserve 2: 0
+  reserve 3: 0
+  reserve 4: 0
+  reserve 5: 0
+power_saving_clock:
+  revision: 1
+  reserve:
+    reserve 0: 0
+    reserve 1: 0
+    reserve 2: 0
+  count: 10
+  max:
+    max 0: 2100
+    max 1: 1267
+    max 2: 1086
+    max 3: 1267
+    max 4: 1267
+    max 5: 875
+    max 6: 1267
+    max 7: 1284
+    max 8: 1284
+    max 9: 810
+    max 10: 0
+    max 11: 0
+    max 12: 0
+    max 13: 0
+    max 14: 0
+    max 15: 0
+  min:
+    min 0: 300
+    min 1: 100
+    min 2: 100
+    min 3: 100
+    min 4: 507
+    min 5: 100
+    min 6: 507
+    min 7: 308
+    min 8: 300
+    min 9: 300
+    min 10: 0
+    min 11: 0
+    min 12: 0
+    min 13: 0
+    min 14: 0
+    min 15: 0
+overdrive_table:
+  revision: 128
+  reserve:
+    reserve 0: 0
+    reserve 1: 0
+    reserve 2: 0
+  feature_count: 14
+  setting_count: 30
+  cap:
+    cap 0: 1
+    cap 1: 1
+    cap 2: 1
+    cap 3: 1
+    cap 4: 1
+    cap 5: 1
+    cap 6: 1
+    cap 7: 1
+    cap 8: 1
+    cap 9: 0
+    cap 10: 1
+    cap 11: 1
+    cap 12: 1
+    cap 13: 1
+    cap 14: 0
+    cap 15: 0
+    cap 16: 0
+    cap 17: 0
+    cap 18: 0
+    cap 19: 0
+    cap 20: 0
+    cap 21: 0
+    cap 22: 0
+    cap 23: 0
+    cap 24: 0
+    cap 25: 0
+    cap 26: 0
+    cap 27: 0
+    cap 28: 0
+    cap 29: 0
+    cap 30: 0
+    cap 31: 0
+  max:
+    max 0: 2150
+    max 1: 2150
+    max 2: 2150
+    max 3: 1200
+    max 4: 2150
+    max 5: 1200
+    max 6: 2150
+    max 7: 1200
+    max 8: 950
+    max 9: 50
+    max 10: 4950
+    max 11: 4950
+    max 12: 100
+    max 13: 110
+    max 14: 2
+    max 15: 0
+    max 16: 1
+    max 17: 1
+    max 18: 1
+    max 19: 100
+    max 20: 100
+    max 21: 100
+    max 22: 100
+    max 23: 100
+    max 24: 100
+    max 25: 100
+    max 26: 100
+    max 27: 100
+    max 28: 100
+    max 29: 0
+    max 30: 0
+    max 31: 0
+  min:
+    min 0: 800
+    min 1: 800
+    min 2: 800
+    min 3: 750
+    min 4: 800
+    min 5: 750
+    min 6: 800
+    min 7: 750
+    min 8: 625
+    min 9: 50
+    min 10: 1100
+    min 11: 1100
+    min 12: 25
+    min 13: 50
+    min 14: 0
+    min 15: 0
+    min 16: 0
+    min 17: 0
+    min 18: 0
+    min 19: 25
+    min 20: 10
+    min 21: 25
+    min 22: 10
+    min 23: 25
+    min 24: 10
+    min 25: 25
+    min 26: 10
+    min 27: 25
+    min 28: 10
+    min 29: 0
+    min 30: 0
+    min 31: 0
+smc_pptable:
+  Version: 8
+  FeaturesToRun:
+    FeaturesToRun 0: 3017781247
+    FeaturesToRun 1: 1571
+  SocketPowerLimitAc:
+    SocketPowerLimitAc 0: 180
+    SocketPowerLimitAc 1: 0
+    SocketPowerLimitAc 2: 0
+    SocketPowerLimitAc 3: 0
+  SocketPowerLimitAcTau:
+    SocketPowerLimitAcTau 0: 0
+    SocketPowerLimitAcTau 1: 0
+    SocketPowerLimitAcTau 2: 0
+    SocketPowerLimitAcTau 3: 0
+  SocketPowerLimitDc:
+    SocketPowerLimitDc 0: 180
+    SocketPowerLimitDc 1: 0
+    SocketPowerLimitDc 2: 0
+    SocketPowerLimitDc 3: 0
+  SocketPowerLimitDcTau:
+    SocketPowerLimitDcTau 0: 0
+    SocketPowerLimitDcTau 1: 0
+    SocketPowerLimitDcTau 2: 0
+    SocketPowerLimitDcTau 3: 0
+  TdcLimitSoc: 14
+  TdcLimitSocTau: 0
+  TdcLimitGfx: 170
+  TdcLimitGfxTau: 0
+  TedgeLimit: 100
+  ThotspotLimit: 110
+  TmemLimit: 105
+  Tvr_gfxLimit: 115
+  Tvr_mem0Limit: 115
+  Tvr_mem1Limit: 115
+  Tvr_socLimit: 115
+  Tliquid0Limit: 0
+  Tliquid1Limit: 0
+  TplxLimit: 0
+  FitLimit: 0
+  PpmPowerLimit: 0
+  PpmTemperatureThreshold: 0
+  ThrottlerControlMask: 28926
+  FwDStateMask: 1
+  UlvVoltageOffsetSoc: 100
+  UlvVoltageOffsetGfx: 100
+  GceaLinkMgrIdleThreshold: 0
+  paddingRlcUlvParams:
+    paddingRlcUlvParams 0: 0
+    paddingRlcUlvParams 1: 0
+    paddingRlcUlvParams 2: 0
+  UlvSmnclkDid: 0
+  UlvMp1clkDid: 0
+  UlvGfxclkBypass: 0
+  Padding234: 0
+  MinVoltageUlvGfx: 2900
+  MinVoltageUlvSoc: 2900
+  MinVoltageGfx: 3000
+  MinVoltageSoc: 3000
+  MaxVoltageGfx: 4800
+  MaxVoltageSoc: 4800
+  LoadLineResistanceGfx: 76
+  LoadLineResistanceSoc: 0
+  DpmDescriptor:
+    DpmDescriptor 0:
+      VoltageMode: 1
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 0
+        b: 0
+      SsCurve:
+        a: 0.2542
+        b:-0.21625
+        c: 0.69572
+    DpmDescriptor 1:
+      VoltageMode: 1
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 1
+        b: 0
+      SsCurve:
+        a: 0.21751
+        b:-0.05852
+        c: 0.71468
+    DpmDescriptor 2:
+      VoltageMode: 1
+      SnapToDiscrete: 1
+      NumDiscreteLevels: 4
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 1
+        b: 0
+      SsCurve:
+        a: 0.21751
+        b:-0.05852
+        c: 0.71468
+    DpmDescriptor 3:
+      VoltageMode: 1
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 0.6443
+        b: 0.5349
+      SsCurve:
+        a: 0
+        b: 0.3851
+        c: 0.5678
+    DpmDescriptor 4:
+      VoltageMode: 1
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 0.5094
+        b: 0.5925
+      SsCurve:
+        a: 0
+        b: 0.3307
+        c: 0.5685
+    DpmDescriptor 5:
+      VoltageMode: 1
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 1.256
+        b:-0.3438
+      SsCurve:
+        a: 0
+        b: 0.5343
+        c: 0.2453
+    DpmDescriptor 6:
+      VoltageMode: 1
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 0.8216
+        b: 0.0146
+      SsCurve:
+        a: 0
+        b: 0.4776
+        c: 0.2526
+    DpmDescriptor 7:
+      VoltageMode: 2
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 0
+        b: 0
+      SsCurve:
+        a: 0
+        b: 0
+        c: 0
+    DpmDescriptor 8:
+      VoltageMode: 2
+      SnapToDiscrete: 0
+      NumDiscreteLevels: 2
+      Padding: 0
+      ConversionToAvfsClk:
+        m: 0
+        b: 0
+      SsCurve:
+        a: 0
+        b: 0
+        c: 0
+  FreqTableGfx:
+    FreqTableGfx 0: 300
+    FreqTableGfx 1: 2100
+    FreqTableGfx 2: 1400
+    FreqTableGfx 3: 1400
+    FreqTableGfx 4: 1400
+    FreqTableGfx 5: 1400
+    FreqTableGfx 6: 1400
+    FreqTableGfx 7: 1400
+    FreqTableGfx 8: 1400
+    FreqTableGfx 9: 1400
+    FreqTableGfx 10: 1400
+    FreqTableGfx 11: 1400
+    FreqTableGfx 12: 1400
+    FreqTableGfx 13: 1400
+    FreqTableGfx 14: 1400
+    FreqTableGfx 15: 1400
+  FreqTableVclk:
+    FreqTableVclk 0: 100
+    FreqTableVclk 1: 1267
+    FreqTableVclk 2: 1267
+    FreqTableVclk 3: 1267
+    FreqTableVclk 4: 1267
+    FreqTableVclk 5: 1267
+    FreqTableVclk 6: 1267
+    FreqTableVclk 7: 1267
+  FreqTableDclk:
+    FreqTableDclk 0: 100
+    FreqTableDclk 1: 1086
+    FreqTableDclk 2: 1086
+    FreqTableDclk 3: 1086
+    FreqTableDclk 4: 1086
+    FreqTableDclk 5: 1086
+    FreqTableDclk 6: 1086
+    FreqTableDclk 7: 1086
+  FreqTableSocclk:
+    FreqTableSocclk 0: 507
+    FreqTableSocclk 1: 1267
+    FreqTableSocclk 2: 950
+    FreqTableSocclk 3: 950
+    FreqTableSocclk 4: 950
+    FreqTableSocclk 5: 950
+    FreqTableSocclk 6: 950
+    FreqTableSocclk 7: 950
+  FreqTableUclk:
+    FreqTableUclk 0: 100
+    FreqTableUclk 1: 500
+    FreqTableUclk 2: 625
+    FreqTableUclk 3: 875
+  FreqTableDcefclk:
+    FreqTableDcefclk 0: 507
+    FreqTableDcefclk 1: 1267
+    FreqTableDcefclk 2: 1267
+    FreqTableDcefclk 3: 1267
+    FreqTableDcefclk 4: 1267
+    FreqTableDcefclk 5: 1267
+    FreqTableDcefclk 6: 1267
+    FreqTableDcefclk 7: 1267
+  FreqTableDispclk:
+    FreqTableDispclk 0: 308
+    FreqTableDispclk 1: 1284
+    FreqTableDispclk 2: 1284
+    FreqTableDispclk 3: 1284
+    FreqTableDispclk 4: 1284
+    FreqTableDispclk 5: 1284
+    FreqTableDispclk 6: 1284
+    FreqTableDispclk 7: 1284
+  FreqTablePixclk:
+    FreqTablePixclk 0: 300
+    FreqTablePixclk 1: 1284
+    FreqTablePixclk 2: 1188
+    FreqTablePixclk 3: 1188
+    FreqTablePixclk 4: 1188
+    FreqTablePixclk 5: 1188
+    FreqTablePixclk 6: 1188
+    FreqTablePixclk 7: 1188
+  FreqTablePhyclk:
+    FreqTablePhyclk 0: 300
+    FreqTablePhyclk 1: 810
+    FreqTablePhyclk 2: 810
+    FreqTablePhyclk 3: 810
+    FreqTablePhyclk 4: 810
+    FreqTablePhyclk 5: 810
+    FreqTablePhyclk 6: 810
+    FreqTablePhyclk 7: 810
+  Paddingclks:
+    Paddingclks 0: 30409168
+    Paddingclks 1: 30409168
+    Paddingclks 2: 30409168
+    Paddingclks 3: 30409168
+    Paddingclks 4: 30409168
+    Paddingclks 5: 30409168
+    Paddingclks 6: 30409168
+    Paddingclks 7: 30409168
+    Paddingclks 8: 30409168
+    Paddingclks 9: 30409168
+    Paddingclks 10: 30409168
+    Paddingclks 11: 30409168
+    Paddingclks 12: 30409168
+    Paddingclks 13: 30409168
+    Paddingclks 14: 30409168
+    Paddingclks 15: 30409168
+  DcModeMaxFreq:
+    DcModeMaxFreq 0: 2100
+    DcModeMaxFreq 1: 1267
+    DcModeMaxFreq 2: 875
+    DcModeMaxFreq 3: 1086
+    DcModeMaxFreq 4: 1267
+    DcModeMaxFreq 5: 1267
+    DcModeMaxFreq 6: 1284
+    DcModeMaxFreq 7: 1284
+    DcModeMaxFreq 8: 810
+  Padding8_Clks: 464
+  FreqTableUclkDiv:
+    FreqTableUclkDiv 0: 0
+    FreqTableUclkDiv 1: 3
+    FreqTableUclkDiv 2: 3
+    FreqTableUclkDiv 3: 3
+  Mp0clkFreq:
+    Mp0clkFreq 0: 304
+    Mp0clkFreq 1: 507
+  Mp0DpmVoltage:
+    Mp0DpmVoltage 0: 3000
+    Mp0DpmVoltage 1: 3000
+  MemVddciVoltage:
+    MemVddciVoltage 0: 2700
+    MemVddciVoltage 1: 3400
+    MemVddciVoltage 2: 3400
+    MemVddciVoltage 3: 3400
+  MemMvddVoltage:
+    MemMvddVoltage 0: 5000
+    MemMvddVoltage 1: 5400
+    MemMvddVoltage 2: 5400
+    MemMvddVoltage 3: 5400
+  GfxclkFgfxoffEntry: 800
+  GfxclkFinit: 800
+  GfxclkFidle: 800
+  GfxclkSlewRate: 0
+  GfxclkFopt: 0
+  Padding567:
+    Padding567 0: 208
+    Padding567 1: 1
+  GfxclkDsMaxFreq: 0
+  GfxclkSource: 1
+  Padding456: 2
+  LowestUclkReservedForUlv: 0
+  paddingUclk:
+    paddingUclk 0: 0
+    paddingUclk 1: 91
+    paddingUclk 2: 0
+  MemoryType: 0
+  MemoryChannels: 16
+  PaddingMem:
+    PaddingMem 0: 0
+    PaddingMem 1: 0
+  PcieGenSpeed:
+    PcieGenSpeed 0: 0
+    PcieGenSpeed 1: 3
+  PcieLaneCount:
+    PcieLaneCount 0: 6
+    PcieLaneCount 1: 6
+  LclkFreq:
+    LclkFreq 0: 619
+    LclkFreq 1: 619
+  EnableTdpm: 0
+  TdpmHighHystTemperature: 0
+  TdpmLowHystTemperature: 0
+  GfxclkFreqHighTempLimit: 0
+  FanStopTemp: 0
+  FanStartTemp: 0
+  FanGainEdge: 400
+  FanGainHotspot: 400
+  FanGainLiquid0: 400
+  FanGainLiquid1: 400
+  FanGainVrGfx: 400
+  FanGainVrSoc: 400
+  FanGainVrMem0: 400
+  FanGainVrMem1: 400
+  FanGainPlx: 400
+  FanGainMem: 400
+  FanPwmMin: 20
+  FanAcousticLimitRpm: 2100
+  FanThrottlingRpm: 2100
+  FanMaximumRpm: 4950
+  FanTargetTemperature: 90
+  FanTargetGfxclk: 800
+  FanTempInputSelect: 1
+  FanPadding: 0
+  FanZeroRpmEnable: 0
+  FanTachEdgePerRev: 2
+  FuzzyFan_ErrorSetDelta: 0
+  FuzzyFan_ErrorRateSetDelta: 0
+  FuzzyFan_PwmSetDelta: 0
+  FuzzyFan_Reserved: 0
+  OverrideAvfsGb:
+    OverrideAvfsGb 0: 0
+    OverrideAvfsGb 1: 0
+  Padding8_Avfs:
+    Padding8_Avfs 0: 0
+    Padding8_Avfs 1: 0
+  qAvfsGb:
+    qAvfsGb 0:
+      a: 0.01781
+      b:-0.04728
+      c: 0.05402
+    qAvfsGb 1:
+      a: 0
+      b: 0
+      c: 0.03
+  dBtcGbGfxPll:
+    a: 0
+    b: 0
+    c: 0
+  dBtcGbGfxDfll:
+    a: 0.09755
+    b: 0.04839
+    c:-0.07874
+  dBtcGbSoc:
+    a: 0.00234
+    b:-0.00239
+    c: 0.09239
+  qAgingGb:
+    qAgingGb 0:
+      m: 0
+      b: 0
+    qAgingGb 1:
+      m: 0
+      b: 0
+  qStaticVoltageOffset:
+    qStaticVoltageOffset 0:
+      a: 0
+      b: 0
+      c: 0
+    qStaticVoltageOffset 1:
+      a: 0
+      b: 0
+      c: 0
+  DcTol:
+    DcTol 0: 160
+    DcTol 1: 160
+  DcBtcEnabled:
+    DcBtcEnabled 0: 1
+    DcBtcEnabled 1: 1
+  Padding8_GfxBtc:
+    Padding8_GfxBtc 0: 0
+    Padding8_GfxBtc 1: 0
+  DcBtcMin:
+    DcBtcMin 0: 0
+    DcBtcMin 1: 0
+  DcBtcMax:
+    DcBtcMax 0: 160
+    DcBtcMax 1: 160
+  DebugOverrides: 512
+  ReservedEquation0:
+    a: 0
+    b: 0
+    c: 0
+  ReservedEquation1:
+    a: 0
+    b: 0
+    c: 0
+  ReservedEquation2:
+    a: 0
+    b: 0
+    c: 0
+  ReservedEquation3:
+    a: 0
+    b: 0
+    c: 0
+  TotalPowerConfig: 1
+  TotalPowerSpare1: 0
+  TotalPowerSpare2: 0
+  PccThresholdLow: 0
+  PccThresholdHigh: 0
+  MGpuFanBoostLimitRpm: 0
+  PaddingAPCC:
+    PaddingAPCC 0: 0
+    PaddingAPCC 1: 0
+    PaddingAPCC 2: 0
+    PaddingAPCC 3: 0
+    PaddingAPCC 4: 0
+  VDDGFX_TVmin: 0
+  VDDSOC_TVmin: 0
+  VDDGFX_Vmin_HiTemp: 0
+  VDDGFX_Vmin_LoTemp: 0
+  VDDSOC_Vmin_HiTemp: 0
+  VDDSOC_Vmin_LoTemp: 0
+  VDDGFX_TVminHystersis: 0
+  VDDSOC_TVminHystersis: 0
+  BtcConfig: 0
+  SsFmin:
+    SsFmin 0: 425
+    SsFmin 1: 135
+    SsFmin 2: 135
+    SsFmin 3: 0
+    SsFmin 4: 0
+    SsFmin 5: 0
+    SsFmin 6: 0
+    SsFmin 7: 0
+    SsFmin 8: 0
+    SsFmin 9: 0
+  DcBtcGb:
+    DcBtcGb 0: 25
+    DcBtcGb 1: 25
+  Reserved:
+    Reserved 0: 0
+    Reserved 1: 0
+    Reserved 2: 0
+    Reserved 3: 0
+    Reserved 4: 0
+    Reserved 5: 0
+    Reserved 6: 0
+    Reserved 7: 0
+  I2cControllers:
+    I2cControllers 0:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+    I2cControllers 1:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+    I2cControllers 2:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+    I2cControllers 3:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+    I2cControllers 4:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+    I2cControllers 5:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+    I2cControllers 6:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+    I2cControllers 7:
+      Enabled: 0
+      Speed: 0
+      Padding:
+        Padding 0: 0
+        Padding 1: 0
+      SlaveAddress: 0
+      ControllerPort: 0
+      ControllerName: 0
+      ThermalThrotter: 0
+      I2cProtocol: 0
+  MaxVoltageStepGfx: 0
+  MaxVoltageStepSoc: 0
+  VddGfxVrMapping: 0
+  VddSocVrMapping: 0
+  VddMem0VrMapping: 0
+  VddMem1VrMapping: 0
+  GfxUlvPhaseSheddingMask: 0
+  SocUlvPhaseSheddingMask: 0
+  ExternalSensorPresent: 0
+  Padding8_V: 0
+  GfxMaxCurrent: 0
+  GfxOffset: 0
+  Padding_TelemetryGfx: 0
+  SocMaxCurrent: 0
+  SocOffset: 0
+  Padding_TelemetrySoc: 0
+  Mem0MaxCurrent: 0
+  Mem0Offset: 0
+  Padding_TelemetryMem0: 0
+  Mem1MaxCurrent: 0
+  Mem1Offset: 0
+  Padding_TelemetryMem1: 0
+  AcDcGpio: 0
+  AcDcPolarity: 0
+  VR0HotGpio: 0
+  VR0HotPolarity: 0
+  VR1HotGpio: 0
+  VR1HotPolarity: 0
+  GthrGpio: 0
+  GthrPolarity: 0
+  LedPin0: 0
+  LedPin1: 0
+  LedPin2: 0
+  padding8_4: 0
+  PllGfxclkSpreadEnabled: 0
+  PllGfxclkSpreadPercent: 0
+  PllGfxclkSpreadFreq: 0
+  DfllGfxclkSpreadEnabled: 0
+  DfllGfxclkSpreadPercent: 0
+  DfllGfxclkSpreadFreq: 0
+  UclkSpreadEnabled: 0
+  UclkSpreadPercent: 0
+  UclkSpreadFreq: 0
+  SoclkSpreadEnabled: 0
+  SocclkSpreadPercent: 0
+  SocclkSpreadFreq: 0
+  TotalBoardPower: 0
+  BoardPadding: 0
+  MvddRatio: 0
+  RenesesLoadLineEnabled: 0
+  GfxLoadlineResistance: 0
+  SocLoadlineResistance: 0
+  Padding8_Loadline: 0
+  BoardReserved:
+    BoardReserved 0: 0
+    BoardReserved 1: 0
+    BoardReserved 2: 0
+    BoardReserved 3: 0
+    BoardReserved 4: 0
+    BoardReserved 5: 0
+    BoardReserved 6: 0
+    BoardReserved 7: 0
+  MmHubPadding:
+    MmHubPadding 0: 0
+    MmHubPadding 1: 0
+    MmHubPadding 2: 0
+    MmHubPadding 3: 0
+    MmHubPadding 4: 0
+    MmHubPadding 5: 0
+    MmHubPadding 6: 0
+    MmHubPadding 7: 0

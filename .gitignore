@@ -1,3 +1,6 @@
+test/ROMs/
+test/tmp/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

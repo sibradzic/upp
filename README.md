@@ -12,153 +12,126 @@ allow PowerPlay tables to be dynamically modified on runtime, which may be
 known as "soft" PowerPlay table. On Linux, the PowerPlay table is by default
 found at: `/sys/class/drm/card0/device/pp_table`.
 
+Alternatively, one can use this tool to get PowerPlay data by:
+
+* Extracting PowerPlay table from Video ROM image (see extract command)
+* Importing "Soft PowerPlay" table from Windows registry, directly from
+  offline Windows/System32/config/SYSTEM file on disk, so it would work
+  from Linux distro that has acces to mounted Windows partition
+  (path to SYSTEM registry file is specified with --from-registry option)
+
+This tool currently supports parsing and modifying PowerPlay tables found
+on the following AMD GPU families:
+
+* Polaris
+* Vega
+* Radeon VII
+* Navi 10
+* Navi 14
+* Navi 21 (Sienna Cichlid)
+
+Note: iGPUs found in many recent AMD APUs are using completely different
+PowerPlay control methods, this tool does not support them.
+
+If you have bugs to report or features to request please create an issue on:
+https://github.com/sibradzic/upp
+
 ### Requirements
 
-Python 2.7 or 3.6+, click library. Optionally, for reading "soft" PowerPlay
-table from Windows registry: python-registry. Should work on Windows as well
+Python 3.6+, click library. Optionally, for reading "soft" PowerPlay table
+from Windows registry: python-registry. Should work on Windows as well
 (testers wanted).
 
 ### Usage
 
-Note that if you need to run upp deployed with pip in '--user' mode with sudo,
-you'll need to add some parameters to sudo command to make user env available
-to super-user. For example:
-
-    sudo -E env "PATH=$PATH" upp --help
-
 At its current form this is a CLI only tool. Getting help:
 
-    Usage: upp [OPTIONS] COMMAND [ARGS]...
+    upp --help
 
-      UPP: Uplift Power Play
+or
 
-      A tool for parsing, dumping and modifying data in Radeon PowerPlay tables.
+    upp <command> --help
 
-      UPP is able to parse and modify binary data structures of PowerPlay tables
-      commonly found on certain AMD Radeon GPUs. Drivers on recent AMD GPUs
-      allow PowerPlay tables to be dynamically modified on runtime, which may be
-      known as "soft PowerPlay tables". On Linux, the PowerPlay table is by
-      default found at:
+Upp will only work by specifying a command which tells it what to do to one's
+Radeon PowerPlay table data. Currently available commands are:
 
-         /sys/class/drm/card0/device/pp_table
+* **dump** - Dumps all PowerPlay data to console
+* **extract** - Extracts PowerPlay data from full VBIOS ROM image
+* **get** - Retrieves current value of one or multiple PowerPlay parametter(s)
+* **set** - Sets value to one or multiple PowerPlay parameters
+* **version** - Shows UPP version
 
-      There are also two alternative ways of getting PowerPlay data that this
-      tool supports:
+So, an usage pattern would be like this:
 
-       - By extracting PowerPlay table from Video ROM image (see extract command)
-       - Import "Soft PowerPlay" table from Windows registry, directly from
-         offline Windows/System32/config/SYSTEM file on disk, so it would work
-         from Linux distro that has acces to mounted Windows partition
-         (path to SYSTEM registry file is specified with --from-registry option)
+    upp [OPTIONS] COMMAND [ARGS]...
 
-      This tool currently supports parsing and modifying PowerPlay tables found
-      on the following AMD GPU families:
+Some generic options applicable to all commands may be used, but please note
+that they have to be specified *before* an actual command:
 
-        - Polaris
-        - Vega
-        - Radeon VII
-        - Navi 10
-        - Navi 14
-        - Navi 21 (Sienna Cichlid)
+    -p, --pp-file <filename>        Input/output PP table file.
+    -f, --from-registry <filename>  Import PP_PhmSoftPowerPlayTable from Windows
+    -d, --debug / --no-debug        Debug mode.
+    -h, --help                      Show help.
 
-      Note: iGPUs found in many recent AMD APUs are using completely different
-      PowerPlay control methods, this tool does not support them.
+#### Dumping all data:
 
-      If you have bugs to report or features to request please check:
+The **dump** command de-serializes PowerPlay binary data into a human-readable
+text output. For example:
 
-        github.com/sibradzic/upp
+    upp dump
 
-    Options:
-      -p, --pp-file <filename>        Input/output PP table binary file.
-      -f, --from-registry <filename>  Import PP_PhmSoftPowerPlayTable from Windows
-                                      registry (overrides -p / --pp-file option).
-      -d, --debug / --no-debug        Debug mode.
-      -h, --help                      Show this message and exit.
+In standard mode all data will be dumped to console, where data tree hierarchy
+is indicated by indentation. In raw mode a table showing all hex and binary
+data, as well as variable names and values, will be dumped.
 
-    Commands:
-      dump     Dumps all PowerPlay parameters to console.
-      extract  Extract PowerPlay table from Video BIOS ROM image.
-      get      Get current value of a PowerPlay parameter(s).
-      set      Set value to PowerPlay parameter(s).
-      version  Show UPP version.
+#### Extracting PowerPlay table from Video ROM image:
 
-Dumping all data:
+Use **extract** command for this. The source video ROM binary must be specified
+with `-r/--video-rom` parameter, and extracted PowerPlay table will be saved
+into file specified with generic `-p/--pp-file` option. For example:
 
-    Usage: upp dump [OPTIONS]
+    upp --pp-file=extracted.pp_table extract -r VIDEO.rom
 
-      Dump all PowerPlay data to console
+Default output file name will be an original ROM file name with an
+additional .pp_table extension.
 
-      De-serializes PowerPlay binary data into a human-readable text output. For
-      example:
+#### Getting PowerPlay table parameter value(s):
 
-          upp --pp-file=radeon.pp_table dump
+The **get** command retrieves current value of one or multiple PowerPlay table
+parameter value(s). The parameter variable path must be specified in `/<param>`
+notation, for example:
 
-      In standard mode all data will be dumped to console, where data tree
-      hierarchy is indicated by indentation.
+    upp get smc_pptable/FreqTableGfx/1 smc_pptable/FreqTableGfx/2
+    1850
+    1400
 
-      In raw mode a table showing all hex and binary data, as well as variable
-      names and values, will be dumped.
+The order of the output values will match the order of the parameter variable
+paths specified.
 
-    Options:
-      -r, --raw / --no-raw  Show raw binary data.
-      -h, --help            Show this message and exit.
+#### Setting PowerPlay table parameter value(s):
 
-Extracting PowerPlay table from Video ROM image:
+The **set** command sets value to one or multiple PowerPlay table
+parameter(s). The parameter path and value must be specified in
+`/<param>=<value>` notation, for example:
 
-    Usage: upp extract [OPTIONS]
+    upp -p /tmp/custom-pp_table set --write  \
+      smc_pptable/SocketPowerLimitAc/0=100   \
+      smc_pptable/SocketPowerLimitDc/0=100   \
+      smc_pptable/FanStartTemp=100           \
+      smc_pptable/FreqTableGfx/1=1550
 
-      Extracts PowerPlay data from full VBIOS ROM image
+Note the `--write` parameter, which has to be specified to actually commit
+changes to the PowerPlay table file.
 
-      The source video ROM binary must be specified with -r/--video-rom
-      parameter, and extracted PowerPlay table will be saved into file specified
-      with -p/--pp-file. For example:
+#### Getting upp version
 
-          upp --pp-file=extracted.pp_table extract -r VIDEO.rom
+    upp version
 
-      Default output file name will be an original ROM file name with an
-      additional .pp_table extension.
+#### Running as sudo
 
-    Options:
-      -r, --video-rom <filename>  Input Video ROM binary image file  [required].
-      -h, --help                  Show this message and exit.
+Note that if you need to run upp deployed with **pip** in `--user` mode with
+sudo, you'll need to add some parameters to sudo command to make user env
+available to super-user. For example:
 
-Getting parameter:
-
-    Usage: upp get [OPTIONS] VARIABLE_PATH_SET...
-
-      Retrieves current value of one or multiple PP parameters
-
-      The parameter variable path must be specified in "/<param> notation", for
-      example:
-
-          upp get /FanTable/TargetTemperature /VddgfxLookupTable/7/Vdd
-
-      The raw value of the parameter will be retrieved, decoded and displayed on
-      console. Multiple PP parameters can be specified at the same time.
-
-    Options:
-      -h, --help  Show this message and exit.
-
-Setting parameters:
-
-    Usage: upp set [OPTIONS] VARIABLE_PATH_SET...
-
-      Sets value to one or multiple PP parameters
-
-      The parameter path and value must be specified in "/<param>=<value>
-      notation", for example:
-
-          upp set /PowerTuneTable/TDP=75 /SclkDependencyTable/7/Sclk=107000
-
-      Multiple PP parameters can be set at the same time. The PP tables will not
-      be changed unless additional --write option is set.
-
-      Optionally, if --to-reg output is used an additional Windows registry
-      format file will be generated, named same as PowerPlay output target
-      filename with an additional '.reg' extension.
-
-    Options:
-      -t, --to-reg  Save output to Windows registry .reg file as well.
-      -w, --write   Write changes to PP binary.
-      -h, --help    Show this message and exit.
+    sudo -E env "PATH=$PATH" upp --help
 

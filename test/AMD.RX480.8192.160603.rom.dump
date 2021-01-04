@@ -1,0 +1,470 @@
+sHeader:
+  StructureSize: 820
+  TableFormatRevision: 7
+  TableContentRevision: 1
+TableRevision: 0
+TableSize: 77
+GoldenPPID: 1546
+GoldenRevision: 9275
+FormatID: 25
+VoltageTime: 0
+PlatformCaps: 16941056
+MaxODEngineClock: 200000
+MaxODMemoryClock: 225000
+PowerControlLimit: 50
+UlvVoltageOffset: 50
+StateArray:
+  RevId: 1
+  NumEntries: 2
+  entries:
+    entries 0:
+      EngineClockIndexHigh: 0
+      EngineClockIndexLow: 0
+      MemoryClockIndexHigh: 0
+      MemoryClockIndexLow: 0
+      PCIEGenLow: 0
+      PCIEGenHigh: 0
+      PCIELaneLow: 0
+      PCIELaneHigh: 0
+      Classification: 8
+      CapsAndSettings: 0
+      Classification2: 0
+      Unused:
+        Unused 0: 0
+        Unused 1: 0
+        Unused 2: 0
+        Unused 3: 0
+    entries 1:
+      EngineClockIndexHigh: 7
+      EngineClockIndexLow: 0
+      MemoryClockIndexHigh: 1
+      MemoryClockIndexLow: 0
+      PCIEGenLow: 0
+      PCIEGenHigh: 0
+      PCIELaneLow: 0
+      PCIELaneHigh: 0
+      Classification: 5
+      CapsAndSettings: 0
+      Classification2: 0
+      Unused:
+        Unused 0: 0
+        Unused 1: 0
+        Unused 2: 0
+        Unused 3: 0
+FanTable:
+  RevId: 9
+  THyst: 3
+  TMin: 4000
+  TMed: 6500
+  THigh: 8500
+  PWMMin: 2000
+  PWMMed: 4000
+  PWMHigh: 6000
+  TMax: 10900
+  FanControlMode: 1
+  FanPWMMax: 100
+  FanOutputSensitivity: 4836
+  FanRPMMax: 2200
+  MinFanSCLKAcousticLimit: 91000
+  TargetTemperature: 80
+  MinimumPWMLimit: 20
+  Reserved: 100
+ThermalController:
+  RevId: 1
+  Type: 23
+  I2cLine: 0
+  I2cAddress: 0
+  FanParameters: 2
+  FanMinRPM: 0
+  FanMaxRPM: 52
+  Reserved: 0
+  Flags: 0
+Reserv: 0
+MclkDependencyTable:
+  RevId: 0
+  NumEntries: 2
+  entries:
+    entries 0:
+      VddcInd: 0
+      Vddci: 850
+      VddgfxOffset: 0
+      Mvdd: 1000
+      Mclk: 30000
+      Reserved: 0
+    entries 1:
+      VddcInd: 15
+      Vddci: 950
+      VddgfxOffset: 0
+      Mvdd: 1000
+      Mclk: 200000
+      Reserved: 0
+SclkDependencyTable:
+  RevId: 1
+  NumEntries: 8
+  entries:
+    entries 0:
+      VddInd: 0
+      VddcOffset: 0
+      Sclk: 30000
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 128
+      SclkOffset: 0
+    entries 1:
+      VddInd: 1
+      VddcOffset: 65510
+      Sclk: 60800
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 0
+      SclkOffset: 0
+    entries 2:
+      VddInd: 2
+      VddcOffset: 65510
+      Sclk: 91000
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 0
+      SclkOffset: 5000
+    entries 3:
+      VddInd: 3
+      VddcOffset: 65510
+      Sclk: 107700
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 0
+      SclkOffset: 0
+    entries 4:
+      VddInd: 4
+      VddcOffset: 65510
+      Sclk: 114500
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 0
+      SclkOffset: 0
+    entries 5:
+      VddInd: 5
+      VddcOffset: 65510
+      Sclk: 119100
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 0
+      SclkOffset: 0
+    entries 6:
+      VddInd: 6
+      VddcOffset: 65510
+      Sclk: 123600
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 0
+      SclkOffset: 0
+    entries 7:
+      VddInd: 7
+      VddcOffset: 0
+      Sclk: 126600
+      EdcCurrent: 0
+      ReliabilityTemperature: 0
+      CKSVOffsetandDisable: 0
+      SclkOffset: 0
+VddcLookupTable:
+  RevId: 0
+  NumEntries: 16
+  entries:
+    entries 0:
+      Vdd: 800
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 1:
+      Vdd: 65282
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 2:
+      Vdd: 65283
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 3:
+      Vdd: 65284
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 4:
+      Vdd: 65285
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 5:
+      Vdd: 65286
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 6:
+      Vdd: 65287
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 7:
+      Vdd: 65288
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 8:
+      Vdd: 850
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 9:
+      Vdd: 900
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 10:
+      Vdd: 950
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 11:
+      Vdd: 1000
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 12:
+      Vdd: 1050
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 13:
+      Vdd: 1100
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 14:
+      Vdd: 1150
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 15:
+      Vdd: 975
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+VddgfxLookupTable:
+  RevId: 0
+  NumEntries: 8
+  entries:
+    entries 0:
+      Vdd: 900
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 1:
+      Vdd: 65282
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 2:
+      Vdd: 65283
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 3:
+      Vdd: 65284
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 4:
+      Vdd: 65285
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 5:
+      Vdd: 65286
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 6:
+      Vdd: 65287
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+    entries 7:
+      Vdd: 65288
+      CACLow: 0
+      CACMid: 0
+      CACHigh: 0
+MMDependencyTable:
+  RevId: 0
+  NumEntries: 8
+  entries:
+    entries 0:
+      VddcInd: 0
+      VddgfxOffset: 0
+      DClk: 58000
+      VClk: 75000
+      EClk: 63000
+      AClk: 0
+      SAMUClk: 57000
+    entries 1:
+      VddcInd: 8
+      VddgfxOffset: 65460
+      DClk: 63000
+      VClk: 80000
+      EClk: 69000
+      AClk: 0
+      SAMUClk: 64000
+    entries 2:
+      VddcInd: 9
+      VddgfxOffset: 65435
+      DClk: 68000
+      VClk: 85000
+      EClk: 75000
+      AClk: 0
+      SAMUClk: 70000
+    entries 3:
+      VddcInd: 10
+      VddgfxOffset: 65410
+      DClk: 73000
+      VClk: 89000
+      EClk: 81000
+      AClk: 0
+      SAMUClk: 76000
+    entries 4:
+      VddcInd: 11
+      VddgfxOffset: 65385
+      DClk: 77000
+      VClk: 92000
+      EClk: 86000
+      AClk: 0
+      SAMUClk: 81000
+    entries 5:
+      VddcInd: 12
+      VddgfxOffset: 65335
+      DClk: 80000
+      VClk: 95000
+      EClk: 91000
+      AClk: 0
+      SAMUClk: 85000
+    entries 6:
+      VddcInd: 13
+      VddgfxOffset: 65285
+      DClk: 83000
+      VClk: 98000
+      EClk: 96000
+      AClk: 0
+      SAMUClk: 88000
+    entries 7:
+      VddcInd: 14
+      VddgfxOffset: 0
+      DClk: 86000
+      VClk: 100000
+      EClk: 100000
+      AClk: 0
+      SAMUClk: 91000
+VCEStateTable:
+  RevId: 1
+  NumEntries: 6
+  entries:
+    entries 0:
+      VCEClockIndex: 0
+      Flag: 0
+      SCLKIndex: 1
+      MCLKIndex: 1
+    entries 1:
+      VCEClockIndex: 0
+      Flag: 1
+      SCLKIndex: 1
+      MCLKIndex: 1
+    entries 2:
+      VCEClockIndex: 0
+      Flag: 2
+      SCLKIndex: 1
+      MCLKIndex: 1
+    entries 3:
+      VCEClockIndex: 0
+      Flag: 2
+      SCLKIndex: 1
+      MCLKIndex: 1
+    entries 4:
+      VCEClockIndex: 0
+      Flag: 2
+      SCLKIndex: 1
+      MCLKIndex: 1
+    entries 5:
+      VCEClockIndex: 0
+      Flag: 2
+      SCLKIndex: 1
+      MCLKIndex: 1
+PPMTable: UNUSED
+PowerTuneTable:
+  RevId: 4
+  TDP: 110
+  ConfigurableTDP: 0
+  TDC: 107
+  BatteryPowerLimit: 110
+  SmallPowerLimit: 110
+  LowCACLeakage: 0
+  HighCACLeakage: 0
+  MaximumPowerDeliveryLimit: 110
+  TjMax: 90
+  PowerTuneDataSetID: 0
+  EDCLimit: 0
+  SoftwareShutdownTemp: 94
+  ClockStretchAmount: 2
+  TemperatureLimitHotspot: 105
+  TemperatureLimitLiquid1: 80
+  TemperatureLimitLiquid2: 80
+  TemperatureLimitVrVddc: 115
+  TemperatureLimitVrMvdd: 115
+  TemperatureLimitPlx: 95
+  Liquid1_I2C_address: 0
+  Liquid2_I2C_address: 0
+  Liquid_I2C_Line: 144
+  Vr_I2C_address: 16
+  Vr_I2C_Line: 150
+  Plx_I2C_address: 0
+  Plx_I2C_Line: 144
+  Reserved: 0
+HardLimitTable: UNUSED
+PCIETable:
+  RevId: 1
+  NumEntries: 3
+  entries:
+    entries 0:
+      PCIEGenSpeed: 0
+      PCIELaneWidth: 16
+      Reserved:
+        Reserved 0: 0
+        Reserved 1: 0
+      PCIE_Sclk: 0
+    entries 1:
+      PCIEGenSpeed: 0
+      PCIELaneWidth: 16
+      Reserved:
+        Reserved 0: 0
+        Reserved 1: 0
+      PCIE_Sclk: 0
+    entries 2:
+      PCIEGenSpeed: 2
+      PCIELaneWidth: 16
+      Reserved:
+        Reserved 0: 0
+        Reserved 1: 0
+      PCIE_Sclk: 0
+GPIOTable:
+  RevId: 0
+  VRHotTriggeredSclkDpmIndex: 1
+  Reserve:
+    Reserve 0: 0
+    Reserve 1: 0
+    Reserve 2: 0
+    Reserve 3: 0
+    Reserve 4: 0
+Reserved:
+  Reserved 0: 0
+  Reserved 1: 0
+  Reserved 2: 0
+  Reserved 3: 0
+  Reserved 4: 0
+  Reserved 5: 0

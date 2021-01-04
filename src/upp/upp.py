@@ -144,8 +144,8 @@ def cli(ctx, debug, pp_file, from_registry):
       - Polaris
       - Vega
       - Radeon VII
-      - Navi 10
-      - Navi 14
+      - Navi 10, 14
+      - Navi 21, 22, 23
 
     Note: iGPUs found in many recent AMD APUs are using completely different
     PowerPlay control methods, this tool does not support them.
@@ -162,7 +162,7 @@ def cli(ctx, debug, pp_file, from_registry):
 
 @click.command(short_help='Show UPP version.')
 def version():
-    """Show UPP version."""
+    """Shows UPP version."""
     version = pkg_resources.require("upp")[0].version
     click.echo(version)
 
@@ -172,7 +172,7 @@ def version():
               default='False')
 @click.pass_context
 def dump(ctx, raw):
-    """Dump all PowerPlay data to console
+    """Dumps all PowerPlay data to console
 
     De-serializes PowerPlay binary data into a human-readable text output.
     For example:
@@ -252,7 +252,7 @@ def get(ctx, variable_path_set):
         var_path = _normalize_var_path(set_pair_str)
         res = decode.get_value(pp_file, var_path, data, debug=debug)
         if res:
-            print(res['value'])
+            print('{:n}'.format(res['value']))
         else:
             print('ERROR: Incorrect variable path:', set_pair_str)
             return 2
