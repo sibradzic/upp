@@ -67,7 +67,7 @@ def _get_pp_data_from_registry(reg_file_path):
         print(e)
         return None
     print(('Successfully loaded' + msg).format(reg_file_path, reg_path))
-    decode._write_pp_tables_file(tmp_pp_file.name, registry_data)
+    decode._write_binary_file(tmp_pp_file.name, registry_data)
     tmp_pp_file.close()
 
     return tmp_pp_file.name
@@ -94,7 +94,7 @@ def _write_pp_to_reg_file(filename, data, debug=False):
         reg_pp_data = REG_HEADER + formatted_reg_string + 2 * '\r\n'
         if debug:
             print(reg_pp_data)
-        decode._write_pp_tables_file(filename, reg_pp_data.encode('utf-16'))
+        decode._write_binary_file(filename, reg_pp_data.encode('utf-16'))
         print('Written {} Soft PowerPlay bytes to {}'.format(len(data),
                                                              filename))
     else:
@@ -219,8 +219,44 @@ def extract(ctx, video_rom):
         pp_file = video_rom + '.pp_table'
     msg = "Extracting PP table from '{}' ROM image..."
     print(msg.format(video_rom))
-    decode.extract_rom(video_rom, pp_file)
-    print('Done')
+    if decode.extract_rom(video_rom, pp_file):
+        print('Done')
+
+    return 0
+
+
+@click.command(short_help='Inject PowerPlay table into Video BIOS ROM image.')
+@click.option('-i', '--input-rom', required=True, metavar='<filename>',
+              help='Input Video ROM binary image file.')
+@click.option('-o', '--output-rom', required=False, metavar='<filename>',
+              help='Output Video ROM binary image file.')
+@click.pass_context
+def inject(ctx, input_rom, output_rom):
+    """Injects PowerPlay data from file into VBIOS ROM image
+
+    The input video ROM binary must be specified with -i/--input-rom
+    parameter, and the output ROM can be specified with an optional
+    -o/--output-rom parameter.
+
+    \b
+        upp -p modded.pp_table inject -i original.rom -o modded.rom
+
+    The output filename defaults to <input ROM file name>.modded.
+
+    WARNING: Modified vROM image is probalby not going to work if flashed as
+    is to your card, due to ROM signature checks on recent Radeon cards.
+    Authors of this tool are in no way responsible for any damage that may
+    happen to your expansive graphics card if you choose to flash the modified
+    video ROM, you are doing it entierly on your own risk.
+    """
+    pp_file = ctx.obj['PPBINARY']
+    if not output_rom:
+        output_rom = input_rom + '.modded'
+    msg = "Injecting {} PP table into {} ROM image..."
+    print(msg.format(pp_file, input_rom))
+    if decode.inject_pp_table(input_rom, output_rom, pp_file):
+        print('Saved modified vROM image as {}.'.format(output_rom))
+
     return 0
 
 
@@ -315,7 +351,7 @@ def set(ctx, variable_path_set, to_registry, write):
                          data_dict=data, write=False, debug=debug)
     if write:
         print("Commiting changes to '{}'.".format(pp_file))
-        decode._write_pp_tables_file(pp_file, pp_bytes)
+        decode._write_binary_file(pp_file, pp_bytes)
     else:
         print("WARNING: Nothing was written to '{}'.".format(pp_file),
               "Add --write option to commit the changes for real!")
@@ -326,6 +362,7 @@ def set(ctx, variable_path_set, to_registry, write):
 
 
 cli.add_command(extract)
+cli.add_command(inject)
 cli.add_command(dump)
 cli.add_command(get)
 cli.add_command(set)

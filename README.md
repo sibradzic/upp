@@ -29,9 +29,15 @@ on the following AMD GPU families:
 * Navi 10
 * Navi 14
 * Navi 21 (Sienna Cichlid)
+* Navi 22 (Navy Flounder)
 
 Note: iGPUs found in many recent AMD APUs are using completely different
 PowerPlay control methods, this tool does not support them.
+
+**WARNING**: Authors of this tool are in no way responsible for any damage
+that may happen to your expansive graphics card if you choose to modify
+card voltages, power limits, or any other PowerPlay parameters. Always
+remember that you are doing it entierly on your own risk!
 
 If you have bugs to report or features to request please create an issue on:
 https://github.com/sibradzic/upp
@@ -57,6 +63,7 @@ Radeon PowerPlay table data. Currently available commands are:
 
 * **dump** - Dumps all PowerPlay data to console
 * **extract** - Extracts PowerPlay data from full VBIOS ROM image
+* **inject** - Injects PowerPlay data from file into VBIOS ROM image
 * **get** - Retrieves current value of one or multiple PowerPlay parametter(s)
 * **set** - Sets value to one or multiple PowerPlay parameters
 * **version** - Shows UPP version
@@ -94,6 +101,20 @@ into file specified with generic `-p/--pp-file` option. For example:
 
 Default output file name will be an original ROM file name with an
 additional .pp_table extension.
+
+#### Injecting PowerPlay data from file into VBIOS ROM image:
+
+Use **inject** command for this. The input video ROM binary must be specified
+with `-i/--input-rom` parameter, and the output ROM can be specified with an
+optional `-o/--output-rom parameter`. For example:
+
+    upp -p modded.pp_table inject -i original.rom -o modded.rom
+
+**WARNING**: Modified vROM image is probalby not going to work if flashed as is
+to your card, due to ROM signature checks on recent Radeon cards. Authors of
+this tool are in no way responsible for any damage that may happen to your
+expansive graphics card if you choose to flash the modified video ROM, you are
+doing it entierly on your own risk.
 
 #### Getting PowerPlay table parameter value(s):
 
