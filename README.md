@@ -18,7 +18,7 @@ Alternatively, one can use this tool to get PowerPlay data by:
 * Importing "Soft PowerPlay" table from Windows registry, directly from
   offline Windows/System32/config/SYSTEM file on disk, so it would work
   from Linux distro that has acces to mounted Windows partition
-  (path to SYSTEM registry file is specified with --from-registry option)
+  (path to SYSTEM registry file is specified with `--from-registry` option)
 
 This tool currently supports parsing and modifying PowerPlay tables found
 on the following AMD GPU families:
