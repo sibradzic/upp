@@ -373,8 +373,10 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         else:
             cs = getattr(pp_module, resolve_cstruct(name))
     elif name == 'FanTable':
-        if revid == 9:                   # ATOM_Tonga_Fan_Table (v9)
+        if revid == 8:                   # ATOM_Tonga_Fan_Table (v9)
             cs = getattr(pp_module, resolve_cstruct(name))
+        elif revid == 9:                 # ATOM_Polaris_Fan_Table (v9)
+            cs = getattr(pp_module, resolve_cstruct(name, 'Polaris'))
         elif revid == 10:                # ATOM_Vega10_Fan_Table (v10)
             cs = getattr(pp_module, resolve_cstruct(name))
         elif revid == 11:                # ATOM_Vega10_Fan_Table_V2 (v11)

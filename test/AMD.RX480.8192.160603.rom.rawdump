@@ -65,7 +65,17 @@ PowerPlay table rev 7.1 size 820 bytes
  0x02ab (0683) I 78630100 MinFanSCLKAcousticLimit         : 91000
  0x02af (0687) B       50 TargetTemperature               : 80
  0x02b0 (0688) B       14 MinimumPWMLimit                 : 20
- 0x02b1 (0689) H     6400 Reserved                        : 100
+ 0x02b1 (0689) H     6400 FanGainEdge                     : 100
+ 0x02b3 (0691) H     6400 FanGainHotspot                  : 100
+ 0x02b5 (0693) H     6400 FanGainLiquid                   : 100
+ 0x02b7 (0695) H     6400 FanGainVrVddc                   : 100
+ 0x02b9 (0697) H     6400 FanGainVrMvdd                   : 100
+ 0x02bb (0699) H     6400 FanGainPlx                      : 100
+ 0x02bd (0701) H     6400 FanGainHbm                      : 100
+ 0x02bf (0703) B       00 EnableZeroRPM                   : 0
+ 0x02c0 (0704) B       32 FanStopTemperature              : 50
+ 0x02c1 (0705) B       3c FanStartTemperature             : 60
+ 0x02c2 (0706) H     0000 Reserved                        : 0
  0x0027 (0039) H     8b02 ThermalControllerOffset         : 651
  0x028b (0651) B       01 RevId                           : 1
  0x028c (0652) B       17 Type                            : 23

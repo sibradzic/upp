@@ -68,7 +68,17 @@ FanTable:
   MinFanSCLKAcousticLimit: 91000
   TargetTemperature: 80
   MinimumPWMLimit: 20
-  Reserved: 100
+  FanGainEdge: 100
+  FanGainHotspot: 100
+  FanGainLiquid: 100
+  FanGainVrVddc: 100
+  FanGainVrMvdd: 100
+  FanGainPlx: 100
+  FanGainHbm: 100
+  EnableZeroRPM: 0
+  FanStopTemperature: 50
+  FanStartTemperature: 60
+  Reserved: 0
 ThermalController:
   RevId: 1
   Type: 23

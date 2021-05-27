@@ -29,11 +29,13 @@
 
 ## pptable_v1_0.py (Polaris/Tonga)
 
+    sed -i 's|#include "hwmgr.h"|//\0|' linux/drivers/gpu/drm/amd/pm/powerplay/hwmgr/pptable_v1_0.h
     clang2py -k 'mst' \
       --clang-args="--include stdint.h \
                     --include linux/drivers/gpu/drm/amd/include/atom-types.h \
                     --include linux/drivers/gpu/drm/amd/include/atombios.h" \
        linux/drivers/gpu/drm/amd/pm/powerplay/hwmgr/pptable_v1_0.h > pptable_v1_0.py
+    pushd linux && git checkout drivers/gpu/drm/amd/pm/powerplay/hwmgr/pptable_v1_0.h && popd
 
 
 ## vega10_pptable.py (Vega10 aka Vega 56/64)
