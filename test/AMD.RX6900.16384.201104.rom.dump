@@ -322,11 +322,14 @@ smc_pptable:
   SmnclkDpmVoltage:
     SmnclkDpmVoltage 0: 0
     SmnclkDpmVoltage 1: 0
-  PaddingAPCC:
-    PaddingAPCC 0: 0
-    PaddingAPCC 1: 0
-    PaddingAPCC 2: 0
-    PaddingAPCC 3: 0
+  PaddingAPCC: 0
+  PerPartDroopVsetGfxDfll:
+    PerPartDroopVsetGfxDfll 0: 0
+    PerPartDroopVsetGfxDfll 1: 0
+    PerPartDroopVsetGfxDfll 2: 0
+    PerPartDroopVsetGfxDfll 3: 0
+    PerPartDroopVsetGfxDfll 4: 0
+  PaddingPerPartDroop: 0
   ThrottlerControlMask: 14590
   FwDStateMask: 3955
   UlvVoltageOffsetSoc: 100
@@ -640,23 +643,28 @@ smc_pptable:
     FreqTableFclk 5: 0
     FreqTableFclk 6: 0
     FreqTableFclk 7: 0
-  Paddingclks:
-    Paddingclks 0: 0
-    Paddingclks 1: 0
-    Paddingclks 2: 0
-    Paddingclks 3: 0
-    Paddingclks 4: 0
-    Paddingclks 5: 0
-    Paddingclks 6: 0
-    Paddingclks 7: 0
-    Paddingclks 8: 0
-    Paddingclks 9: 0
-    Paddingclks 10: 0
-    Paddingclks 11: 0
-    Paddingclks 12: 0
-    Paddingclks 13: 0
-    Paddingclks 14: 0
-    Paddingclks 15: 0
+  Paddingclks: 0
+  PerPartDroopModelGfxDfll:
+    PerPartDroopModelGfxDfll 0:
+      a: 0
+      b: 0
+      c: 0
+    PerPartDroopModelGfxDfll 1:
+      a: 0
+      b: 0
+      c: 0
+    PerPartDroopModelGfxDfll 2:
+      a: 0
+      b: 0
+      c: 0
+    PerPartDroopModelGfxDfll 3:
+      a: 0
+      b: 0
+      c: 0
+    PerPartDroopModelGfxDfll 4:
+      a: 0
+      b: 0
+      c: 0
   DcModeMaxFreq:
     DcModeMaxFreq 0: 2660
     DcModeMaxFreq 1: 1200
@@ -903,8 +911,10 @@ smc_pptable:
   VcBtcPsmB: 0.4017
   VcBtcVminA: 0.0116
   VcBtcVminB: 0.4855
+  LedGpio: 0
+  GfxPowerStagesGpio: 1
   SkuReserved:
-    SkuReserved 0: 65536
+    SkuReserved 0: 0
     SkuReserved 1: 0
     SkuReserved 2: 0
     SkuReserved 3: 0
@@ -912,7 +922,6 @@ smc_pptable:
     SkuReserved 5: 0
     SkuReserved 6: 0
     SkuReserved 7: 0
-    SkuReserved 8: 0
   GamingClk:
     GamingClk 0: 0
     GamingClk 1: 0

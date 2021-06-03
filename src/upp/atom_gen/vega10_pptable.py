@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['--include', 'stdint.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atombios.h']
+# TARGET arch is: ['--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '--include', 'linux/drivers/gpu/drm/amd/include/atombios.h']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -8,15 +8,115 @@
 import ctypes
 
 
+class AsDictMixin:
+    @classmethod
+    def as_dict(cls, self):
+        result = {}
+        if not isinstance(self, AsDictMixin):
+            # not a structure, assume it's already a python object
+            return self
+        if not hasattr(cls, "_fields_"):
+            return result
+        # sys.version_info >= (3, 5)
+        # for (field, *_) in cls._fields_:  # noqa
+        for field_tuple in cls._fields_:  # noqa
+            field = field_tuple[0]
+            if field.startswith('PADDING_'):
+                continue
+            value = getattr(self, field)
+            type_ = type(value)
+            if hasattr(value, "_length_") and hasattr(value, "_type_"):
+                # array
+                if not hasattr(type_, "as_dict"):
+                    value = [v for v in value]
+                else:
+                    type_ = type_._type_
+                    value = [type_.as_dict(v) for v in value]
+            elif hasattr(value, "contents") and hasattr(value, "_type_"):
+                # pointer
+                try:
+                    if not hasattr(type_, "as_dict"):
+                        value = value.contents
+                    else:
+                        type_ = type_._type_
+                        value = type_.as_dict(value.contents)
+                except ValueError:
+                    # nullptr
+                    value = None
+            elif isinstance(value, AsDictMixin):
+                # other structure
+                value = type_.as_dict(value)
+            result[field] = value
+        return result
 
 
-class struct_atom_common_table_header(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('structuresize', ctypes.c_uint16),
-    ('format_revision', ctypes.c_ubyte),
-    ('content_revision', ctypes.c_ubyte),
-     ]
+class Structure(ctypes.Structure, AsDictMixin):
+
+    def __init__(self, *args, **kwds):
+        # We don't want to use positional arguments fill PADDING_* fields
+
+        args = dict(zip(self.__class__._field_names_(), args))
+        args.update(kwds)
+        super(Structure, self).__init__(**args)
+
+    @classmethod
+    def _field_names_(cls):
+        if hasattr(cls, '_fields_'):
+            return (f[0] for f in cls._fields_ if not f[0].startswith('PADDING'))
+        else:
+            return ()
+
+    @classmethod
+    def get_type(cls, field):
+        for f in cls._fields_:
+            if f[0] == field:
+                return f[1]
+        return None
+
+    @classmethod
+    def bind(cls, bound_fields):
+        fields = {}
+        for name, type_ in cls._fields_:
+            if hasattr(type_, "restype"):
+                if name in bound_fields:
+                    if bound_fields[name] is None:
+                        fields[name] = type_()
+                    else:
+                        # use a closure to capture the callback from the loop scope
+                        fields[name] = (
+                            type_((lambda callback: lambda *args: callback(*args))(
+                                bound_fields[name]))
+                        )
+                    del bound_fields[name]
+                else:
+                    # default callback implementation (does nothing)
+                    try:
+                        default_ = type_(0).restype().value
+                    except TypeError:
+                        default_ = None
+                    fields[name] = type_((
+                        lambda default_: lambda *args: default_)(default_))
+            else:
+                # not a callback function, use default initialization
+                if name in bound_fields:
+                    fields[name] = bound_fields[name]
+                    del bound_fields[name]
+                else:
+                    fields[name] = type_()
+        if len(bound_fields) != 0:
+            raise ValueError(
+                "Cannot bind the following unknown callback(s) {}.{}".format(
+                    cls.__name__, bound_fields.keys()
+            ))
+        return cls(**fields)
+
+
+class Union(ctypes.Union, AsDictMixin):
+    pass
+
+
+
+
 
 _VEGA10_PPTABLE_H_ = True # macro
 ATOM_VEGA10_PP_FANPARAMETERS_TACHOMETER_PULSES_PER_REVOLUTION_MASK = 0x0f # macro
@@ -50,9 +150,21 @@ ATOM_Vega10_TABLE_REVISION_VEGA10 = 8 # macro
 ATOM_Vega10_VoltageMode_AVFS_Interpolate = 0 # macro
 ATOM_Vega10_VoltageMode_AVFS_WorstCase = 1 # macro
 ATOM_Vega10_VoltageMode_Static = 2 # macro
-class struct__ATOM_Vega10_POWERPLAYTABLE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_POWERPLAYTABLE(Structure):
+    pass
+
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
+    ('structuresize', ctypes.c_uint16),
+    ('format_revision', ctypes.c_ubyte),
+    ('content_revision', ctypes.c_ubyte),
+]
+
+struct__ATOM_Vega10_POWERPLAYTABLE._pack_ = 1 # source:False
+struct__ATOM_Vega10_POWERPLAYTABLE._fields_ = [
     ('sHeader', struct_atom_common_table_header),
     ('ucTableRevision', ctypes.c_ubyte),
     ('usTableSize', ctypes.c_uint16),
@@ -94,12 +206,14 @@ class struct__ATOM_Vega10_POWERPLAYTABLE(ctypes.Structure):
     ('usPixclkDependencyTableOffset', ctypes.c_uint16),
     ('usDispClkDependencyTableOffset', ctypes.c_uint16),
     ('usPhyClkDependencyTableOffset', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_POWERPLAYTABLE = struct__ATOM_Vega10_POWERPLAYTABLE
-class struct__ATOM_Vega10_State(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_State(Structure):
+    pass
+
+struct__ATOM_Vega10_State._pack_ = 1 # source:False
+struct__ATOM_Vega10_State._fields_ = [
     ('ucSocClockIndexHigh', ctypes.c_ubyte),
     ('ucSocClockIndexLow', ctypes.c_ubyte),
     ('ucGfxClockIndexHigh', ctypes.c_ubyte),
@@ -109,178 +223,216 @@ class struct__ATOM_Vega10_State(ctypes.Structure):
     ('usClassification', ctypes.c_uint16),
     ('ulCapsAndSettings', ctypes.c_uint32),
     ('usClassification2', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_State = struct__ATOM_Vega10_State
-class struct__ATOM_Vega10_State_Array(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_State_Array(Structure):
+    pass
+
+struct__ATOM_Vega10_State_Array._pack_ = 1 # source:False
+struct__ATOM_Vega10_State_Array._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('states', struct__ATOM_Vega10_State * 1),
-     ]
+]
 
 ATOM_Vega10_State_Array = struct__ATOM_Vega10_State_Array
-class struct__ATOM_Vega10_CLK_Dependency_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_CLK_Dependency_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_CLK_Dependency_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_CLK_Dependency_Record._fields_ = [
     ('ulClk', ctypes.c_uint32),
     ('ucVddInd', ctypes.c_ubyte),
-     ]
+]
 
 ATOM_Vega10_CLK_Dependency_Record = struct__ATOM_Vega10_CLK_Dependency_Record
-class struct__ATOM_Vega10_GFXCLK_Dependency_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_GFXCLK_Dependency_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_GFXCLK_Dependency_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_GFXCLK_Dependency_Record._fields_ = [
     ('ulClk', ctypes.c_uint32),
     ('ucVddInd', ctypes.c_ubyte),
     ('usCKSVOffsetandDisable', ctypes.c_uint16),
     ('usAVFSOffset', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_GFXCLK_Dependency_Record = struct__ATOM_Vega10_GFXCLK_Dependency_Record
-class struct__ATOM_Vega10_GFXCLK_Dependency_Record_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_GFXCLK_Dependency_Record_V2(Structure):
+    pass
+
+struct__ATOM_Vega10_GFXCLK_Dependency_Record_V2._pack_ = 1 # source:False
+struct__ATOM_Vega10_GFXCLK_Dependency_Record_V2._fields_ = [
     ('ulClk', ctypes.c_uint32),
     ('ucVddInd', ctypes.c_ubyte),
     ('usCKSVOffsetandDisable', ctypes.c_uint16),
     ('usAVFSOffset', ctypes.c_uint16),
     ('ucACGEnable', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
-     ]
+]
 
 ATOM_Vega10_GFXCLK_Dependency_Record_V2 = struct__ATOM_Vega10_GFXCLK_Dependency_Record_V2
-class struct__ATOM_Vega10_MCLK_Dependency_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_MCLK_Dependency_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_MCLK_Dependency_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_MCLK_Dependency_Record._fields_ = [
     ('ulMemClk', ctypes.c_uint32),
     ('ucVddInd', ctypes.c_ubyte),
     ('ucVddMemInd', ctypes.c_ubyte),
     ('ucVddciInd', ctypes.c_ubyte),
-     ]
+]
 
 ATOM_Vega10_MCLK_Dependency_Record = struct__ATOM_Vega10_MCLK_Dependency_Record
-class struct__ATOM_Vega10_GFXCLK_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_GFXCLK_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_GFXCLK_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_GFXCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_GFXCLK_Dependency_Record * 1),
-     ]
+    ('entries', struct__ATOM_Vega10_GFXCLK_Dependency_Record * 0),
+]
 
 ATOM_Vega10_GFXCLK_Dependency_Table = struct__ATOM_Vega10_GFXCLK_Dependency_Table
-class struct__ATOM_Vega10_MCLK_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_MCLK_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_MCLK_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_MCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_MCLK_Dependency_Record * 1),
-     ]
+]
 
 ATOM_Vega10_MCLK_Dependency_Table = struct__ATOM_Vega10_MCLK_Dependency_Table
-class struct__ATOM_Vega10_SOCCLK_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_SOCCLK_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_SOCCLK_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_SOCCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
-     ]
+]
 
 ATOM_Vega10_SOCCLK_Dependency_Table = struct__ATOM_Vega10_SOCCLK_Dependency_Table
-class struct__ATOM_Vega10_DCEFCLK_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_DCEFCLK_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_DCEFCLK_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_DCEFCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
-     ]
+]
 
 ATOM_Vega10_DCEFCLK_Dependency_Table = struct__ATOM_Vega10_DCEFCLK_Dependency_Table
-class struct__ATOM_Vega10_PIXCLK_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_PIXCLK_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_PIXCLK_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_PIXCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
-     ]
+]
 
 ATOM_Vega10_PIXCLK_Dependency_Table = struct__ATOM_Vega10_PIXCLK_Dependency_Table
-class struct__ATOM_Vega10_DISPCLK_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_DISPCLK_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_DISPCLK_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_DISPCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
-     ]
+]
 
 ATOM_Vega10_DISPCLK_Dependency_Table = struct__ATOM_Vega10_DISPCLK_Dependency_Table
-class struct__ATOM_Vega10_PHYCLK_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_PHYCLK_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_PHYCLK_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_PHYCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
-     ]
+]
 
 ATOM_Vega10_PHYCLK_Dependency_Table = struct__ATOM_Vega10_PHYCLK_Dependency_Table
-class struct__ATOM_Vega10_MM_Dependency_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_MM_Dependency_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_MM_Dependency_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_MM_Dependency_Record._fields_ = [
     ('ucVddcInd', ctypes.c_ubyte),
     ('ulDClk', ctypes.c_uint32),
     ('ulVClk', ctypes.c_uint32),
     ('ulEClk', ctypes.c_uint32),
     ('ulPSPClk', ctypes.c_uint32),
-     ]
+]
 
 ATOM_Vega10_MM_Dependency_Record = struct__ATOM_Vega10_MM_Dependency_Record
-class struct__ATOM_Vega10_MM_Dependency_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_MM_Dependency_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_MM_Dependency_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_MM_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_MM_Dependency_Record * 1),
-     ]
+]
 
 ATOM_Vega10_MM_Dependency_Table = struct__ATOM_Vega10_MM_Dependency_Table
-class struct__ATOM_Vega10_PCIE_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_PCIE_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_PCIE_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_PCIE_Record._fields_ = [
     ('ulLCLK', ctypes.c_uint32),
     ('ucPCIEGenSpeed', ctypes.c_ubyte),
     ('ucPCIELaneWidth', ctypes.c_ubyte),
-     ]
+]
 
 ATOM_Vega10_PCIE_Record = struct__ATOM_Vega10_PCIE_Record
-class struct__ATOM_Vega10_PCIE_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_PCIE_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_PCIE_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_PCIE_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_PCIE_Record * 1),
-     ]
+]
 
 ATOM_Vega10_PCIE_Table = struct__ATOM_Vega10_PCIE_Table
-class struct__ATOM_Vega10_Voltage_Lookup_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Voltage_Lookup_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_Voltage_Lookup_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_Voltage_Lookup_Record._fields_ = [
     ('usVdd', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_Voltage_Lookup_Record = struct__ATOM_Vega10_Voltage_Lookup_Record
-class struct__ATOM_Vega10_Voltage_Lookup_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Voltage_Lookup_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_Voltage_Lookup_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_Voltage_Lookup_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_Voltage_Lookup_Record * 1),
-     ]
+]
 
 ATOM_Vega10_Voltage_Lookup_Table = struct__ATOM_Vega10_Voltage_Lookup_Table
-class struct__ATOM_Vega10_Fan_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Fan_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_Fan_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_Fan_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('usFanOutputSensitivity', ctypes.c_uint16),
     ('usFanRPMMax', ctypes.c_uint16),
@@ -299,12 +451,14 @@ class struct__ATOM_Vega10_Fan_Table(ctypes.Structure):
     ('ucEnableZeroRPM', ctypes.c_ubyte),
     ('usFanStopTemperature', ctypes.c_uint16),
     ('usFanStartTemperature', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_Fan_Table = struct__ATOM_Vega10_Fan_Table
-class struct__ATOM_Vega10_Fan_Table_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Fan_Table_V2(Structure):
+    pass
+
+struct__ATOM_Vega10_Fan_Table_V2._pack_ = 1 # source:False
+struct__ATOM_Vega10_Fan_Table_V2._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('usFanOutputSensitivity', ctypes.c_uint16),
     ('usFanAcousticLimitRpm', ctypes.c_uint16),
@@ -325,12 +479,14 @@ class struct__ATOM_Vega10_Fan_Table_V2(ctypes.Structure):
     ('ucFanParameters', ctypes.c_ubyte),
     ('ucFanMinRPM', ctypes.c_ubyte),
     ('ucFanMaxRPM', ctypes.c_ubyte),
-     ]
+]
 
 ATOM_Vega10_Fan_Table_V2 = struct__ATOM_Vega10_Fan_Table_V2
-class struct__ATOM_Vega10_Fan_Table_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Fan_Table_V3(Structure):
+    pass
+
+struct__ATOM_Vega10_Fan_Table_V3._pack_ = 1 # source:False
+struct__ATOM_Vega10_Fan_Table_V3._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('usFanOutputSensitivity', ctypes.c_uint16),
     ('usFanAcousticLimitRpm', ctypes.c_uint16),
@@ -352,12 +508,14 @@ class struct__ATOM_Vega10_Fan_Table_V3(ctypes.Structure):
     ('ucFanMinRPM', ctypes.c_ubyte),
     ('ucFanMaxRPM', ctypes.c_ubyte),
     ('usMGpuThrottlingRPM', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_Fan_Table_V3 = struct__ATOM_Vega10_Fan_Table_V3
-class struct__ATOM_Vega10_Thermal_Controller(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Thermal_Controller(Structure):
+    pass
+
+struct__ATOM_Vega10_Thermal_Controller._pack_ = 1 # source:False
+struct__ATOM_Vega10_Thermal_Controller._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucType', ctypes.c_ubyte),
     ('ucI2cLine', ctypes.c_ubyte),
@@ -366,31 +524,37 @@ class struct__ATOM_Vega10_Thermal_Controller(ctypes.Structure):
     ('ucFanMinRPM', ctypes.c_ubyte),
     ('ucFanMaxRPM', ctypes.c_ubyte),
     ('ucFlags', ctypes.c_ubyte),
-     ]
+]
 
 ATOM_Vega10_Thermal_Controller = struct__ATOM_Vega10_Thermal_Controller
-class struct__ATOM_Vega10_VCE_State_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_VCE_State_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_VCE_State_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_VCE_State_Record._fields_ = [
     ('ucVCEClockIndex', ctypes.c_ubyte),
     ('ucFlag', ctypes.c_ubyte),
     ('ucSCLKIndex', ctypes.c_ubyte),
     ('ucMCLKIndex', ctypes.c_ubyte),
-     ]
+]
 
 ATOM_Vega10_VCE_State_Record = struct__ATOM_Vega10_VCE_State_Record
-class struct__ATOM_Vega10_VCE_State_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_VCE_State_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_VCE_State_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_VCE_State_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_VCE_State_Record * 1),
-     ]
+]
 
 ATOM_Vega10_VCE_State_Table = struct__ATOM_Vega10_VCE_State_Table
-class struct__ATOM_Vega10_PowerTune_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_PowerTune_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_PowerTune_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_PowerTune_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('usSocketPowerLimit', ctypes.c_uint16),
     ('usBatteryPowerLimit', ctypes.c_uint16),
@@ -417,12 +581,14 @@ class struct__ATOM_Vega10_PowerTune_Table(ctypes.Structure):
     ('ucPlx_I2C_LineSCL', ctypes.c_ubyte),
     ('ucPlx_I2C_LineSDA', ctypes.c_ubyte),
     ('usTemperatureLimitTedge', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_PowerTune_Table = struct__ATOM_Vega10_PowerTune_Table
-class struct__ATOM_Vega10_PowerTune_Table_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_PowerTune_Table_V2(Structure):
+    pass
+
+struct__ATOM_Vega10_PowerTune_Table_V2._pack_ = 1 # source:False
+struct__ATOM_Vega10_PowerTune_Table_V2._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('usSocketPowerLimit', ctypes.c_uint16),
     ('usBatteryPowerLimit', ctypes.c_uint16),
@@ -446,12 +612,14 @@ class struct__ATOM_Vega10_PowerTune_Table_V2(ctypes.Structure):
     ('ucPlx_I2C_address', ctypes.c_ubyte),
     ('ucPlx_I2C_Line', ctypes.c_ubyte),
     ('usTemperatureLimitTedge', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_PowerTune_Table_V2 = struct__ATOM_Vega10_PowerTune_Table_V2
-class struct__ATOM_Vega10_PowerTune_Table_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_PowerTune_Table_V3(Structure):
+    pass
+
+struct__ATOM_Vega10_PowerTune_Table_V3._pack_ = 1 # source:False
+struct__ATOM_Vega10_PowerTune_Table_V3._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('usSocketPowerLimit', ctypes.c_uint16),
     ('usBatteryPowerLimit', ctypes.c_uint16),
@@ -479,35 +647,41 @@ class struct__ATOM_Vega10_PowerTune_Table_V3(ctypes.Structure):
     ('usBoostStopTemperature', ctypes.c_uint16),
     ('ulBoostClock', ctypes.c_uint32),
     ('Reserved', ctypes.c_uint32 * 2),
-     ]
+]
 
 ATOM_Vega10_PowerTune_Table_V3 = struct__ATOM_Vega10_PowerTune_Table_V3
-class struct__ATOM_Vega10_Hard_Limit_Record(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Hard_Limit_Record(Structure):
+    pass
+
+struct__ATOM_Vega10_Hard_Limit_Record._pack_ = 1 # source:False
+struct__ATOM_Vega10_Hard_Limit_Record._fields_ = [
     ('ulSOCCLKLimit', ctypes.c_uint32),
     ('ulGFXCLKLimit', ctypes.c_uint32),
     ('ulMCLKLimit', ctypes.c_uint32),
     ('usVddcLimit', ctypes.c_uint16),
     ('usVddciLimit', ctypes.c_uint16),
     ('usVddMemLimit', ctypes.c_uint16),
-     ]
+]
 
 ATOM_Vega10_Hard_Limit_Record = struct__ATOM_Vega10_Hard_Limit_Record
-class struct__ATOM_Vega10_Hard_Limit_Table(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_Vega10_Hard_Limit_Table(Structure):
+    pass
+
+struct__ATOM_Vega10_Hard_Limit_Table._pack_ = 1 # source:False
+struct__ATOM_Vega10_Hard_Limit_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
     ('entries', struct__ATOM_Vega10_Hard_Limit_Record * 1),
-     ]
+]
 
 ATOM_Vega10_Hard_Limit_Table = struct__ATOM_Vega10_Hard_Limit_Table
-class struct__Vega10_PPTable_Generic_SubTable_Header(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__Vega10_PPTable_Generic_SubTable_Header(Structure):
+    pass
+
+struct__Vega10_PPTable_Generic_SubTable_Header._pack_ = 1 # source:False
+struct__Vega10_PPTable_Generic_SubTable_Header._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
-     ]
+]
 
 Vega10_PPTable_Generic_SubTable_Header = struct__Vega10_PPTable_Generic_SubTable_Header
 __all__ = \

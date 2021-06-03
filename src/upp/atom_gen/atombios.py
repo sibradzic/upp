@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['--include', 'stdint.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+# TARGET arch is: ['', '--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -8,21 +8,131 @@
 import ctypes
 
 
+class AsDictMixin:
+    @classmethod
+    def as_dict(cls, self):
+        result = {}
+        if not isinstance(self, AsDictMixin):
+            # not a structure, assume it's already a python object
+            return self
+        if not hasattr(cls, "_fields_"):
+            return result
+        # sys.version_info >= (3, 5)
+        # for (field, *_) in cls._fields_:  # noqa
+        for field_tuple in cls._fields_:  # noqa
+            field = field_tuple[0]
+            if field.startswith('PADDING_'):
+                continue
+            value = getattr(self, field)
+            type_ = type(value)
+            if hasattr(value, "_length_") and hasattr(value, "_type_"):
+                # array
+                if not hasattr(type_, "as_dict"):
+                    value = [v for v in value]
+                else:
+                    type_ = type_._type_
+                    value = [type_.as_dict(v) for v in value]
+            elif hasattr(value, "contents") and hasattr(value, "_type_"):
+                # pointer
+                try:
+                    if not hasattr(type_, "as_dict"):
+                        value = value.contents
+                    else:
+                        type_ = type_._type_
+                        value = type_.as_dict(value.contents)
+                except ValueError:
+                    # nullptr
+                    value = None
+            elif isinstance(value, AsDictMixin):
+                # other structure
+                value = type_.as_dict(value)
+            result[field] = value
+        return result
 
 
-class struct__ATOM_COMMON_TABLE_HEADER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class Structure(ctypes.Structure, AsDictMixin):
+
+    def __init__(self, *args, **kwds):
+        # We don't want to use positional arguments fill PADDING_* fields
+
+        args = dict(zip(self.__class__._field_names_(), args))
+        args.update(kwds)
+        super(Structure, self).__init__(**args)
+
+    @classmethod
+    def _field_names_(cls):
+        if hasattr(cls, '_fields_'):
+            return (f[0] for f in cls._fields_ if not f[0].startswith('PADDING'))
+        else:
+            return ()
+
+    @classmethod
+    def get_type(cls, field):
+        for f in cls._fields_:
+            if f[0] == field:
+                return f[1]
+        return None
+
+    @classmethod
+    def bind(cls, bound_fields):
+        fields = {}
+        for name, type_ in cls._fields_:
+            if hasattr(type_, "restype"):
+                if name in bound_fields:
+                    if bound_fields[name] is None:
+                        fields[name] = type_()
+                    else:
+                        # use a closure to capture the callback from the loop scope
+                        fields[name] = (
+                            type_((lambda callback: lambda *args: callback(*args))(
+                                bound_fields[name]))
+                        )
+                    del bound_fields[name]
+                else:
+                    # default callback implementation (does nothing)
+                    try:
+                        default_ = type_(0).restype().value
+                    except TypeError:
+                        default_ = None
+                    fields[name] = type_((
+                        lambda default_: lambda *args: default_)(default_))
+            else:
+                # not a callback function, use default initialization
+                if name in bound_fields:
+                    fields[name] = bound_fields[name]
+                    del bound_fields[name]
+                else:
+                    fields[name] = type_()
+        if len(bound_fields) != 0:
+            raise ValueError(
+                "Cannot bind the following unknown callback(s) {}.{}".format(
+                    cls.__name__, bound_fields.keys()
+            ))
+        return cls(**fields)
+
+
+class Union(ctypes.Union, AsDictMixin):
+    pass
+
+
+
+
+
+class struct__ATOM_COMMON_TABLE_HEADER(Structure):
+    pass
+
+struct__ATOM_COMMON_TABLE_HEADER._pack_ = 1 # source:False
+struct__ATOM_COMMON_TABLE_HEADER._fields_ = [
     ('usStructureSize', ctypes.c_uint16),
     ('ucTableFormatRevision', ctypes.c_ubyte),
     ('ucTableContentRevision', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_ROM_HEADER(ctypes.Structure):
+class struct__ATOM_ROM_HEADER(Structure):
     pass
 
 ATOM_COMMON_TABLE_HEADER = struct__ATOM_COMMON_TABLE_HEADER
-struct__ATOM_ROM_HEADER._pack_ = True # source:False
+struct__ATOM_ROM_HEADER._pack_ = 1 # source:False
 struct__ATOM_ROM_HEADER._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('uaFirmWareSignature', ctypes.c_ubyte * 4),
@@ -43,9 +153,11 @@ struct__ATOM_ROM_HEADER._fields_ = [
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_ROM_HEADER_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ROM_HEADER_V2_1(Structure):
+    pass
+
+struct__ATOM_ROM_HEADER_V2_1._pack_ = 1 # source:False
+struct__ATOM_ROM_HEADER_V2_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('uaFirmWareSignature', ctypes.c_ubyte * 4),
     ('usBiosRuntimeSegmentAddress', ctypes.c_uint16),
@@ -64,11 +176,13 @@ class struct__ATOM_ROM_HEADER_V2_1(ctypes.Structure):
     ('ucExtendedFunctionCode', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('ulPSPDirTableOffset', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_MASTER_LIST_OF_COMMAND_TABLES(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MASTER_LIST_OF_COMMAND_TABLES(Structure):
+    pass
+
+struct__ATOM_MASTER_LIST_OF_COMMAND_TABLES._pack_ = 1 # source:False
+struct__ATOM_MASTER_LIST_OF_COMMAND_TABLES._fields_ = [
     ('ASIC_Init', ctypes.c_uint16),
     ('GetDisplaySurfaceSize', ctypes.c_uint16),
     ('ASIC_RegistersInit', ctypes.c_uint16),
@@ -150,147 +264,167 @@ class struct__ATOM_MASTER_LIST_OF_COMMAND_TABLES(ctypes.Structure):
     ('ProcessAuxChannelTransaction', ctypes.c_uint16),
     ('DPEncoderService', ctypes.c_uint16),
     ('GetVoltageInfo', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_MASTER_COMMAND_TABLE(ctypes.Structure):
+class struct__ATOM_MASTER_COMMAND_TABLE(Structure):
     pass
 
 ATOM_MASTER_LIST_OF_COMMAND_TABLES = struct__ATOM_MASTER_LIST_OF_COMMAND_TABLES
-struct__ATOM_MASTER_COMMAND_TABLE._pack_ = True # source:False
+struct__ATOM_MASTER_COMMAND_TABLE._pack_ = 1 # source:False
 struct__ATOM_MASTER_COMMAND_TABLE._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ListOfCommandTables', ATOM_MASTER_LIST_OF_COMMAND_TABLES),
 ]
 
-class struct__ATOM_TABLE_ATTRIBUTE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_TABLE_ATTRIBUTE(Structure):
+    pass
+
+struct__ATOM_TABLE_ATTRIBUTE._pack_ = 1 # source:False
+struct__ATOM_TABLE_ATTRIBUTE._fields_ = [
     ('WS_SizeInBytes', ctypes.c_uint16, 8),
     ('PS_SizeInBytes', ctypes.c_uint16, 7),
     ('UpdatedByUtility', ctypes.c_uint16, 1),
-     ]
+]
 
-class struct__ATOM_COMMON_ROM_COMMAND_TABLE_HEADER(ctypes.Structure):
+class struct__ATOM_COMMON_ROM_COMMAND_TABLE_HEADER(Structure):
     pass
 
 ATOM_TABLE_ATTRIBUTE = struct__ATOM_TABLE_ATTRIBUTE
-struct__ATOM_COMMON_ROM_COMMAND_TABLE_HEADER._pack_ = True # source:False
+struct__ATOM_COMMON_ROM_COMMAND_TABLE_HEADER._pack_ = 1 # source:False
 struct__ATOM_COMMON_ROM_COMMAND_TABLE_HEADER._fields_ = [
     ('CommonHeader', ATOM_COMMON_TABLE_HEADER),
     ('TableAttribute', ATOM_TABLE_ATTRIBUTE),
 ]
 
-class struct__ATOM_ADJUST_MEMORY_CLOCK_FREQ(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ADJUST_MEMORY_CLOCK_FREQ(Structure):
+    pass
+
+struct__ATOM_ADJUST_MEMORY_CLOCK_FREQ._pack_ = 1 # source:False
+struct__ATOM_ADJUST_MEMORY_CLOCK_FREQ._fields_ = [
     ('ulClockFreq', ctypes.c_uint32, 24),
     ('ulMemoryModuleNumber', ctypes.c_uint32, 7),
     ('ulPointerReturnFlag', ctypes.c_uint32, 1),
-     ]
+]
 
-class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS(Structure):
+    pass
+
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS._pack_ = 1 # source:False
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS._fields_ = [
     ('ulClock', ctypes.c_uint32),
     ('ucAction', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('ucFbDiv', ctypes.c_ubyte),
     ('ucPostDiv', ctypes.c_ubyte),
-     ]
+]
 
-class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V2(Structure):
+    pass
+
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V2._pack_ = 1 # source:False
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V2._fields_ = [
     ('ulClock', ctypes.c_uint32),
     ('ucAction', ctypes.c_ubyte),
     ('usFbDiv', ctypes.c_uint16),
     ('ucPostDiv', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_COMPUTE_CLOCK_FREQ(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_COMPUTE_CLOCK_FREQ(Structure):
+    pass
+
+struct__ATOM_COMPUTE_CLOCK_FREQ._pack_ = 1 # source:False
+struct__ATOM_COMPUTE_CLOCK_FREQ._fields_ = [
     ('ulClockFreq', ctypes.c_uint32, 24),
     ('ulComputeClockFlag', ctypes.c_uint32, 8),
-     ]
+]
 
-class struct__ATOM_S_MPLL_FB_DIVIDER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_S_MPLL_FB_DIVIDER(Structure):
+    pass
+
+struct__ATOM_S_MPLL_FB_DIVIDER._pack_ = 1 # source:False
+struct__ATOM_S_MPLL_FB_DIVIDER._fields_ = [
     ('usFbDivFrac', ctypes.c_uint16),
     ('usFbDiv', ctypes.c_uint16),
-     ]
+]
 
-class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3(ctypes.Structure):
+class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3(Structure):
     pass
 
-class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0(ctypes.Union):
+class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0(Union):
     pass
 
-ATOM_COMPUTE_CLOCK_FREQ = struct__ATOM_COMPUTE_CLOCK_FREQ
 ATOM_S_MPLL_FB_DIVIDER = struct__ATOM_S_MPLL_FB_DIVIDER
-union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0._pack_ = True # source:False
+ATOM_COMPUTE_CLOCK_FREQ = struct__ATOM_COMPUTE_CLOCK_FREQ
+union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0._pack_ = 1 # source:False
 union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ulClockParams', ctypes.c_uint32),
     ('ulFbDiv', ATOM_S_MPLL_FB_DIVIDER),
 ]
 
-struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3._pack_ = True # source:False
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3._pack_ = 1 # source:False
 struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3._fields_ = [
-    ('_0', union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0),
+    ('_COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0', union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0),
     ('ucRefDiv', ctypes.c_ubyte),
     ('ucPostDiv', ctypes.c_ubyte),
     ('ucCntlFlag', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ulClock', ctypes.c_uint32, 24),
-    ('ucPostDiv', ctypes.c_uint32, 8),
-     ]
-
-class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5(ctypes.Structure):
+class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4(Structure):
     pass
 
-class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4._pack_ = 1 # source:False
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4._fields_ = [
+    ('ulClock', ctypes.c_uint32, 24),
+    ('ucPostDiv', ctypes.c_uint32, 8),
+]
+
+class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5(Structure):
+    pass
+
+class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0(Union):
+    pass
+
+union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0._pack_ = 1 # source:False
+union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ulClockParams', ctypes.c_uint32),
     ('ulFbDiv', ATOM_S_MPLL_FB_DIVIDER),
-     ]
+]
 
-class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1(Union):
+    pass
+
+union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1._pack_ = 1 # source:False
+union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1._fields_ = [
     ('ucCntlFlag', ctypes.c_ubyte),
     ('ucInputFlag', ctypes.c_ubyte),
-     ]
+]
 
-struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5._pack_ = True # source:False
+struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5._pack_ = 1 # source:False
 struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5._fields_ = [
-    ('_0', union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0),
+    ('_COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0', union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0),
     ('ucRefDiv', ctypes.c_ubyte),
     ('ucPostDiv', ctypes.c_ubyte),
-    ('_3', union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1),
+    ('_COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1', union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1),
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_6(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_6(Structure):
+    pass
+
+struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_6._pack_ = 1 # source:False
+struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_6._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ulReserved', ctypes.c_uint32 * 2),
-     ]
+]
 
-class struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_6(ctypes.Structure):
+class struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_6(Structure):
     pass
 
 COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4 = struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4
-struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_6._pack_ = True # source:False
+struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_6._pack_ = 1 # source:False
 struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_6._fields_ = [
     ('ulClock', COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4),
     ('ulFbDiv', ATOM_S_MPLL_FB_DIVIDER),
@@ -300,16 +434,20 @@ struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_6._fields_ = [
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_7(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_7(Structure):
+    pass
+
+struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_7._pack_ = 1 # source:False
+struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_7._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ulReserved', ctypes.c_uint32 * 5),
-     ]
+]
 
-class struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_7(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_7(Structure):
+    pass
+
+struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_7._pack_ = 1 # source:False
+struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_7._fields_ = [
     ('ulClock', COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4),
     ('usSclk_fcw_frac', ctypes.c_uint16),
     ('usSclk_fcw_int', ctypes.c_uint16),
@@ -323,241 +461,281 @@ class struct__COMPUTE_GPU_CLOCK_OUTPUT_PARAMETERS_V1_7(ctypes.Structure):
     ('usPcc_fcw_int', ctypes.c_uint16),
     ('usSsc_fcw_slew_frac', ctypes.c_uint16),
     ('usPcc_fcw_slew_frac', ctypes.c_uint16),
-     ]
+]
 
-class struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1(ctypes.Structure):
+class struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1(Structure):
     pass
 
-class union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_1(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_1(Union):
+    pass
+
+union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_1._pack_ = 1 # source:False
+union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_1._fields_ = [
     ('ucInputFlag', ctypes.c_ubyte),
     ('ucPllCntlFlag', ctypes.c_ubyte),
-     ]
+]
 
-class union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_0(Union):
+    pass
+
+union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_0._pack_ = 1 # source:False
+union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_0._fields_ = [
     ('ulClock', ctypes.c_uint32),
     ('ulFbDiv', ATOM_S_MPLL_FB_DIVIDER),
-     ]
+]
 
-struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1._pack_ = True # source:False
+struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1._pack_ = 1 # source:False
 struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1._fields_ = [
-    ('_0', union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_0),
+    ('_COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_0', union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_0),
     ('ucDllSpeed', ctypes.c_ubyte),
     ('ucPostDiv', ctypes.c_ubyte),
-    ('_3', union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_1),
+    ('_COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_1', union__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_1_1),
     ('ucBWCntl', ctypes.c_ubyte),
 ]
 
-class struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_2(Structure):
+    pass
+
+struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_2._pack_ = 1 # source:False
+struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_2._fields_ = [
     ('ulClock', COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_3(Structure):
+    pass
+
+struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_3._pack_ = 1 # source:False
+struct__COMPUTE_MEMORY_CLOCK_PARAM_PARAMETERS_V2_3._fields_ = [
     ('ulClock', COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4),
     ('usMclk_fcw_frac', ctypes.c_uint16),
     ('usMclk_fcw_int', ctypes.c_uint16),
-     ]
+]
 
-class struct__DYNAMICE_MEMORY_SETTINGS_PARAMETER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DYNAMICE_MEMORY_SETTINGS_PARAMETER(Structure):
+    pass
+
+struct__DYNAMICE_MEMORY_SETTINGS_PARAMETER._pack_ = 1 # source:False
+struct__DYNAMICE_MEMORY_SETTINGS_PARAMETER._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ulReserved', ctypes.c_uint32 * 2),
-     ]
+]
 
-class struct__DYNAMICE_ENGINE_SETTINGS_PARAMETER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DYNAMICE_ENGINE_SETTINGS_PARAMETER(Structure):
+    pass
+
+struct__DYNAMICE_ENGINE_SETTINGS_PARAMETER._pack_ = 1 # source:False
+struct__DYNAMICE_ENGINE_SETTINGS_PARAMETER._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ulMemoryClock', ctypes.c_uint32),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__DYNAMICE_MC_DPM_SETTINGS_PARAMETER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DYNAMICE_MC_DPM_SETTINGS_PARAMETER(Structure):
+    pass
+
+struct__DYNAMICE_MC_DPM_SETTINGS_PARAMETER._pack_ = 1 # source:False
+struct__DYNAMICE_MC_DPM_SETTINGS_PARAMETER._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ucMclkDPMState', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__SET_ENGINE_CLOCK_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_ENGINE_CLOCK_PARAMETERS(Structure):
+    pass
+
+struct__SET_ENGINE_CLOCK_PARAMETERS._pack_ = 1 # source:False
+struct__SET_ENGINE_CLOCK_PARAMETERS._fields_ = [
     ('ulTargetEngineClock', ctypes.c_uint32),
-     ]
+]
 
-class struct__SET_ENGINE_CLOCK_PS_ALLOCATION(ctypes.Structure):
+class struct__SET_ENGINE_CLOCK_PS_ALLOCATION(Structure):
     pass
 
 COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS = struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS
-struct__SET_ENGINE_CLOCK_PS_ALLOCATION._pack_ = True # source:False
+struct__SET_ENGINE_CLOCK_PS_ALLOCATION._pack_ = 1 # source:False
 struct__SET_ENGINE_CLOCK_PS_ALLOCATION._fields_ = [
     ('ulTargetEngineClock', ctypes.c_uint32),
     ('sReserved', COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS),
 ]
 
-class struct__SET_ENGINE_CLOCK_PS_ALLOCATION_V1_2(ctypes.Structure):
+class struct__SET_ENGINE_CLOCK_PS_ALLOCATION_V1_2(Structure):
     pass
 
 COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_7 = struct__COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_7
-struct__SET_ENGINE_CLOCK_PS_ALLOCATION_V1_2._pack_ = True # source:False
+struct__SET_ENGINE_CLOCK_PS_ALLOCATION_V1_2._pack_ = 1 # source:False
 struct__SET_ENGINE_CLOCK_PS_ALLOCATION_V1_2._fields_ = [
     ('ulTargetEngineClock', ctypes.c_uint32),
     ('sReserved', COMPUTE_GPU_CLOCK_INPUT_PARAMETERS_V1_7),
 ]
 
-class struct__SET_MEMORY_CLOCK_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ulTargetMemoryClock', ctypes.c_uint32),
-     ]
+class struct__SET_MEMORY_CLOCK_PARAMETERS(Structure):
+    pass
 
-class struct__SET_MEMORY_CLOCK_PS_ALLOCATION(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+struct__SET_MEMORY_CLOCK_PARAMETERS._pack_ = 1 # source:False
+struct__SET_MEMORY_CLOCK_PARAMETERS._fields_ = [
+    ('ulTargetMemoryClock', ctypes.c_uint32),
+]
+
+class struct__SET_MEMORY_CLOCK_PS_ALLOCATION(Structure):
+    pass
+
+struct__SET_MEMORY_CLOCK_PS_ALLOCATION._pack_ = 1 # source:False
+struct__SET_MEMORY_CLOCK_PS_ALLOCATION._fields_ = [
     ('ulTargetMemoryClock', ctypes.c_uint32),
     ('sReserved', COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS),
-     ]
+]
 
-class struct__ASIC_INIT_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ASIC_INIT_PARAMETERS(Structure):
+    pass
+
+struct__ASIC_INIT_PARAMETERS._pack_ = 1 # source:False
+struct__ASIC_INIT_PARAMETERS._fields_ = [
     ('ulDefaultEngineClock', ctypes.c_uint32),
     ('ulDefaultMemoryClock', ctypes.c_uint32),
-     ]
+]
 
-class struct__ASIC_INIT_PS_ALLOCATION(ctypes.Structure):
+class struct__ASIC_INIT_PS_ALLOCATION(Structure):
     pass
 
 ASIC_INIT_PARAMETERS = struct__ASIC_INIT_PARAMETERS
 SET_ENGINE_CLOCK_PS_ALLOCATION = struct__SET_ENGINE_CLOCK_PS_ALLOCATION
-struct__ASIC_INIT_PS_ALLOCATION._pack_ = True # source:False
+struct__ASIC_INIT_PS_ALLOCATION._pack_ = 1 # source:False
 struct__ASIC_INIT_PS_ALLOCATION._fields_ = [
     ('sASICInitClocks', ASIC_INIT_PARAMETERS),
     ('sReserved', SET_ENGINE_CLOCK_PS_ALLOCATION),
 ]
 
-class struct__ASIC_INIT_CLOCK_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ASIC_INIT_CLOCK_PARAMETERS(Structure):
+    pass
+
+struct__ASIC_INIT_CLOCK_PARAMETERS._pack_ = 1 # source:False
+struct__ASIC_INIT_CLOCK_PARAMETERS._fields_ = [
     ('ulClkFreqIn10Khz', ctypes.c_uint32, 24),
     ('ucClkFlag', ctypes.c_uint32, 8),
-     ]
+]
 
-class struct__ASIC_INIT_PARAMETERS_V1_2(ctypes.Structure):
+class struct__ASIC_INIT_PARAMETERS_V1_2(Structure):
     pass
 
 ASIC_INIT_CLOCK_PARAMETERS = struct__ASIC_INIT_CLOCK_PARAMETERS
-struct__ASIC_INIT_PARAMETERS_V1_2._pack_ = True # source:False
+struct__ASIC_INIT_PARAMETERS_V1_2._pack_ = 1 # source:False
 struct__ASIC_INIT_PARAMETERS_V1_2._fields_ = [
     ('asSclkClock', ASIC_INIT_CLOCK_PARAMETERS),
     ('asMemClock', ASIC_INIT_CLOCK_PARAMETERS),
 ]
 
-class struct__ASIC_INIT_PS_ALLOCATION_V1_2(ctypes.Structure):
+class struct__ASIC_INIT_PS_ALLOCATION_V1_2(Structure):
     pass
 
 ASIC_INIT_PARAMETERS_V1_2 = struct__ASIC_INIT_PARAMETERS_V1_2
-struct__ASIC_INIT_PS_ALLOCATION_V1_2._pack_ = True # source:False
+struct__ASIC_INIT_PS_ALLOCATION_V1_2._pack_ = 1 # source:False
 struct__ASIC_INIT_PS_ALLOCATION_V1_2._fields_ = [
     ('sASICInitClocks', ASIC_INIT_PARAMETERS_V1_2),
     ('ulReserved', ctypes.c_uint32 * 8),
 ]
 
-class struct__DYNAMIC_CLOCK_GATING_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DYNAMIC_CLOCK_GATING_PARAMETERS(Structure):
+    pass
+
+struct__DYNAMIC_CLOCK_GATING_PARAMETERS._pack_ = 1 # source:False
+struct__DYNAMIC_CLOCK_GATING_PARAMETERS._fields_ = [
     ('ucEnable', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__ENABLE_DISP_POWER_GATING_PARAMETERS_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_DISP_POWER_GATING_PARAMETERS_V2_1(Structure):
+    pass
+
+struct__ENABLE_DISP_POWER_GATING_PARAMETERS_V2_1._pack_ = 1 # source:False
+struct__ENABLE_DISP_POWER_GATING_PARAMETERS_V2_1._fields_ = [
     ('ucDispPipeId', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ENABLE_DISP_POWER_GATING_PS_ALLOCATION(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_DISP_POWER_GATING_PS_ALLOCATION(Structure):
+    pass
+
+struct__ENABLE_DISP_POWER_GATING_PS_ALLOCATION._pack_ = 1 # source:False
+struct__ENABLE_DISP_POWER_GATING_PS_ALLOCATION._fields_ = [
     ('ucDispPipeId', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
     ('ulReserved', ctypes.c_uint32 * 4),
-     ]
+]
 
-class struct__ENABLE_ASIC_STATIC_PWR_MGT_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_ASIC_STATIC_PWR_MGT_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_ASIC_STATIC_PWR_MGT_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_ASIC_STATIC_PWR_MGT_PARAMETERS._fields_ = [
     ('ucEnable', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__DAC_LOAD_DETECTION_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DAC_LOAD_DETECTION_PARAMETERS(Structure):
+    pass
+
+struct__DAC_LOAD_DETECTION_PARAMETERS._pack_ = 1 # source:False
+struct__DAC_LOAD_DETECTION_PARAMETERS._fields_ = [
     ('usDeviceID', ctypes.c_uint16),
     ('ucDacType', ctypes.c_ubyte),
     ('ucMisc', ctypes.c_ubyte),
-     ]
+]
 
-class struct__DAC_LOAD_DETECTION_PS_ALLOCATION(ctypes.Structure):
+class struct__DAC_LOAD_DETECTION_PS_ALLOCATION(Structure):
     pass
 
 DAC_LOAD_DETECTION_PARAMETERS = struct__DAC_LOAD_DETECTION_PARAMETERS
-struct__DAC_LOAD_DETECTION_PS_ALLOCATION._pack_ = True # source:False
+struct__DAC_LOAD_DETECTION_PS_ALLOCATION._pack_ = 1 # source:False
 struct__DAC_LOAD_DETECTION_PS_ALLOCATION._fields_ = [
     ('sDacload', DAC_LOAD_DETECTION_PARAMETERS),
     ('Reserved', ctypes.c_uint32 * 2),
 ]
 
-class struct__DAC_ENCODER_CONTROL_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DAC_ENCODER_CONTROL_PARAMETERS(Structure):
+    pass
+
+struct__DAC_ENCODER_CONTROL_PARAMETERS._pack_ = 1 # source:False
+struct__DAC_ENCODER_CONTROL_PARAMETERS._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucDacStandard', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
-     ]
+]
 
-class struct__DIG_ENCODER_CONTROL_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DIG_ENCODER_CONTROL_PARAMETERS(Structure):
+    pass
+
+struct__DIG_ENCODER_CONTROL_PARAMETERS._pack_ = 1 # source:False
+struct__DIG_ENCODER_CONTROL_PARAMETERS._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucConfig', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucEncoderMode', ctypes.c_ubyte),
     ('ucLaneNum', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_DIG_ENCODER_CONFIG_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DIG_ENCODER_CONFIG_V2(Structure):
+    pass
+
+struct__ATOM_DIG_ENCODER_CONFIG_V2._pack_ = 1 # source:False
+struct__ATOM_DIG_ENCODER_CONFIG_V2._fields_ = [
     ('ucDPLinkRate', ctypes.c_ubyte, 1),
     ('ucReserved', ctypes.c_ubyte, 1),
     ('ucLinkSel', ctypes.c_ubyte, 1),
     ('ucTransmitterSel', ctypes.c_ubyte, 2),
     ('ucReserved1', ctypes.c_ubyte, 2),
-    ('PADDING_0', ctypes.c_ubyte, 1),
-     ]
+    ('PADDING_0', ctypes.c_uint8, 1),
+]
 
-class struct__DIG_ENCODER_CONTROL_PARAMETERS_V2(ctypes.Structure):
+class struct__DIG_ENCODER_CONTROL_PARAMETERS_V2(Structure):
     pass
 
 ATOM_DIG_ENCODER_CONFIG_V2 = struct__ATOM_DIG_ENCODER_CONFIG_V2
-struct__DIG_ENCODER_CONTROL_PARAMETERS_V2._pack_ = True # source:False
+struct__DIG_ENCODER_CONTROL_PARAMETERS_V2._pack_ = 1 # source:False
 struct__DIG_ENCODER_CONTROL_PARAMETERS_V2._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('acConfig', ATOM_DIG_ENCODER_CONFIG_V2),
@@ -568,80 +746,90 @@ struct__DIG_ENCODER_CONTROL_PARAMETERS_V2._fields_ = [
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_DIG_ENCODER_CONFIG_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DIG_ENCODER_CONFIG_V3(Structure):
+    pass
+
+struct__ATOM_DIG_ENCODER_CONFIG_V3._pack_ = 1 # source:False
+struct__ATOM_DIG_ENCODER_CONFIG_V3._fields_ = [
     ('ucDPLinkRate', ctypes.c_ubyte, 1),
     ('ucReserved', ctypes.c_ubyte, 3),
     ('ucDigSel', ctypes.c_ubyte, 3),
     ('ucReserved1', ctypes.c_ubyte, 1),
-     ]
+]
 
-class struct__DIG_ENCODER_CONTROL_PARAMETERS_V3(ctypes.Structure):
+class struct__DIG_ENCODER_CONTROL_PARAMETERS_V3(Structure):
     pass
 
-class union__DIG_ENCODER_CONTROL_PARAMETERS_V3_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+ATOM_DIG_ENCODER_CONFIG_V3 = struct__ATOM_DIG_ENCODER_CONFIG_V3
+class union__DIG_ENCODER_CONTROL_PARAMETERS_V3_0(Union):
+    pass
+
+union__DIG_ENCODER_CONTROL_PARAMETERS_V3_0._pack_ = 1 # source:False
+union__DIG_ENCODER_CONTROL_PARAMETERS_V3_0._fields_ = [
     ('ucEncoderMode', ctypes.c_ubyte),
     ('ucPanelMode', ctypes.c_ubyte),
-     ]
+]
 
-ATOM_DIG_ENCODER_CONFIG_V3 = struct__ATOM_DIG_ENCODER_CONFIG_V3
-struct__DIG_ENCODER_CONTROL_PARAMETERS_V3._pack_ = True # source:False
+struct__DIG_ENCODER_CONTROL_PARAMETERS_V3._pack_ = 1 # source:False
 struct__DIG_ENCODER_CONTROL_PARAMETERS_V3._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('acConfig', ATOM_DIG_ENCODER_CONFIG_V3),
     ('ucAction', ctypes.c_ubyte),
-    ('_3', union__DIG_ENCODER_CONTROL_PARAMETERS_V3_0),
+    ('_DIG_ENCODER_CONTROL_PARAMETERS_V3_0', union__DIG_ENCODER_CONTROL_PARAMETERS_V3_0),
     ('ucLaneNum', ctypes.c_ubyte),
     ('ucBitPerColor', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_DIG_ENCODER_CONFIG_V4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DIG_ENCODER_CONFIG_V4(Structure):
+    pass
+
+struct__ATOM_DIG_ENCODER_CONFIG_V4._pack_ = 1 # source:False
+struct__ATOM_DIG_ENCODER_CONFIG_V4._fields_ = [
     ('ucDPLinkRate', ctypes.c_ubyte, 2),
     ('ucReserved', ctypes.c_ubyte, 2),
     ('ucDigSel', ctypes.c_ubyte, 3),
     ('ucReserved1', ctypes.c_ubyte, 1),
-     ]
+]
 
-class struct__DIG_ENCODER_CONTROL_PARAMETERS_V4(ctypes.Structure):
+class struct__DIG_ENCODER_CONTROL_PARAMETERS_V4(Structure):
     pass
 
-class union__DIG_ENCODER_CONTROL_PARAMETERS_V4_0(ctypes.Union):
+class union__DIG_ENCODER_CONTROL_PARAMETERS_V4_1(Union):
+    pass
+
+union__DIG_ENCODER_CONTROL_PARAMETERS_V4_1._pack_ = 1 # source:False
+union__DIG_ENCODER_CONTROL_PARAMETERS_V4_1._fields_ = [
+    ('ucEncoderMode', ctypes.c_ubyte),
+    ('ucPanelMode', ctypes.c_ubyte),
+]
+
+class union__DIG_ENCODER_CONTROL_PARAMETERS_V4_0(Union):
     pass
 
 ATOM_DIG_ENCODER_CONFIG_V4 = struct__ATOM_DIG_ENCODER_CONFIG_V4
-union__DIG_ENCODER_CONTROL_PARAMETERS_V4_0._pack_ = True # source:False
+union__DIG_ENCODER_CONTROL_PARAMETERS_V4_0._pack_ = 1 # source:False
 union__DIG_ENCODER_CONTROL_PARAMETERS_V4_0._fields_ = [
     ('acConfig', ATOM_DIG_ENCODER_CONFIG_V4),
     ('ucConfig', ctypes.c_ubyte),
 ]
 
-class union__DIG_ENCODER_CONTROL_PARAMETERS_V4_1(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ucEncoderMode', ctypes.c_ubyte),
-    ('ucPanelMode', ctypes.c_ubyte),
-     ]
-
-struct__DIG_ENCODER_CONTROL_PARAMETERS_V4._pack_ = True # source:False
+struct__DIG_ENCODER_CONTROL_PARAMETERS_V4._pack_ = 1 # source:False
 struct__DIG_ENCODER_CONTROL_PARAMETERS_V4._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
-    ('_1', union__DIG_ENCODER_CONTROL_PARAMETERS_V4_0),
+    ('_DIG_ENCODER_CONTROL_PARAMETERS_V4_0', union__DIG_ENCODER_CONTROL_PARAMETERS_V4_0),
     ('ucAction', ctypes.c_ubyte),
-    ('_3', union__DIG_ENCODER_CONTROL_PARAMETERS_V4_1),
+    ('_DIG_ENCODER_CONTROL_PARAMETERS_V4_1', union__DIG_ENCODER_CONTROL_PARAMETERS_V4_1),
     ('ucLaneNum', ctypes.c_ubyte),
     ('ucBitPerColor', ctypes.c_ubyte),
     ('ucHPD_ID', ctypes.c_ubyte),
 ]
 
-class struct__ENCODER_STREAM_SETUP_PARAMETERS_V5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENCODER_STREAM_SETUP_PARAMETERS_V5(Structure):
+    pass
+
+struct__ENCODER_STREAM_SETUP_PARAMETERS_V5._pack_ = 1 # source:False
+struct__ENCODER_STREAM_SETUP_PARAMETERS_V5._fields_ = [
     ('ucDigId', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucDigMode', ctypes.c_ubyte),
@@ -650,11 +838,13 @@ class struct__ENCODER_STREAM_SETUP_PARAMETERS_V5(ctypes.Structure):
     ('ucBitPerColor', ctypes.c_ubyte),
     ('ucLinkRateIn270Mhz', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ENCODER_LINK_SETUP_PARAMETERS_V5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENCODER_LINK_SETUP_PARAMETERS_V5(Structure):
+    pass
+
+struct__ENCODER_LINK_SETUP_PARAMETERS_V5._pack_ = 1 # source:False
+struct__ENCODER_LINK_SETUP_PARAMETERS_V5._fields_ = [
     ('ucDigId', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucDigMode', ctypes.c_ubyte),
@@ -663,59 +853,67 @@ class struct__ENCODER_LINK_SETUP_PARAMETERS_V5(ctypes.Structure):
     ('ucHPDSel', ctypes.c_ubyte),
     ('ucDigEncoderSel', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__DP_PANEL_MODE_SETUP_PARAMETERS_V5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DP_PANEL_MODE_SETUP_PARAMETERS_V5(Structure):
+    pass
+
+struct__DP_PANEL_MODE_SETUP_PARAMETERS_V5._pack_ = 1 # source:False
+struct__DP_PANEL_MODE_SETUP_PARAMETERS_V5._fields_ = [
     ('ucDigId', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucPanelMode', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('ulReserved', ctypes.c_uint32 * 2),
-     ]
+]
 
-class struct__ENCODER_GENERIC_CMD_PARAMETERS_V5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENCODER_GENERIC_CMD_PARAMETERS_V5(Structure):
+    pass
+
+struct__ENCODER_GENERIC_CMD_PARAMETERS_V5._pack_ = 1 # source:False
+struct__ENCODER_GENERIC_CMD_PARAMETERS_V5._fields_ = [
     ('ucDigId', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
     ('ulReserved', ctypes.c_uint32 * 2),
-     ]
+]
 
-class struct__ATOM_DP_VS_MODE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ucLaneSel', ctypes.c_ubyte),
-    ('ucLaneSet', ctypes.c_ubyte),
-     ]
-
-class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS(ctypes.Structure):
+class struct__ATOM_DP_VS_MODE(Structure):
     pass
 
-class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_0(ctypes.Union):
+struct__ATOM_DP_VS_MODE._pack_ = 1 # source:False
+struct__ATOM_DP_VS_MODE._fields_ = [
+    ('ucLaneSel', ctypes.c_ubyte),
+    ('ucLaneSet', ctypes.c_ubyte),
+]
+
+class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS(Structure):
+    pass
+
+class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_0(Union):
     pass
 
 ATOM_DP_VS_MODE = struct__ATOM_DP_VS_MODE
-union__DIG_TRANSMITTER_CONTROL_PARAMETERS_0._pack_ = True # source:False
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_0._pack_ = 1 # source:False
 union__DIG_TRANSMITTER_CONTROL_PARAMETERS_0._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usInitInfo', ctypes.c_uint16),
     ('asMode', ATOM_DP_VS_MODE),
 ]
 
-struct__DIG_TRANSMITTER_CONTROL_PARAMETERS._pack_ = True # source:False
+struct__DIG_TRANSMITTER_CONTROL_PARAMETERS._pack_ = 1 # source:False
 struct__DIG_TRANSMITTER_CONTROL_PARAMETERS._fields_ = [
-    ('_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_0),
+    ('_DIG_TRANSMITTER_CONTROL_PARAMETERS_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_0),
     ('ucConfig', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 4),
 ]
 
-class struct__ATOM_DIG_TRANSMITTER_CONFIG_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DIG_TRANSMITTER_CONFIG_V2(Structure):
+    pass
+
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V2._pack_ = 1 # source:False
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V2._fields_ = [
     ('fDualLinkConnector', ctypes.c_ubyte, 1),
     ('fCoherentMode', ctypes.c_ubyte, 1),
     ('ucLinkSel', ctypes.c_ubyte, 1),
@@ -723,154 +921,166 @@ class struct__ATOM_DIG_TRANSMITTER_CONFIG_V2(ctypes.Structure):
     ('fDPConnector', ctypes.c_ubyte, 1),
     ('ucReserved', ctypes.c_ubyte, 1),
     ('ucTransmitterSel', ctypes.c_ubyte, 2),
-     ]
+]
 
-class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2(ctypes.Structure):
+class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2(Structure):
     pass
 
 ATOM_DIG_TRANSMITTER_CONFIG_V2 = struct__ATOM_DIG_TRANSMITTER_CONFIG_V2
-class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2_0(Union):
+    pass
+
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2_0._pack_ = 1 # source:False
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2_0._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usInitInfo', ctypes.c_uint16),
     ('asMode', ATOM_DP_VS_MODE),
-     ]
+]
 
-struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2._pack_ = True # source:False
+struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2._pack_ = 1 # source:False
 struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2._fields_ = [
-    ('_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2_0),
+    ('_DIG_TRANSMITTER_CONTROL_PARAMETERS_V2_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V2_0),
     ('acConfig', ATOM_DIG_TRANSMITTER_CONFIG_V2),
     ('ucAction', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 4),
 ]
 
-class struct__ATOM_DIG_TRANSMITTER_CONFIG_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DIG_TRANSMITTER_CONFIG_V3(Structure):
+    pass
+
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V3._pack_ = 1 # source:False
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V3._fields_ = [
     ('fDualLinkConnector', ctypes.c_ubyte, 1),
     ('fCoherentMode', ctypes.c_ubyte, 1),
     ('ucLinkSel', ctypes.c_ubyte, 1),
     ('ucEncoderSel', ctypes.c_ubyte, 1),
     ('ucRefClkSource', ctypes.c_ubyte, 2),
     ('ucTransmitterSel', ctypes.c_ubyte, 2),
-     ]
+]
 
-class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3(ctypes.Structure):
+class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3(Structure):
     pass
 
-ATOM_DIG_TRANSMITTER_CONFIG_V3 = struct__ATOM_DIG_TRANSMITTER_CONFIG_V3
-class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3_0(Union):
+    pass
+
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3_0._pack_ = 1 # source:False
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3_0._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usInitInfo', ctypes.c_uint16),
     ('asMode', ATOM_DP_VS_MODE),
-     ]
+]
 
-struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3._pack_ = True # source:False
+ATOM_DIG_TRANSMITTER_CONFIG_V3 = struct__ATOM_DIG_TRANSMITTER_CONFIG_V3
+struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3._pack_ = 1 # source:False
 struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3._fields_ = [
-    ('_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3_0),
+    ('_DIG_TRANSMITTER_CONTROL_PARAMETERS_V3_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V3_0),
     ('acConfig', ATOM_DIG_TRANSMITTER_CONFIG_V3),
     ('ucAction', ctypes.c_ubyte),
     ('ucLaneNum', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
 ]
 
-class struct__ATOM_DP_VS_MODE_V4(ctypes.Structure):
+class struct__ATOM_DP_VS_MODE_V4(Structure):
     pass
 
-class union__ATOM_DP_VS_MODE_V4_0(ctypes.Union):
+class union__ATOM_DP_VS_MODE_V4_0(Union):
     pass
 
-class struct__ATOM_DP_VS_MODE_V4_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DP_VS_MODE_V4_0_0(Structure):
+    pass
+
+struct__ATOM_DP_VS_MODE_V4_0_0._pack_ = 1 # source:False
+struct__ATOM_DP_VS_MODE_V4_0_0._fields_ = [
     ('ucVOLTAGE_SWING', ctypes.c_ubyte, 3),
     ('ucPRE_EMPHASIS', ctypes.c_ubyte, 3),
     ('ucPOST_CURSOR2', ctypes.c_ubyte, 2),
-     ]
+]
 
-union__ATOM_DP_VS_MODE_V4_0._pack_ = True # source:False
+union__ATOM_DP_VS_MODE_V4_0._pack_ = 1 # source:False
 union__ATOM_DP_VS_MODE_V4_0._fields_ = [
     ('ucLaneSet', ctypes.c_ubyte),
-    ('_1', struct__ATOM_DP_VS_MODE_V4_0_0),
+    ('_ATOM_DP_VS_MODE_V4_0_0', struct__ATOM_DP_VS_MODE_V4_0_0),
 ]
 
-struct__ATOM_DP_VS_MODE_V4._pack_ = True # source:False
+struct__ATOM_DP_VS_MODE_V4._pack_ = 1 # source:False
 struct__ATOM_DP_VS_MODE_V4._fields_ = [
     ('ucLaneSel', ctypes.c_ubyte),
-    ('_1', union__ATOM_DP_VS_MODE_V4_0),
+    ('_ATOM_DP_VS_MODE_V4_0', union__ATOM_DP_VS_MODE_V4_0),
 ]
 
-class struct__ATOM_DIG_TRANSMITTER_CONFIG_V4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DIG_TRANSMITTER_CONFIG_V4(Structure):
+    pass
+
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V4._pack_ = 1 # source:False
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V4._fields_ = [
     ('fDualLinkConnector', ctypes.c_ubyte, 1),
     ('fCoherentMode', ctypes.c_ubyte, 1),
     ('ucLinkSel', ctypes.c_ubyte, 1),
     ('ucEncoderSel', ctypes.c_ubyte, 1),
     ('ucRefClkSource', ctypes.c_ubyte, 2),
     ('ucTransmitterSel', ctypes.c_ubyte, 2),
-     ]
-
-class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4(ctypes.Structure):
-    pass
-
-class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1(ctypes.Union):
-    pass
-
-ATOM_DIG_TRANSMITTER_CONFIG_V4 = struct__ATOM_DIG_TRANSMITTER_CONFIG_V4
-union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1._pack_ = True # source:False
-union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1._fields_ = [
-    ('acConfig', ATOM_DIG_TRANSMITTER_CONFIG_V4),
-    ('ucConfig', ctypes.c_ubyte),
 ]
 
-class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0(ctypes.Union):
+class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4(Structure):
+    pass
+
+class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0(Union):
     pass
 
 ATOM_DP_VS_MODE_V4 = struct__ATOM_DP_VS_MODE_V4
-union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0._pack_ = True # source:False
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0._pack_ = 1 # source:False
 union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usInitInfo', ctypes.c_uint16),
     ('asMode', ATOM_DP_VS_MODE_V4),
 ]
 
-struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4._pack_ = True # source:False
+class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1(Union):
+    pass
+
+ATOM_DIG_TRANSMITTER_CONFIG_V4 = struct__ATOM_DIG_TRANSMITTER_CONFIG_V4
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1._pack_ = 1 # source:False
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1._fields_ = [
+    ('acConfig', ATOM_DIG_TRANSMITTER_CONFIG_V4),
+    ('ucConfig', ctypes.c_ubyte),
+]
+
+struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4._pack_ = 1 # source:False
 struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4._fields_ = [
-    ('_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0),
-    ('_1', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1),
+    ('_DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_0),
+    ('_DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V4_1),
     ('ucAction', ctypes.c_ubyte),
     ('ucLaneNum', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
 ]
 
-class struct__ATOM_DIG_TRANSMITTER_CONFIG_V5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DIG_TRANSMITTER_CONFIG_V5(Structure):
+    pass
+
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V5._pack_ = 1 # source:False
+struct__ATOM_DIG_TRANSMITTER_CONFIG_V5._fields_ = [
     ('ucReserved', ctypes.c_ubyte, 1),
     ('ucCoherentMode', ctypes.c_ubyte, 1),
     ('ucPhyClkSrcId', ctypes.c_ubyte, 2),
     ('ucHPDSel', ctypes.c_ubyte, 3),
     ('ucReservd1', ctypes.c_ubyte, 1),
-     ]
+]
 
-class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5(ctypes.Structure):
+class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5(Structure):
     pass
 
-class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0(ctypes.Union):
+class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0(Union):
     pass
 
 ATOM_DIG_TRANSMITTER_CONFIG_V5 = struct__ATOM_DIG_TRANSMITTER_CONFIG_V5
-union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0._pack_ = True # source:False
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0._pack_ = 1 # source:False
 union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0._fields_ = [
     ('asConfig', ATOM_DIG_TRANSMITTER_CONFIG_V5),
     ('ucConfig', ctypes.c_ubyte),
 ]
 
-struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5._pack_ = True # source:False
+struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5._pack_ = 1 # source:False
 struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5._fields_ = [
     ('usSymClock', ctypes.c_uint16),
     ('ucPhyId', ctypes.c_ubyte),
@@ -878,28 +1088,30 @@ struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5._fields_ = [
     ('ucLaneNum', ctypes.c_ubyte),
     ('ucConnObjId', ctypes.c_ubyte),
     ('ucDigMode', ctypes.c_ubyte),
-    ('_6', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0),
+    ('_DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_5_0),
     ('ucDigEncoderSel', ctypes.c_ubyte),
     ('ucDPLaneSet', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('ucReserved1', ctypes.c_ubyte),
 ]
 
-class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6(ctypes.Structure):
+class struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6(Structure):
     pass
 
-class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6_0(Union):
+    pass
+
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6_0._pack_ = 1 # source:False
+union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6_0._fields_ = [
     ('ucDigMode', ctypes.c_ubyte),
     ('ucDPLaneSet', ctypes.c_ubyte),
-     ]
+]
 
-struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6._pack_ = True # source:False
+struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6._pack_ = 1 # source:False
 struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6._fields_ = [
     ('ucPhyId', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
-    ('_2', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6_0),
+    ('_DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6_0', union__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6_0),
     ('ucLaneNum', ctypes.c_ubyte),
     ('ulSymClock', ctypes.c_uint32),
     ('ucHPDSel', ctypes.c_ubyte),
@@ -909,19 +1121,21 @@ struct__DIG_TRANSMITTER_CONTROL_PARAMETERS_V1_6._fields_ = [
     ('ulReserved', ctypes.c_uint32),
 ]
 
-class struct__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3(ctypes.Structure):
+class struct__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3(Structure):
     pass
 
-class union__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3_0(Union):
+    pass
+
+union__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3_0._pack_ = 1 # source:False
+union__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3_0._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usConnectorId', ctypes.c_uint16),
-     ]
+]
 
-struct__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3._pack_ = True # source:False
+struct__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3._pack_ = 1 # source:False
 struct__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3._fields_ = [
-    ('_0', union__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3_0),
+    ('_EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3_0', union__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3_0),
     ('ucConfig', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucEncoderMode', ctypes.c_ubyte),
@@ -930,98 +1144,118 @@ struct__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3._fields_ = [
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION_V3(ctypes.Structure):
+class struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION_V3(Structure):
     pass
 
 EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3 = struct__EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3
-struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION_V3._pack_ = True # source:False
+struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION_V3._pack_ = 1 # source:False
 struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION_V3._fields_ = [
     ('sExtEncoder', EXTERNAL_ENCODER_CONTROL_PARAMETERS_V3),
     ('ulReserved', ctypes.c_uint32 * 2),
 ]
 
-class struct__DISPLAY_DEVICE_OUTPUT_CONTROL_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DISPLAY_DEVICE_OUTPUT_CONTROL_PARAMETERS(Structure):
+    pass
+
+struct__DISPLAY_DEVICE_OUTPUT_CONTROL_PARAMETERS._pack_ = 1 # source:False
+struct__DISPLAY_DEVICE_OUTPUT_CONTROL_PARAMETERS._fields_ = [
     ('ucAction', ctypes.c_ubyte),
     ('aucPadding', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__LVTMA_OUTPUT_CONTROL_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__LVTMA_OUTPUT_CONTROL_PARAMETERS_V2(Structure):
+    pass
+
+struct__LVTMA_OUTPUT_CONTROL_PARAMETERS_V2._pack_ = 1 # source:False
+struct__LVTMA_OUTPUT_CONTROL_PARAMETERS_V2._fields_ = [
     ('ucAction', ctypes.c_ubyte),
     ('ucBriLevel', ctypes.c_ubyte),
     ('usPwmFreq', ctypes.c_uint16),
-     ]
+]
 
-class struct__BLANK_CRTC_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__BLANK_CRTC_PARAMETERS(Structure):
+    pass
+
+struct__BLANK_CRTC_PARAMETERS._pack_ = 1 # source:False
+struct__BLANK_CRTC_PARAMETERS._fields_ = [
     ('ucCRTC', ctypes.c_ubyte),
     ('ucBlanking', ctypes.c_ubyte),
     ('usBlackColorRCr', ctypes.c_uint16),
     ('usBlackColorGY', ctypes.c_uint16),
     ('usBlackColorBCb', ctypes.c_uint16),
-     ]
+]
 
-class struct__ENABLE_CRTC_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_CRTC_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_CRTC_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_CRTC_PARAMETERS._fields_ = [
     ('ucCRTC', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__SET_CRTC_OVERSCAN_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_CRTC_OVERSCAN_PARAMETERS(Structure):
+    pass
+
+struct__SET_CRTC_OVERSCAN_PARAMETERS._pack_ = 1 # source:False
+struct__SET_CRTC_OVERSCAN_PARAMETERS._fields_ = [
     ('usOverscanRight', ctypes.c_uint16),
     ('usOverscanLeft', ctypes.c_uint16),
     ('usOverscanBottom', ctypes.c_uint16),
     ('usOverscanTop', ctypes.c_uint16),
     ('ucCRTC', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__SET_CRTC_REPLICATION_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_CRTC_REPLICATION_PARAMETERS(Structure):
+    pass
+
+struct__SET_CRTC_REPLICATION_PARAMETERS._pack_ = 1 # source:False
+struct__SET_CRTC_REPLICATION_PARAMETERS._fields_ = [
     ('ucH_Replication', ctypes.c_ubyte),
     ('ucV_Replication', ctypes.c_ubyte),
     ('usCRTC', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte),
-     ]
+]
 
-class struct__SELECT_CRTC_SOURCE_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SELECT_CRTC_SOURCE_PARAMETERS(Structure):
+    pass
+
+struct__SELECT_CRTC_SOURCE_PARAMETERS._pack_ = 1 # source:False
+struct__SELECT_CRTC_SOURCE_PARAMETERS._fields_ = [
     ('ucCRTC', ctypes.c_ubyte),
     ('ucDevice', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__SELECT_CRTC_SOURCE_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SELECT_CRTC_SOURCE_PARAMETERS_V2(Structure):
+    pass
+
+struct__SELECT_CRTC_SOURCE_PARAMETERS_V2._pack_ = 1 # source:False
+struct__SELECT_CRTC_SOURCE_PARAMETERS_V2._fields_ = [
     ('ucCRTC', ctypes.c_ubyte),
     ('ucEncoderID', ctypes.c_ubyte),
     ('ucEncodeMode', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte),
-     ]
+]
 
-class struct__SELECT_CRTC_SOURCE_PARAMETERS_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SELECT_CRTC_SOURCE_PARAMETERS_V3(Structure):
+    pass
+
+struct__SELECT_CRTC_SOURCE_PARAMETERS_V3._pack_ = 1 # source:False
+struct__SELECT_CRTC_SOURCE_PARAMETERS_V3._fields_ = [
     ('ucCRTC', ctypes.c_ubyte),
     ('ucEncoderID', ctypes.c_ubyte),
     ('ucEncodeMode', ctypes.c_ubyte),
     ('ucDstBpc', ctypes.c_ubyte),
-     ]
+]
 
-class struct__PIXEL_CLOCK_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PIXEL_CLOCK_PARAMETERS(Structure):
+    pass
+
+struct__PIXEL_CLOCK_PARAMETERS._pack_ = 1 # source:False
+struct__PIXEL_CLOCK_PARAMETERS._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usRefDiv', ctypes.c_uint16),
     ('usFbDiv', ctypes.c_uint16),
@@ -1031,11 +1265,13 @@ class struct__PIXEL_CLOCK_PARAMETERS(ctypes.Structure):
     ('ucRefDivSrc', ctypes.c_ubyte),
     ('ucCRTC', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte),
-     ]
+]
 
-class struct__PIXEL_CLOCK_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PIXEL_CLOCK_PARAMETERS_V2(Structure):
+    pass
+
+struct__PIXEL_CLOCK_PARAMETERS_V2._pack_ = 1 # source:False
+struct__PIXEL_CLOCK_PARAMETERS_V2._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usRefDiv', ctypes.c_uint16),
     ('usFbDiv', ctypes.c_uint16),
@@ -1045,19 +1281,21 @@ class struct__PIXEL_CLOCK_PARAMETERS_V2(ctypes.Structure):
     ('ucRefDivSrc', ctypes.c_ubyte),
     ('ucCRTC', ctypes.c_ubyte),
     ('ucMiscInfo', ctypes.c_ubyte),
-     ]
+]
 
-class struct__PIXEL_CLOCK_PARAMETERS_V3(ctypes.Structure):
+class struct__PIXEL_CLOCK_PARAMETERS_V3(Structure):
     pass
 
-class union__PIXEL_CLOCK_PARAMETERS_V3_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__PIXEL_CLOCK_PARAMETERS_V3_0(Union):
+    pass
+
+union__PIXEL_CLOCK_PARAMETERS_V3_0._pack_ = 1 # source:False
+union__PIXEL_CLOCK_PARAMETERS_V3_0._fields_ = [
     ('ucEncoderMode', ctypes.c_ubyte),
     ('ucDVOConfig', ctypes.c_ubyte),
-     ]
+]
 
-struct__PIXEL_CLOCK_PARAMETERS_V3._pack_ = True # source:False
+struct__PIXEL_CLOCK_PARAMETERS_V3._pack_ = 1 # source:False
 struct__PIXEL_CLOCK_PARAMETERS_V3._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usRefDiv', ctypes.c_uint16),
@@ -1066,24 +1304,26 @@ struct__PIXEL_CLOCK_PARAMETERS_V3._fields_ = [
     ('ucFracFbDiv', ctypes.c_ubyte),
     ('ucPpll', ctypes.c_ubyte),
     ('ucTransmitterId', ctypes.c_ubyte),
-    ('_7', union__PIXEL_CLOCK_PARAMETERS_V3_0),
+    ('_PIXEL_CLOCK_PARAMETERS_V3_0', union__PIXEL_CLOCK_PARAMETERS_V3_0),
     ('ucMiscInfo', ctypes.c_ubyte),
 ]
 
-class struct__PIXEL_CLOCK_PARAMETERS_V5(ctypes.Structure):
+class struct__PIXEL_CLOCK_PARAMETERS_V5(Structure):
     pass
 
-class union__PIXEL_CLOCK_PARAMETERS_V5_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__PIXEL_CLOCK_PARAMETERS_V5_0(Union):
+    pass
+
+union__PIXEL_CLOCK_PARAMETERS_V5_0._pack_ = 1 # source:False
+union__PIXEL_CLOCK_PARAMETERS_V5_0._fields_ = [
     ('ucReserved', ctypes.c_ubyte),
     ('ucFracFbDiv', ctypes.c_ubyte),
-     ]
+]
 
-struct__PIXEL_CLOCK_PARAMETERS_V5._pack_ = True # source:False
+struct__PIXEL_CLOCK_PARAMETERS_V5._pack_ = 1 # source:False
 struct__PIXEL_CLOCK_PARAMETERS_V5._fields_ = [
     ('ucCRTC', ctypes.c_ubyte),
-    ('_1', union__PIXEL_CLOCK_PARAMETERS_V5_0),
+    ('_PIXEL_CLOCK_PARAMETERS_V5_0', union__PIXEL_CLOCK_PARAMETERS_V5_0),
     ('usPixelClock', ctypes.c_uint16),
     ('usFbDiv', ctypes.c_uint16),
     ('ucPostDiv', ctypes.c_ubyte),
@@ -1095,29 +1335,31 @@ struct__PIXEL_CLOCK_PARAMETERS_V5._fields_ = [
     ('ulFbDivDecFrac', ctypes.c_uint32),
 ]
 
-class struct__CRTC_PIXEL_CLOCK_FREQ(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ulPixelClock', ctypes.c_uint32, 24),
-    ('ucCRTC', ctypes.c_uint32, 8),
-     ]
-
-class struct__PIXEL_CLOCK_PARAMETERS_V6(ctypes.Structure):
+class struct__CRTC_PIXEL_CLOCK_FREQ(Structure):
     pass
 
-class union__PIXEL_CLOCK_PARAMETERS_V6_0(ctypes.Union):
+struct__CRTC_PIXEL_CLOCK_FREQ._pack_ = 1 # source:False
+struct__CRTC_PIXEL_CLOCK_FREQ._fields_ = [
+    ('ulPixelClock', ctypes.c_uint32, 24),
+    ('ucCRTC', ctypes.c_uint32, 8),
+]
+
+class struct__PIXEL_CLOCK_PARAMETERS_V6(Structure):
+    pass
+
+class union__PIXEL_CLOCK_PARAMETERS_V6_0(Union):
     pass
 
 CRTC_PIXEL_CLOCK_FREQ = struct__CRTC_PIXEL_CLOCK_FREQ
-union__PIXEL_CLOCK_PARAMETERS_V6_0._pack_ = True # source:False
+union__PIXEL_CLOCK_PARAMETERS_V6_0._pack_ = 1 # source:False
 union__PIXEL_CLOCK_PARAMETERS_V6_0._fields_ = [
     ('ulCrtcPclkFreq', CRTC_PIXEL_CLOCK_FREQ),
     ('ulDispEngClkFreq', ctypes.c_uint32),
 ]
 
-struct__PIXEL_CLOCK_PARAMETERS_V6._pack_ = True # source:False
+struct__PIXEL_CLOCK_PARAMETERS_V6._pack_ = 1 # source:False
 struct__PIXEL_CLOCK_PARAMETERS_V6._fields_ = [
-    ('_0', union__PIXEL_CLOCK_PARAMETERS_V6_0),
+    ('_PIXEL_CLOCK_PARAMETERS_V6_0', union__PIXEL_CLOCK_PARAMETERS_V6_0),
     ('usFbDiv', ctypes.c_uint16),
     ('ucPostDiv', ctypes.c_ubyte),
     ('ucRefDiv', ctypes.c_ubyte),
@@ -1128,35 +1370,39 @@ struct__PIXEL_CLOCK_PARAMETERS_V6._fields_ = [
     ('ulFbDivDecFrac', ctypes.c_uint32),
 ]
 
-class struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V2(ctypes.Structure):
+class struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V2(Structure):
     pass
 
 PIXEL_CLOCK_PARAMETERS_V3 = struct__PIXEL_CLOCK_PARAMETERS_V3
-struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V2._pack_ = True # source:False
+struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V2._pack_ = 1 # source:False
 struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V2._fields_ = [
     ('sDispClkInput', PIXEL_CLOCK_PARAMETERS_V3),
 ]
 
-class struct__GET_DISP_PLL_STATUS_OUTPUT_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_DISP_PLL_STATUS_OUTPUT_PARAMETERS_V2(Structure):
+    pass
+
+struct__GET_DISP_PLL_STATUS_OUTPUT_PARAMETERS_V2._pack_ = 1 # source:False
+struct__GET_DISP_PLL_STATUS_OUTPUT_PARAMETERS_V2._fields_ = [
     ('ucStatus', ctypes.c_ubyte),
     ('ucRefDivSrc', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V3(ctypes.Structure):
+class struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V3(Structure):
     pass
 
 PIXEL_CLOCK_PARAMETERS_V5 = struct__PIXEL_CLOCK_PARAMETERS_V5
-struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V3._pack_ = True # source:False
+struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V3._pack_ = 1 # source:False
 struct__GET_DISP_PLL_STATUS_INPUT_PARAMETERS_V3._fields_ = [
     ('sDispClkInput', PIXEL_CLOCK_PARAMETERS_V5),
 ]
 
-class struct__PIXEL_CLOCK_PARAMETERS_V7(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PIXEL_CLOCK_PARAMETERS_V7(Structure):
+    pass
+
+struct__PIXEL_CLOCK_PARAMETERS_V7._pack_ = 1 # source:False
+struct__PIXEL_CLOCK_PARAMETERS_V7._fields_ = [
     ('ulPixelClock', ctypes.c_uint32),
     ('ucPpll', ctypes.c_ubyte),
     ('ucTransmitterID', ctypes.c_ubyte),
@@ -1166,168 +1412,192 @@ class struct__PIXEL_CLOCK_PARAMETERS_V7(ctypes.Structure):
     ('ucDeepColorRatio', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__SET_DCE_CLOCK_PARAMETERS_V1_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_DCE_CLOCK_PARAMETERS_V1_1(Structure):
+    pass
+
+struct__SET_DCE_CLOCK_PARAMETERS_V1_1._pack_ = 1 # source:False
+struct__SET_DCE_CLOCK_PARAMETERS_V1_1._fields_ = [
     ('ulDISPClkFreq', ctypes.c_uint32),
     ('ucFlag', ctypes.c_ubyte),
     ('ucCrtc', ctypes.c_ubyte),
     ('ucPpllId', ctypes.c_ubyte),
     ('ucDeepColorRatio', ctypes.c_ubyte),
-     ]
+]
 
-class struct__SET_DCE_CLOCK_PS_ALLOCATION_V1_1(ctypes.Structure):
+class struct__SET_DCE_CLOCK_PS_ALLOCATION_V1_1(Structure):
     pass
 
 SET_DCE_CLOCK_PARAMETERS_V1_1 = struct__SET_DCE_CLOCK_PARAMETERS_V1_1
-struct__SET_DCE_CLOCK_PS_ALLOCATION_V1_1._pack_ = True # source:False
+struct__SET_DCE_CLOCK_PS_ALLOCATION_V1_1._pack_ = 1 # source:False
 struct__SET_DCE_CLOCK_PS_ALLOCATION_V1_1._fields_ = [
     ('asParam', SET_DCE_CLOCK_PARAMETERS_V1_1),
     ('ulReserved', ctypes.c_uint32 * 2),
 ]
 
-class struct__SET_DCE_CLOCK_PARAMETERS_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_DCE_CLOCK_PARAMETERS_V2_1(Structure):
+    pass
+
+struct__SET_DCE_CLOCK_PARAMETERS_V2_1._pack_ = 1 # source:False
+struct__SET_DCE_CLOCK_PARAMETERS_V2_1._fields_ = [
     ('ulDCEClkFreq', ctypes.c_uint32),
     ('ucDCEClkType', ctypes.c_ubyte),
     ('ucDCEClkSrc', ctypes.c_ubyte),
     ('ucDCEClkFlag', ctypes.c_ubyte),
     ('ucCRTC', ctypes.c_ubyte),
-     ]
+]
 
-class struct__SET_DCE_CLOCK_PS_ALLOCATION_V2_1(ctypes.Structure):
+class struct__SET_DCE_CLOCK_PS_ALLOCATION_V2_1(Structure):
     pass
 
 SET_DCE_CLOCK_PARAMETERS_V2_1 = struct__SET_DCE_CLOCK_PARAMETERS_V2_1
-struct__SET_DCE_CLOCK_PS_ALLOCATION_V2_1._pack_ = True # source:False
+struct__SET_DCE_CLOCK_PS_ALLOCATION_V2_1._pack_ = 1 # source:False
 struct__SET_DCE_CLOCK_PS_ALLOCATION_V2_1._fields_ = [
     ('asParam', SET_DCE_CLOCK_PARAMETERS_V2_1),
     ('ulReserved', ctypes.c_uint32 * 2),
 ]
 
-class struct__ADJUST_DISPLAY_PLL_PARAMETERS(ctypes.Structure):
+class struct__ADJUST_DISPLAY_PLL_PARAMETERS(Structure):
     pass
 
-class union__ADJUST_DISPLAY_PLL_PARAMETERS_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__ADJUST_DISPLAY_PLL_PARAMETERS_0(Union):
+    pass
+
+union__ADJUST_DISPLAY_PLL_PARAMETERS_0._pack_ = 1 # source:False
+union__ADJUST_DISPLAY_PLL_PARAMETERS_0._fields_ = [
     ('ucDVOConfig', ctypes.c_ubyte),
     ('ucConfig', ctypes.c_ubyte),
-     ]
+]
 
-struct__ADJUST_DISPLAY_PLL_PARAMETERS._pack_ = True # source:False
+struct__ADJUST_DISPLAY_PLL_PARAMETERS._pack_ = 1 # source:False
 struct__ADJUST_DISPLAY_PLL_PARAMETERS._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucTransmitterID', ctypes.c_ubyte),
     ('ucEncodeMode', ctypes.c_ubyte),
-    ('_3', union__ADJUST_DISPLAY_PLL_PARAMETERS_0),
+    ('_ADJUST_DISPLAY_PLL_PARAMETERS_0', union__ADJUST_DISPLAY_PLL_PARAMETERS_0),
     ('ucReserved', ctypes.c_ubyte * 3),
 ]
 
-class struct__ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3(Structure):
+    pass
+
+struct__ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3._pack_ = 1 # source:False
+struct__ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucTransmitterID', ctypes.c_ubyte),
     ('ucEncodeMode', ctypes.c_ubyte),
     ('ucDispPllConfig', ctypes.c_ubyte),
     ('ucExtTransmitterID', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ADJUST_DISPLAY_PLL_OUTPUT_PARAMETERS_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ADJUST_DISPLAY_PLL_OUTPUT_PARAMETERS_V3(Structure):
+    pass
+
+struct__ADJUST_DISPLAY_PLL_OUTPUT_PARAMETERS_V3._pack_ = 1 # source:False
+struct__ADJUST_DISPLAY_PLL_OUTPUT_PARAMETERS_V3._fields_ = [
     ('ulDispPllFreq', ctypes.c_uint32),
     ('ucRefDiv', ctypes.c_ubyte),
     ('ucPostDiv', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3(ctypes.Structure):
+class struct__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3(Structure):
     pass
 
-class union__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0(ctypes.Union):
+class union__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0(Union):
     pass
 
 ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3 = struct__ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3
 ADJUST_DISPLAY_PLL_OUTPUT_PARAMETERS_V3 = struct__ADJUST_DISPLAY_PLL_OUTPUT_PARAMETERS_V3
-union__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0._pack_ = True # source:False
+union__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0._pack_ = 1 # source:False
 union__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0._fields_ = [
     ('sInput', ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3),
     ('sOutput', ADJUST_DISPLAY_PLL_OUTPUT_PARAMETERS_V3),
 ]
 
-struct__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3._pack_ = True # source:False
+struct__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3._pack_ = 1 # source:False
 struct__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3._fields_ = [
-    ('_0', union__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0),
+    ('_ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0', union__ADJUST_DISPLAY_PLL_PS_ALLOCATION_V3_0),
 ]
 
-class struct__ENABLE_YUV_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_YUV_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_YUV_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_YUV_PARAMETERS._fields_ = [
     ('ucEnable', ctypes.c_ubyte),
     ('ucCRTC', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__GET_MEMORY_CLOCK_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_MEMORY_CLOCK_PARAMETERS(Structure):
+    pass
+
+struct__GET_MEMORY_CLOCK_PARAMETERS._pack_ = 1 # source:False
+struct__GET_MEMORY_CLOCK_PARAMETERS._fields_ = [
     ('ulReturnMemoryClock', ctypes.c_uint32),
-     ]
+]
 
-class struct__GET_ENGINE_CLOCK_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_ENGINE_CLOCK_PARAMETERS(Structure):
+    pass
+
+struct__GET_ENGINE_CLOCK_PARAMETERS._pack_ = 1 # source:False
+struct__GET_ENGINE_CLOCK_PARAMETERS._fields_ = [
     ('ulReturnEngineClock', ctypes.c_uint32),
-     ]
+]
 
-class struct__READ_EDID_FROM_HW_I2C_DATA_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__READ_EDID_FROM_HW_I2C_DATA_PARAMETERS(Structure):
+    pass
+
+struct__READ_EDID_FROM_HW_I2C_DATA_PARAMETERS._pack_ = 1 # source:False
+struct__READ_EDID_FROM_HW_I2C_DATA_PARAMETERS._fields_ = [
     ('usPrescale', ctypes.c_uint16),
     ('usVRAMAddress', ctypes.c_uint16),
     ('usStatus', ctypes.c_uint16),
     ('ucSlaveAddr', ctypes.c_ubyte),
     ('ucLineNumber', ctypes.c_ubyte),
-     ]
+]
 
-class struct__WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS(Structure):
+    pass
+
+struct__WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS._pack_ = 1 # source:False
+struct__WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS._fields_ = [
     ('usPrescale', ctypes.c_uint16),
     ('usByteOffset', ctypes.c_uint16),
     ('ucData', ctypes.c_ubyte),
     ('ucStatus', ctypes.c_ubyte),
     ('ucSlaveAddr', ctypes.c_ubyte),
     ('ucLineNumber', ctypes.c_ubyte),
-     ]
+]
 
-class struct__SET_UP_HW_I2C_DATA_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_UP_HW_I2C_DATA_PARAMETERS(Structure):
+    pass
+
+struct__SET_UP_HW_I2C_DATA_PARAMETERS._pack_ = 1 # source:False
+struct__SET_UP_HW_I2C_DATA_PARAMETERS._fields_ = [
     ('usPrescale', ctypes.c_uint16),
     ('ucSlaveAddr', ctypes.c_ubyte),
     ('ucLineNumber', ctypes.c_ubyte),
-     ]
+]
 
-class struct__POWER_CONNECTOR_DETECTION_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__POWER_CONNECTOR_DETECTION_PARAMETERS(Structure):
+    pass
+
+struct__POWER_CONNECTOR_DETECTION_PARAMETERS._pack_ = 1 # source:False
+struct__POWER_CONNECTOR_DETECTION_PARAMETERS._fields_ = [
     ('ucPowerConnectorStatus', ctypes.c_ubyte),
     ('ucPwrBehaviorId', ctypes.c_ubyte),
     ('usPwrBudget', ctypes.c_uint16),
-     ]
+]
 
-class struct_POWER_CONNECTOR_DETECTION_PS_ALLOCATION(ctypes.Structure):
+class struct_POWER_CONNECTOR_DETECTION_PS_ALLOCATION(Structure):
     pass
 
 WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS = struct__WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS
-struct_POWER_CONNECTOR_DETECTION_PS_ALLOCATION._pack_ = True # source:False
+struct_POWER_CONNECTOR_DETECTION_PS_ALLOCATION._pack_ = 1 # source:False
 struct_POWER_CONNECTOR_DETECTION_PS_ALLOCATION._fields_ = [
     ('ucPowerConnectorStatus', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
@@ -1335,19 +1605,23 @@ struct_POWER_CONNECTOR_DETECTION_PS_ALLOCATION._fields_ = [
     ('sReserved', WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS),
 ]
 
-class struct__ENABLE_LVDS_SS_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_LVDS_SS_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_LVDS_SS_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_LVDS_SS_PARAMETERS._fields_ = [
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('ucSpreadSpectrumType', ctypes.c_ubyte),
     ('ucSpreadSpectrumStepSize_Delay', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__ENABLE_LVDS_SS_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_LVDS_SS_PARAMETERS_V2(Structure):
+    pass
+
+struct__ENABLE_LVDS_SS_PARAMETERS_V2._pack_ = 1 # source:False
+struct__ENABLE_LVDS_SS_PARAMETERS_V2._fields_ = [
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('ucSpreadSpectrumType', ctypes.c_ubyte),
     ('ucSpreadSpectrumStep', ctypes.c_ubyte),
@@ -1355,11 +1629,13 @@ class struct__ENABLE_LVDS_SS_PARAMETERS_V2(ctypes.Structure):
     ('ucSpreadSpectrumDelay', ctypes.c_ubyte),
     ('ucSpreadSpectrumRange', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL(Structure):
+    pass
+
+struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL._pack_ = 1 # source:False
+struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL._fields_ = [
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('ucSpreadSpectrumType', ctypes.c_ubyte),
     ('ucSpreadSpectrumStep', ctypes.c_ubyte),
@@ -1367,63 +1643,75 @@ class struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL(ctypes.Structure):
     ('ucSpreadSpectrumDelay', ctypes.c_ubyte),
     ('ucSpreadSpectrumRange', ctypes.c_ubyte),
     ('ucPpll', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V2(Structure):
+    pass
+
+struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V2._pack_ = 1 # source:False
+struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V2._fields_ = [
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('ucSpreadSpectrumType', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('usSpreadSpectrumAmount', ctypes.c_uint16),
     ('usSpreadSpectrumStep', ctypes.c_uint16),
-     ]
+]
 
-class struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V3(Structure):
+    pass
+
+struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V3._pack_ = 1 # source:False
+struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V3._fields_ = [
     ('usSpreadSpectrumAmountFrac', ctypes.c_uint16),
     ('ucSpreadSpectrumType', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('usSpreadSpectrumAmount', ctypes.c_uint16),
     ('usSpreadSpectrumStep', ctypes.c_uint16),
-     ]
+]
 
-class struct__SET_PIXEL_CLOCK_PS_ALLOCATION(ctypes.Structure):
+class struct__SET_PIXEL_CLOCK_PS_ALLOCATION(Structure):
     pass
 
 ENABLE_SPREAD_SPECTRUM_ON_PPLL = struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL
 PIXEL_CLOCK_PARAMETERS = struct__PIXEL_CLOCK_PARAMETERS
-struct__SET_PIXEL_CLOCK_PS_ALLOCATION._pack_ = True # source:False
+struct__SET_PIXEL_CLOCK_PS_ALLOCATION._pack_ = 1 # source:False
 struct__SET_PIXEL_CLOCK_PS_ALLOCATION._fields_ = [
     ('sPCLKInput', PIXEL_CLOCK_PARAMETERS),
     ('sReserved', ENABLE_SPREAD_SPECTRUM_ON_PPLL),
 ]
 
-class struct__MEMORY_TRAINING_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ulTargetMemoryClock', ctypes.c_uint32),
-     ]
+class struct__MEMORY_TRAINING_PARAMETERS(Structure):
+    pass
 
-class struct__MEMORY_TRAINING_PARAMETERS_V1_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+struct__MEMORY_TRAINING_PARAMETERS._pack_ = 1 # source:False
+struct__MEMORY_TRAINING_PARAMETERS._fields_ = [
+    ('ulTargetMemoryClock', ctypes.c_uint32),
+]
+
+class struct__MEMORY_TRAINING_PARAMETERS_V1_2(Structure):
+    pass
+
+struct__MEMORY_TRAINING_PARAMETERS_V1_2._pack_ = 1 # source:False
+struct__MEMORY_TRAINING_PARAMETERS_V1_2._fields_ = [
     ('usMemTrainingMode', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
-     ]
+]
 
-class struct__LVDS_ENCODER_CONTROL_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__LVDS_ENCODER_CONTROL_PARAMETERS(Structure):
+    pass
+
+struct__LVDS_ENCODER_CONTROL_PARAMETERS._pack_ = 1 # source:False
+struct__LVDS_ENCODER_CONTROL_PARAMETERS._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucMisc', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
-     ]
+]
 
-class struct__LVDS_ENCODER_CONTROL_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__LVDS_ENCODER_CONTROL_PARAMETERS_V2(Structure):
+    pass
+
+struct__LVDS_ENCODER_CONTROL_PARAMETERS_V2._pack_ = 1 # source:False
+struct__LVDS_ENCODER_CONTROL_PARAMETERS_V2._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucMisc', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
@@ -1431,193 +1719,227 @@ class struct__LVDS_ENCODER_CONTROL_PARAMETERS_V2(ctypes.Structure):
     ('ucSpatial', ctypes.c_ubyte),
     ('ucTemporal', ctypes.c_ubyte),
     ('ucFRC', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ENABLE_EXTERNAL_TMDS_ENCODER_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_EXTERNAL_TMDS_ENCODER_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_EXTERNAL_TMDS_ENCODER_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_EXTERNAL_TMDS_ENCODER_PARAMETERS._fields_ = [
     ('ucEnable', ctypes.c_ubyte),
     ('ucMisc', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION(ctypes.Structure):
+class struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION(Structure):
     pass
 
 ENABLE_EXTERNAL_TMDS_ENCODER_PARAMETERS = struct__ENABLE_EXTERNAL_TMDS_ENCODER_PARAMETERS
-struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION._pack_ = True # source:False
+struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION._pack_ = 1 # source:False
 struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION._fields_ = [
     ('sXTmdsEncoder', ENABLE_EXTERNAL_TMDS_ENCODER_PARAMETERS),
     ('sReserved', WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS),
 ]
 
-class struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION_V2(ctypes.Structure):
+class struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION_V2(Structure):
     pass
 
 LVDS_ENCODER_CONTROL_PARAMETERS_V2 = struct__LVDS_ENCODER_CONTROL_PARAMETERS_V2
-struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION_V2._pack_ = True # source:False
+struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION_V2._pack_ = 1 # source:False
 struct__ENABLE_EXTERNAL_TMDS_ENCODER_PS_ALLOCATION_V2._fields_ = [
     ('sXTmdsEncoder', LVDS_ENCODER_CONTROL_PARAMETERS_V2),
     ('sReserved', WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS),
 ]
 
-class struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION(ctypes.Structure):
+class struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION(Structure):
     pass
 
 DIG_ENCODER_CONTROL_PARAMETERS = struct__DIG_ENCODER_CONTROL_PARAMETERS
-struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION._pack_ = True # source:False
+struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION._pack_ = 1 # source:False
 struct__EXTERNAL_ENCODER_CONTROL_PS_ALLOCATION._fields_ = [
     ('sDigEncoder', DIG_ENCODER_CONTROL_PARAMETERS),
     ('sReserved', WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS),
 ]
 
-class struct__DVO_ENCODER_CONTROL_PARAMETERS_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DVO_ENCODER_CONTROL_PARAMETERS_V3(Structure):
+    pass
+
+struct__DVO_ENCODER_CONTROL_PARAMETERS_V3._pack_ = 1 # source:False
+struct__DVO_ENCODER_CONTROL_PARAMETERS_V3._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucDVOConfig', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucReseved', ctypes.c_ubyte * 4),
-     ]
+]
 
-class struct__DVO_ENCODER_CONTROL_PARAMETERS_V1_4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DVO_ENCODER_CONTROL_PARAMETERS_V1_4(Structure):
+    pass
+
+struct__DVO_ENCODER_CONTROL_PARAMETERS_V1_4._pack_ = 1 # source:False
+struct__DVO_ENCODER_CONTROL_PARAMETERS_V1_4._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucDVOConfig', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucBitPerColor', ctypes.c_ubyte),
     ('ucReseved', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__SET_VOLTAGE_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_VOLTAGE_PARAMETERS(Structure):
+    pass
+
+struct__SET_VOLTAGE_PARAMETERS._pack_ = 1 # source:False
+struct__SET_VOLTAGE_PARAMETERS._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucVoltageMode', ctypes.c_ubyte),
     ('ucVoltageIndex', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__SET_VOLTAGE_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_VOLTAGE_PARAMETERS_V2(Structure):
+    pass
+
+struct__SET_VOLTAGE_PARAMETERS_V2._pack_ = 1 # source:False
+struct__SET_VOLTAGE_PARAMETERS_V2._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucVoltageMode', ctypes.c_ubyte),
     ('usVoltageLevel', ctypes.c_uint16),
-     ]
+]
 
-class struct__SET_VOLTAGE_PARAMETERS_V1_3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_VOLTAGE_PARAMETERS_V1_3(Structure):
+    pass
+
+struct__SET_VOLTAGE_PARAMETERS_V1_3._pack_ = 1 # source:False
+struct__SET_VOLTAGE_PARAMETERS_V1_3._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucVoltageMode', ctypes.c_ubyte),
     ('usVoltageLevel', ctypes.c_uint16),
-     ]
+]
 
-class struct__SET_VOLTAGE_PS_ALLOCATION(ctypes.Structure):
+class struct__SET_VOLTAGE_PS_ALLOCATION(Structure):
     pass
 
 SET_VOLTAGE_PARAMETERS = struct__SET_VOLTAGE_PARAMETERS
-struct__SET_VOLTAGE_PS_ALLOCATION._pack_ = True # source:False
+struct__SET_VOLTAGE_PS_ALLOCATION._pack_ = 1 # source:False
 struct__SET_VOLTAGE_PS_ALLOCATION._fields_ = [
     ('sASICSetVoltage', SET_VOLTAGE_PARAMETERS),
     ('sReserved', WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS),
 ]
 
-class struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_1(Structure):
+    pass
+
+struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_1._pack_ = 1 # source:False
+struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_1._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucVoltageMode', ctypes.c_ubyte),
     ('usVoltageLevel', ctypes.c_uint16),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__GET_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1(Structure):
+    pass
+
+struct__GET_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1._pack_ = 1 # source:False
+struct__GET_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1._fields_ = [
     ('ulVotlageGpioState', ctypes.c_uint32),
     ('ulVoltageGPioMask', ctypes.c_uint32),
-     ]
+]
 
-class struct__GET_LEAKAGE_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_LEAKAGE_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1(Structure):
+    pass
+
+struct__GET_LEAKAGE_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1._pack_ = 1 # source:False
+struct__GET_LEAKAGE_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_1._fields_ = [
     ('usVoltageLevel', ctypes.c_uint16),
     ('usVoltageId', ctypes.c_uint16),
     ('ulReseved', ctypes.c_uint32),
-     ]
+]
 
-class struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_2(Structure):
+    pass
+
+struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_2._pack_ = 1 # source:False
+struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_2._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucVoltageMode', ctypes.c_ubyte),
     ('usVoltageLevel', ctypes.c_uint16),
     ('ulSCLKFreq', ctypes.c_uint32),
-     ]
+]
 
-class struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_2(Structure):
+    pass
+
+struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_2._pack_ = 1 # source:False
+struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_2._fields_ = [
     ('usVoltageLevel', ctypes.c_uint16),
     ('usVoltageId', ctypes.c_uint16),
     ('usTDP_Current', ctypes.c_uint16),
     ('usTDP_Power', ctypes.c_uint16),
-     ]
+]
 
-class struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_3(Structure):
+    pass
+
+struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_3._pack_ = 1 # source:False
+struct__GET_VOLTAGE_INFO_INPUT_PARAMETER_V1_3._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucVoltageMode', ctypes.c_ubyte),
     ('usVoltageLevel', ctypes.c_uint16),
     ('ulSCLKFreq', ctypes.c_uint32),
     ('ulReserved', ctypes.c_uint32 * 3),
-     ]
+]
 
-class struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_3(Structure):
+    pass
+
+struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_3._pack_ = 1 # source:False
+struct__GET_EVV_VOLTAGE_INFO_OUTPUT_PARAMETER_V1_3._fields_ = [
     ('ulVoltageLevel', ctypes.c_uint32),
     ('ulReserved', ctypes.c_uint32 * 4),
-     ]
+]
 
-class struct__GET_SMU_CLOCK_INFO_INPUT_PARAMETER_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_SMU_CLOCK_INFO_INPUT_PARAMETER_V2_1(Structure):
+    pass
+
+struct__GET_SMU_CLOCK_INFO_INPUT_PARAMETER_V2_1._pack_ = 1 # source:False
+struct__GET_SMU_CLOCK_INFO_INPUT_PARAMETER_V2_1._fields_ = [
     ('ulDfsPllOutputFreq', ctypes.c_uint32, 24),
     ('ucDfsDivider', ctypes.c_uint32, 8),
-     ]
+]
 
-class struct__GET_SMU_CLOCK_INFO_OUTPUT_PARAMETER_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GET_SMU_CLOCK_INFO_OUTPUT_PARAMETER_V2_1(Structure):
+    pass
+
+struct__GET_SMU_CLOCK_INFO_OUTPUT_PARAMETER_V2_1._pack_ = 1 # source:False
+struct__GET_SMU_CLOCK_INFO_OUTPUT_PARAMETER_V2_1._fields_ = [
     ('ulDfsOutputFreq', ctypes.c_uint32),
-     ]
+]
 
-class struct__TV_ENCODER_CONTROL_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__TV_ENCODER_CONTROL_PARAMETERS(Structure):
+    pass
+
+struct__TV_ENCODER_CONTROL_PARAMETERS._pack_ = 1 # source:False
+struct__TV_ENCODER_CONTROL_PARAMETERS._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('ucTvStandard', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
-     ]
+]
 
-class struct__TV_ENCODER_CONTROL_PS_ALLOCATION(ctypes.Structure):
+class struct__TV_ENCODER_CONTROL_PS_ALLOCATION(Structure):
     pass
 
 TV_ENCODER_CONTROL_PARAMETERS = struct__TV_ENCODER_CONTROL_PARAMETERS
-struct__TV_ENCODER_CONTROL_PS_ALLOCATION._pack_ = True # source:False
+struct__TV_ENCODER_CONTROL_PS_ALLOCATION._pack_ = 1 # source:False
 struct__TV_ENCODER_CONTROL_PS_ALLOCATION._fields_ = [
     ('sTVEncoder', TV_ENCODER_CONTROL_PARAMETERS),
     ('sReserved', WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS),
 ]
 
-class struct__ATOM_MASTER_LIST_OF_DATA_TABLES(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MASTER_LIST_OF_DATA_TABLES(Structure):
+    pass
+
+struct__ATOM_MASTER_LIST_OF_DATA_TABLES._pack_ = 1 # source:False
+struct__ATOM_MASTER_LIST_OF_DATA_TABLES._fields_ = [
     ('UtilityPipeLine', ctypes.c_uint16),
     ('MultimediaCapabilityInfo', ctypes.c_uint16),
     ('MultimediaConfigInfo', ctypes.c_uint16),
@@ -1653,32 +1975,36 @@ class struct__ATOM_MASTER_LIST_OF_DATA_TABLES(ctypes.Structure):
     ('VoltageObjectInfo', ctypes.c_uint16),
     ('PowerSourceInfo', ctypes.c_uint16),
     ('ServiceInfo', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_MASTER_DATA_TABLE(ctypes.Structure):
+class struct__ATOM_MASTER_DATA_TABLE(Structure):
     pass
 
 ATOM_MASTER_LIST_OF_DATA_TABLES = struct__ATOM_MASTER_LIST_OF_DATA_TABLES
-struct__ATOM_MASTER_DATA_TABLE._pack_ = True # source:False
+struct__ATOM_MASTER_DATA_TABLE._pack_ = 1 # source:False
 struct__ATOM_MASTER_DATA_TABLE._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ListOfDataTables', ATOM_MASTER_LIST_OF_DATA_TABLES),
 ]
 
-class struct__ATOM_MULTIMEDIA_CAPABILITY_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MULTIMEDIA_CAPABILITY_INFO(Structure):
+    pass
+
+struct__ATOM_MULTIMEDIA_CAPABILITY_INFO._pack_ = 1 # source:False
+struct__ATOM_MULTIMEDIA_CAPABILITY_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulSignature', ctypes.c_uint32),
     ('ucI2C_Type', ctypes.c_ubyte),
     ('ucTV_OutInfo', ctypes.c_ubyte),
     ('ucVideoPortInfo', ctypes.c_ubyte),
     ('ucHostPortInfo', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_MULTIMEDIA_CONFIG_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MULTIMEDIA_CONFIG_INFO(Structure):
+    pass
+
+struct__ATOM_MULTIMEDIA_CONFIG_INFO._pack_ = 1 # source:False
+struct__ATOM_MULTIMEDIA_CONFIG_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulSignature', ctypes.c_uint32),
     ('ucTunerInfo', ctypes.c_ubyte),
@@ -1693,11 +2019,13 @@ class struct__ATOM_MULTIMEDIA_CONFIG_INFO(ctypes.Structure):
     ('ucVideoInput2Info', ctypes.c_ubyte),
     ('ucVideoInput3Info', ctypes.c_ubyte),
     ('ucVideoInput4Info', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_FIRMWARE_CAPABILITY(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FIRMWARE_CAPABILITY(Structure):
+    pass
+
+struct__ATOM_FIRMWARE_CAPABILITY._pack_ = 1 # source:False
+struct__ATOM_FIRMWARE_CAPABILITY._fields_ = [
     ('FirmwarePosted', ctypes.c_uint16, 1),
     ('DualCRTC_Support', ctypes.c_uint16, 1),
     ('ExtendedDesktopSupport', ctypes.c_uint16, 1),
@@ -1711,23 +2039,23 @@ class struct__ATOM_FIRMWARE_CAPABILITY(ctypes.Structure):
     ('PostWithoutModeSet', ctypes.c_uint16, 1),
     ('SCL2Redefined', ctypes.c_uint16, 1),
     ('Reserved', ctypes.c_uint16, 1),
-     ]
+]
 
-class struct__ATOM_FIRMWARE_INFO(ctypes.Structure):
+class struct__ATOM_FIRMWARE_INFO(Structure):
     pass
 
-class union__ATOM_FIRMWARE_CAPABILITY_ACCESS(ctypes.Union):
+class union__ATOM_FIRMWARE_CAPABILITY_ACCESS(Union):
     pass
 
 ATOM_FIRMWARE_CAPABILITY = struct__ATOM_FIRMWARE_CAPABILITY
-union__ATOM_FIRMWARE_CAPABILITY_ACCESS._pack_ = True # source:False
+union__ATOM_FIRMWARE_CAPABILITY_ACCESS._pack_ = 1 # source:False
 union__ATOM_FIRMWARE_CAPABILITY_ACCESS._fields_ = [
     ('sbfAccess', ATOM_FIRMWARE_CAPABILITY),
     ('susAccess', ctypes.c_uint16),
 ]
 
 ATOM_FIRMWARE_CAPABILITY_ACCESS = union__ATOM_FIRMWARE_CAPABILITY_ACCESS
-struct__ATOM_FIRMWARE_INFO._pack_ = True # source:False
+struct__ATOM_FIRMWARE_INFO._pack_ = 1 # source:False
 struct__ATOM_FIRMWARE_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulFirmwareRevision', ctypes.c_uint32),
@@ -1761,9 +2089,11 @@ struct__ATOM_FIRMWARE_INFO._fields_ = [
     ('ucMemoryModule_ID', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_FIRMWARE_INFO_V1_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FIRMWARE_INFO_V1_2(Structure):
+    pass
+
+struct__ATOM_FIRMWARE_INFO_V1_2._pack_ = 1 # source:False
+struct__ATOM_FIRMWARE_INFO_V1_2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulFirmwareRevision', ctypes.c_uint32),
     ('ulDefaultEngineClock', ctypes.c_uint32),
@@ -1796,11 +2126,13 @@ class struct__ATOM_FIRMWARE_INFO_V1_2(ctypes.Structure):
     ('ucPM_RTS_StreamSize', ctypes.c_ubyte),
     ('ucDesign_ID', ctypes.c_ubyte),
     ('ucMemoryModule_ID', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_FIRMWARE_INFO_V1_3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FIRMWARE_INFO_V1_3(Structure):
+    pass
+
+struct__ATOM_FIRMWARE_INFO_V1_3._pack_ = 1 # source:False
+struct__ATOM_FIRMWARE_INFO_V1_3._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulFirmwareRevision', ctypes.c_uint32),
     ('ulDefaultEngineClock', ctypes.c_uint32),
@@ -1834,11 +2166,13 @@ class struct__ATOM_FIRMWARE_INFO_V1_3(ctypes.Structure):
     ('ucPM_RTS_StreamSize', ctypes.c_ubyte),
     ('ucDesign_ID', ctypes.c_ubyte),
     ('ucMemoryModule_ID', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_FIRMWARE_INFO_V1_4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FIRMWARE_INFO_V1_4(Structure):
+    pass
+
+struct__ATOM_FIRMWARE_INFO_V1_4._pack_ = 1 # source:False
+struct__ATOM_FIRMWARE_INFO_V1_4._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulFirmwareRevision', ctypes.c_uint32),
     ('ulDefaultEngineClock', ctypes.c_uint32),
@@ -1873,11 +2207,13 @@ class struct__ATOM_FIRMWARE_INFO_V1_4(ctypes.Structure):
     ('ucPM_RTS_StreamSize', ctypes.c_ubyte),
     ('ucDesign_ID', ctypes.c_ubyte),
     ('ucMemoryModule_ID', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_FIRMWARE_INFO_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FIRMWARE_INFO_V2_1(Structure):
+    pass
+
+struct__ATOM_FIRMWARE_INFO_V2_1._pack_ = 1 # source:False
+struct__ATOM_FIRMWARE_INFO_V2_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulFirmwareRevision', ctypes.c_uint32),
     ('ulDefaultEngineClock', ctypes.c_uint32),
@@ -1912,21 +2248,23 @@ class struct__ATOM_FIRMWARE_INFO_V2_1(ctypes.Structure):
     ('usUniphyDPModeExtClkFreq', ctypes.c_uint16),
     ('ucMemoryModule_ID', ctypes.c_ubyte),
     ('ucReserved4', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__PRODUCT_BRANDING(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PRODUCT_BRANDING(Structure):
+    pass
+
+struct__PRODUCT_BRANDING._pack_ = 1 # source:False
+struct__PRODUCT_BRANDING._fields_ = [
     ('ucEMBEDDED_CAP', ctypes.c_ubyte, 2),
     ('ucReserved', ctypes.c_ubyte, 2),
     ('ucBRANDING_ID', ctypes.c_ubyte, 4),
-     ]
+]
 
-class struct__ATOM_FIRMWARE_INFO_V2_2(ctypes.Structure):
+class struct__ATOM_FIRMWARE_INFO_V2_2(Structure):
     pass
 
 PRODUCT_BRANDING = struct__PRODUCT_BRANDING
-struct__ATOM_FIRMWARE_INFO_V2_2._pack_ = True # source:False
+struct__ATOM_FIRMWARE_INFO_V2_2._pack_ = 1 # source:False
 struct__ATOM_FIRMWARE_INFO_V2_2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulFirmwareRevision', ctypes.c_uint32),
@@ -1967,9 +2305,11 @@ struct__ATOM_FIRMWARE_INFO_V2_2._fields_ = [
     ('ulReserved10', ctypes.c_uint32 * 3),
 ]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_INTEGRATED_SYSTEM_INFO(Structure):
+    pass
+
+struct__ATOM_INTEGRATED_SYSTEM_INFO._pack_ = 1 # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
     ('ulBootUpMemoryClock', ctypes.c_uint32),
@@ -1995,11 +2335,13 @@ class struct__ATOM_INTEGRATED_SYSTEM_INFO(ctypes.Structure):
     ('ucHTLinkWidth', ctypes.c_ubyte),
     ('ucMaxNBVoltageHigh', ctypes.c_ubyte),
     ('ucMinNBVoltageHigh', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_INTEGRATED_SYSTEM_INFO_V2(Structure):
+    pass
+
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V2._pack_ = 1 # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
     ('ulReserved1', ctypes.c_uint32 * 2),
@@ -2038,11 +2380,13 @@ class struct__ATOM_INTEGRATED_SYSTEM_INFO_V2(ctypes.Structure):
     ('usFirmwareVersion', ctypes.c_uint16),
     ('usFullT0Time', ctypes.c_uint16),
     ('ulReserved3', ctypes.c_uint32 * 96),
-     ]
+]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO_V5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_INTEGRATED_SYSTEM_INFO_V5(Structure):
+    pass
+
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V5._pack_ = 1 # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V5._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
     ('ulDentistVCOFreq', ctypes.c_uint32),
@@ -2073,11 +2417,13 @@ class struct__ATOM_INTEGRATED_SYSTEM_INFO_V5(ctypes.Structure):
     ('ulCSR_M3_ARB_CNTL_UVD', ctypes.c_uint32 * 10),
     ('ulCSR_M3_ARB_CNTL_FS3D', ctypes.c_uint32 * 10),
     ('ulReserved6', ctypes.c_uint32 * 61),
-     ]
+]
 
-class struct__ATOM_GPU_VIRTUALIZATION_INFO_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_GPU_VIRTUALIZATION_INFO_V2_1(Structure):
+    pass
+
+struct__ATOM_GPU_VIRTUALIZATION_INFO_V2_1._pack_ = 1 # source:False
+struct__ATOM_GPU_VIRTUALIZATION_INFO_V2_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulMCUcodeRomStartAddr', ctypes.c_uint32),
     ('ulMCUcodeLength', ctypes.c_uint32),
@@ -2090,31 +2436,33 @@ class struct__ATOM_GPU_VIRTUALIZATION_INFO_V2_1(ctypes.Structure):
     ('ulSMCPatchTableStartAddr', ctypes.c_uint32),
     ('ulSmcPatchTableLength', ctypes.c_uint32),
     ('ulSystemFlag', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_I2C_ID_CONFIG(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_I2C_ID_CONFIG(Structure):
+    pass
+
+struct__ATOM_I2C_ID_CONFIG._pack_ = 1 # source:False
+struct__ATOM_I2C_ID_CONFIG._fields_ = [
     ('bfI2C_LineMux', ctypes.c_ubyte, 4),
     ('bfHW_EngineID', ctypes.c_ubyte, 3),
     ('bfHW_Capable', ctypes.c_ubyte, 1),
-     ]
+]
 
-class struct__ATOM_GPIO_I2C_ASSIGMENT(ctypes.Structure):
+class struct__ATOM_GPIO_I2C_ASSIGMENT(Structure):
     pass
 
-class union__ATOM_I2C_ID_CONFIG_ACCESS(ctypes.Union):
+class union__ATOM_I2C_ID_CONFIG_ACCESS(Union):
     pass
 
 ATOM_I2C_ID_CONFIG = struct__ATOM_I2C_ID_CONFIG
-union__ATOM_I2C_ID_CONFIG_ACCESS._pack_ = True # source:False
+union__ATOM_I2C_ID_CONFIG_ACCESS._pack_ = 1 # source:False
 union__ATOM_I2C_ID_CONFIG_ACCESS._fields_ = [
     ('sbfAccess', ATOM_I2C_ID_CONFIG),
     ('ucAccess', ctypes.c_ubyte),
 ]
 
 ATOM_I2C_ID_CONFIG_ACCESS = union__ATOM_I2C_ID_CONFIG_ACCESS
-struct__ATOM_GPIO_I2C_ASSIGMENT._pack_ = True # source:False
+struct__ATOM_GPIO_I2C_ASSIGMENT._pack_ = 1 # source:False
 struct__ATOM_GPIO_I2C_ASSIGMENT._fields_ = [
     ('usClkMaskRegisterIndex', ctypes.c_uint16),
     ('usClkEnRegisterIndex', ctypes.c_uint16),
@@ -2137,16 +2485,18 @@ struct__ATOM_GPIO_I2C_ASSIGMENT._fields_ = [
     ('ucReserved2', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_GPIO_I2C_INFO(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_GPIO_I2C_INFO(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asGPIO_Info', struct__ATOM_GPIO_I2C_ASSIGMENT * 16),
      ]
 
-class struct__ATOM_MODE_MISC_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MODE_MISC_INFO(Structure):
+    pass
+
+struct__ATOM_MODE_MISC_INFO._pack_ = 1 # source:False
+struct__ATOM_MODE_MISC_INFO._fields_ = [
     ('HorizontalCutOff', ctypes.c_uint16, 1),
     ('HSyncPolarity', ctypes.c_uint16, 1),
     ('VSyncPolarity', ctypes.c_uint16, 1),
@@ -2158,23 +2508,23 @@ class struct__ATOM_MODE_MISC_INFO(ctypes.Structure):
     ('DoubleClock', ctypes.c_uint16, 1),
     ('RGB888', ctypes.c_uint16, 1),
     ('Reserved', ctypes.c_uint16, 6),
-     ]
+]
 
-class struct__SET_CRTC_USING_DTD_TIMING_PARAMETERS(ctypes.Structure):
+class struct__SET_CRTC_USING_DTD_TIMING_PARAMETERS(Structure):
     pass
 
-class union__ATOM_MODE_MISC_INFO_ACCESS(ctypes.Union):
+class union__ATOM_MODE_MISC_INFO_ACCESS(Union):
     pass
 
 ATOM_MODE_MISC_INFO = struct__ATOM_MODE_MISC_INFO
-union__ATOM_MODE_MISC_INFO_ACCESS._pack_ = True # source:False
+union__ATOM_MODE_MISC_INFO_ACCESS._pack_ = 1 # source:False
 union__ATOM_MODE_MISC_INFO_ACCESS._fields_ = [
     ('sbfAccess', ATOM_MODE_MISC_INFO),
     ('usAccess', ctypes.c_uint16),
 ]
 
 ATOM_MODE_MISC_INFO_ACCESS = union__ATOM_MODE_MISC_INFO_ACCESS
-struct__SET_CRTC_USING_DTD_TIMING_PARAMETERS._pack_ = True # source:False
+struct__SET_CRTC_USING_DTD_TIMING_PARAMETERS._pack_ = 1 # source:False
 struct__SET_CRTC_USING_DTD_TIMING_PARAMETERS._fields_ = [
     ('usH_Size', ctypes.c_uint16),
     ('usH_Blanking_Time', ctypes.c_uint16),
@@ -2191,9 +2541,11 @@ struct__SET_CRTC_USING_DTD_TIMING_PARAMETERS._fields_ = [
     ('ucPadding', ctypes.c_ubyte * 3),
 ]
 
-class struct__SET_CRTC_TIMING_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_CRTC_TIMING_PARAMETERS(Structure):
+    pass
+
+struct__SET_CRTC_TIMING_PARAMETERS._pack_ = 1 # source:False
+struct__SET_CRTC_TIMING_PARAMETERS._fields_ = [
     ('usH_Total', ctypes.c_uint16),
     ('usH_Disp', ctypes.c_uint16),
     ('usH_SyncStart', ctypes.c_uint16),
@@ -2209,11 +2561,13 @@ class struct__SET_CRTC_TIMING_PARAMETERS(ctypes.Structure):
     ('ucOverscanBottom', ctypes.c_ubyte),
     ('ucOverscanTop', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_MODE_TIMING(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MODE_TIMING(Structure):
+    pass
+
+struct__ATOM_MODE_TIMING._pack_ = 1 # source:False
+struct__ATOM_MODE_TIMING._fields_ = [
     ('usCRTC_H_Total', ctypes.c_uint16),
     ('usCRTC_H_Disp', ctypes.c_uint16),
     ('usCRTC_H_SyncStart', ctypes.c_uint16),
@@ -2231,11 +2585,13 @@ class struct__ATOM_MODE_TIMING(ctypes.Structure):
     ('usReserve', ctypes.c_uint16),
     ('ucInternalModeNumber', ctypes.c_ubyte),
     ('ucRefreshRate', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_DTD_FORMAT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DTD_FORMAT(Structure):
+    pass
+
+struct__ATOM_DTD_FORMAT._pack_ = 1 # source:False
+struct__ATOM_DTD_FORMAT._fields_ = [
     ('usPixClk', ctypes.c_uint16),
     ('usHActive', ctypes.c_uint16),
     ('usHBlanking_Time', ctypes.c_uint16),
@@ -2252,13 +2608,13 @@ class struct__ATOM_DTD_FORMAT(ctypes.Structure):
     ('susModeMiscInfo', ATOM_MODE_MISC_INFO_ACCESS),
     ('ucInternalModeNumber', ctypes.c_ubyte),
     ('ucRefreshRate', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_LVDS_INFO(ctypes.Structure):
+class struct__ATOM_LVDS_INFO(Structure):
     pass
 
 ATOM_DTD_FORMAT = struct__ATOM_DTD_FORMAT
-struct__ATOM_LVDS_INFO._pack_ = True # source:False
+struct__ATOM_LVDS_INFO._pack_ = 1 # source:False
 struct__ATOM_LVDS_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('sLCDTiming', ATOM_DTD_FORMAT),
@@ -2273,9 +2629,11 @@ struct__ATOM_LVDS_INFO._fields_ = [
     ('ucSS_Id', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_LVDS_INFO_V12(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_LVDS_INFO_V12(Structure):
+    pass
+
+struct__ATOM_LVDS_INFO_V12._pack_ = 1 # source:False
+struct__ATOM_LVDS_INFO_V12._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('sLCDTiming', ATOM_DTD_FORMAT),
     ('usExtInfoTableOffset', ctypes.c_uint16),
@@ -2292,34 +2650,36 @@ class struct__ATOM_LVDS_INFO_V12(ctypes.Structure):
     ('ucLCDPanel_SpecialHandlingCap', ctypes.c_ubyte),
     ('ucPanelInfoSize', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_LCD_REFRESH_RATE_SUPPORT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ucSupportedRefreshRate', ctypes.c_ubyte),
-    ('ucMinRefreshRateForDRR', ctypes.c_ubyte),
-     ]
-
-class struct__ATOM_LCD_INFO_V13(ctypes.Structure):
+class struct__ATOM_LCD_REFRESH_RATE_SUPPORT(Structure):
     pass
 
-class union__ATOM_LCD_INFO_V13_0(ctypes.Union):
+struct__ATOM_LCD_REFRESH_RATE_SUPPORT._pack_ = 1 # source:False
+struct__ATOM_LCD_REFRESH_RATE_SUPPORT._fields_ = [
+    ('ucSupportedRefreshRate', ctypes.c_ubyte),
+    ('ucMinRefreshRateForDRR', ctypes.c_ubyte),
+]
+
+class struct__ATOM_LCD_INFO_V13(Structure):
+    pass
+
+class union__ATOM_LCD_INFO_V13_0(Union):
     pass
 
 ATOM_LCD_REFRESH_RATE_SUPPORT = struct__ATOM_LCD_REFRESH_RATE_SUPPORT
-union__ATOM_LCD_INFO_V13_0._pack_ = True # source:False
+union__ATOM_LCD_INFO_V13_0._pack_ = 1 # source:False
 union__ATOM_LCD_INFO_V13_0._fields_ = [
     ('usSupportedRefreshRate', ctypes.c_uint16),
     ('sRefreshRateSupport', ATOM_LCD_REFRESH_RATE_SUPPORT),
 ]
 
-struct__ATOM_LCD_INFO_V13._pack_ = True # source:False
+struct__ATOM_LCD_INFO_V13._pack_ = 1 # source:False
 struct__ATOM_LCD_INFO_V13._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('sLCDTiming', ATOM_DTD_FORMAT),
     ('usExtInfoTableOffset', ctypes.c_uint16),
-    ('_3', union__ATOM_LCD_INFO_V13_0),
+    ('_ATOM_LCD_INFO_V13_0', union__ATOM_LCD_INFO_V13_0),
     ('ulReserved0', ctypes.c_uint32),
     ('ucLCD_Misc', ctypes.c_ubyte),
     ('ucPanelDefaultRefreshRate', ctypes.c_ubyte),
@@ -2348,47 +2708,59 @@ struct__ATOM_LCD_INFO_V13._fields_ = [
     ('ulReserved', ctypes.c_uint32 * 2),
 ]
 
-class struct__ATOM_PATCH_RECORD_MODE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_PATCH_RECORD_MODE(Structure):
+    pass
+
+struct__ATOM_PATCH_RECORD_MODE._pack_ = 1 # source:False
+struct__ATOM_PATCH_RECORD_MODE._fields_ = [
     ('ucRecordType', ctypes.c_ubyte),
     ('usHDisp', ctypes.c_uint16),
     ('usVDisp', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_LCD_RTS_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_LCD_RTS_RECORD(Structure):
+    pass
+
+struct__ATOM_LCD_RTS_RECORD._pack_ = 1 # source:False
+struct__ATOM_LCD_RTS_RECORD._fields_ = [
     ('ucRecordType', ctypes.c_ubyte),
     ('ucRTSValue', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_LCD_MODE_CONTROL_CAP(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_LCD_MODE_CONTROL_CAP(Structure):
+    pass
+
+struct__ATOM_LCD_MODE_CONTROL_CAP._pack_ = 1 # source:False
+struct__ATOM_LCD_MODE_CONTROL_CAP._fields_ = [
     ('ucRecordType', ctypes.c_ubyte),
     ('usLCDCap', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_FAKE_EDID_PATCH_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FAKE_EDID_PATCH_RECORD(Structure):
+    pass
+
+struct__ATOM_FAKE_EDID_PATCH_RECORD._pack_ = 1 # source:False
+struct__ATOM_FAKE_EDID_PATCH_RECORD._fields_ = [
     ('ucRecordType', ctypes.c_ubyte),
     ('ucFakeEDIDLength', ctypes.c_ubyte),
     ('ucFakeEDIDString', ctypes.c_ubyte * 1),
-     ]
+]
 
-class struct__ATOM_PANEL_RESOLUTION_PATCH_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_PANEL_RESOLUTION_PATCH_RECORD(Structure):
+    pass
+
+struct__ATOM_PANEL_RESOLUTION_PATCH_RECORD._pack_ = 1 # source:False
+struct__ATOM_PANEL_RESOLUTION_PATCH_RECORD._fields_ = [
     ('ucRecordType', ctypes.c_ubyte),
     ('usHSize', ctypes.c_uint16),
     ('usVSize', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_SPREAD_SPECTRUM_ASSIGNMENT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SPREAD_SPECTRUM_ASSIGNMENT(Structure):
+    pass
+
+struct__ATOM_SPREAD_SPECTRUM_ASSIGNMENT._pack_ = 1 # source:False
+struct__ATOM_SPREAD_SPECTRUM_ASSIGNMENT._fields_ = [
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('ucSpreadSpectrumType', ctypes.c_ubyte),
     ('ucSS_Step', ctypes.c_ubyte),
@@ -2396,91 +2768,105 @@ class struct__ATOM_SPREAD_SPECTRUM_ASSIGNMENT(ctypes.Structure):
     ('ucSS_Id', ctypes.c_ubyte),
     ('ucRecommendedRef_Div', ctypes.c_ubyte),
     ('ucSS_Range', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_SPREAD_SPECTRUM_INFO(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_SPREAD_SPECTRUM_INFO(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asSS_Info', struct__ATOM_SPREAD_SPECTRUM_ASSIGNMENT * 16),
      ]
 
-class struct__ATOM_ANALOG_TV_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ANALOG_TV_INFO(Structure):
+    pass
+
+struct__ATOM_ANALOG_TV_INFO._pack_ = 1 # source:False
+struct__ATOM_ANALOG_TV_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucTV_SuppportedStandard', ctypes.c_ubyte),
     ('ucTV_BootUpDefaultStandard', ctypes.c_ubyte),
     ('ucExt_TV_ASIC_ID', ctypes.c_ubyte),
     ('ucExt_TV_ASIC_SlaveAddr', ctypes.c_ubyte),
     ('aModeTimings', struct__ATOM_DTD_FORMAT * 2),
-     ]
+]
 
-class struct__ATOM_DPCD_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DPCD_INFO(Structure):
+    pass
+
+struct__ATOM_DPCD_INFO._pack_ = 1 # source:False
+struct__ATOM_DPCD_INFO._fields_ = [
     ('ucRevisionNumber', ctypes.c_ubyte),
     ('ucMaxLinkRate', ctypes.c_ubyte),
     ('ucMaxLane', ctypes.c_ubyte),
     ('ucMaxDownSpread', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO(Structure):
+    pass
+
+struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO._pack_ = 1 # source:False
+struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO._fields_ = [
     ('ulStartAddrUsedByFirmware', ctypes.c_uint32),
     ('usFirmwareUseInKb', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_VRAM_USAGE_BY_FIRMWARE(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_VRAM_USAGE_BY_FIRMWARE(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asFirmwareVramReserveInfo', struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO * 1),
      ]
 
-class struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO_V1_5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO_V1_5(Structure):
+    pass
+
+struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO_V1_5._pack_ = 1 # source:False
+struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO_V1_5._fields_ = [
     ('ulStartAddrUsedByFirmware', ctypes.c_uint32),
     ('usFirmwareUseInKb', ctypes.c_uint16),
     ('usFBUsedByDrvInKb', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_VRAM_USAGE_BY_FIRMWARE_V1_5(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_VRAM_USAGE_BY_FIRMWARE_V1_5(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asFirmwareVramReserveInfo', struct__ATOM_FIRMWARE_VRAM_RESERVE_INFO_V1_5 * 1),
      ]
 
-class struct__ATOM_GPIO_PIN_ASSIGNMENT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_GPIO_PIN_ASSIGNMENT(Structure):
+    pass
+
+struct__ATOM_GPIO_PIN_ASSIGNMENT._pack_ = 1 # source:False
+struct__ATOM_GPIO_PIN_ASSIGNMENT._fields_ = [
     ('usGpioPin_AIndex', ctypes.c_uint16),
     ('ucGpioPinBitShift', ctypes.c_ubyte),
     ('ucGPIO_ID', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_GPIO_PIN_LUT(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_GPIO_PIN_LUT(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asGPIO_Pin', struct__ATOM_GPIO_PIN_ASSIGNMENT * 1),
      ]
 
-class struct__ATOM_GPIO_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_GPIO_INFO(Structure):
+    pass
+
+struct__ATOM_GPIO_INFO._pack_ = 1 # source:False
+struct__ATOM_GPIO_INFO._fields_ = [
     ('usAOffset', ctypes.c_uint16),
     ('ucSettings', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_COMPONENT_VIDEO_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_COMPONENT_VIDEO_INFO(Structure):
+    pass
+
+struct__ATOM_COMPONENT_VIDEO_INFO._pack_ = 1 # source:False
+struct__ATOM_COMPONENT_VIDEO_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usMask_PinRegisterIndex', ctypes.c_uint16),
     ('usEN_PinRegisterIndex', ctypes.c_uint16),
@@ -2499,11 +2885,13 @@ class struct__ATOM_COMPONENT_VIDEO_INFO(ctypes.Structure):
     ('ucNumOfWbGpioBlocks', ctypes.c_ubyte),
     ('aWbGpioStateBlock', struct__ATOM_GPIO_INFO * 5),
     ('aModeTimings', struct__ATOM_DTD_FORMAT * 5),
-     ]
+]
 
-class struct__ATOM_COMPONENT_VIDEO_INFO_V21(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_COMPONENT_VIDEO_INFO_V21(Structure):
+    pass
+
+struct__ATOM_COMPONENT_VIDEO_INFO_V21._pack_ = 1 # source:False
+struct__ATOM_COMPONENT_VIDEO_INFO_V21._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucMiscInfo', ctypes.c_ubyte),
     ('uc480i', ctypes.c_ubyte),
@@ -2515,11 +2903,13 @@ class struct__ATOM_COMPONENT_VIDEO_INFO_V21(ctypes.Structure):
     ('ucNumOfWbGpioBlocks', ctypes.c_ubyte),
     ('aWbGpioStateBlock', struct__ATOM_GPIO_INFO * 5),
     ('aModeTimings', struct__ATOM_DTD_FORMAT * 5),
-     ]
+]
 
-class struct__ATOM_OBJECT_HEADER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_OBJECT_HEADER(Structure):
+    pass
+
+struct__ATOM_OBJECT_HEADER._pack_ = 1 # source:False
+struct__ATOM_OBJECT_HEADER._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDeviceSupport', ctypes.c_uint16),
     ('usConnectorObjectTableOffset', ctypes.c_uint16),
@@ -2527,11 +2917,13 @@ class struct__ATOM_OBJECT_HEADER(ctypes.Structure):
     ('usEncoderObjectTableOffset', ctypes.c_uint16),
     ('usProtectionObjectTableOffset', ctypes.c_uint16),
     ('usDisplayPathTableOffset', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_OBJECT_HEADER_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_OBJECT_HEADER_V3(Structure):
+    pass
+
+struct__ATOM_OBJECT_HEADER_V3._pack_ = 1 # source:False
+struct__ATOM_OBJECT_HEADER_V3._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDeviceSupport', ctypes.c_uint16),
     ('usConnectorObjectTableOffset', ctypes.c_uint16),
@@ -2540,97 +2932,113 @@ class struct__ATOM_OBJECT_HEADER_V3(ctypes.Structure):
     ('usProtectionObjectTableOffset', ctypes.c_uint16),
     ('usDisplayPathTableOffset', ctypes.c_uint16),
     ('usMiscObjectTableOffset', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_DISPLAY_OBJECT_PATH(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DISPLAY_OBJECT_PATH(Structure):
+    pass
+
+struct__ATOM_DISPLAY_OBJECT_PATH._pack_ = 1 # source:False
+struct__ATOM_DISPLAY_OBJECT_PATH._fields_ = [
     ('usDeviceTag', ctypes.c_uint16),
     ('usSize', ctypes.c_uint16),
     ('usConnObjectId', ctypes.c_uint16),
     ('usGPUObjectId', ctypes.c_uint16),
     ('usGraphicObjIds', ctypes.c_uint16 * 1),
-     ]
+]
 
-class struct__ATOM_DISPLAY_EXTERNAL_OBJECT_PATH(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DISPLAY_EXTERNAL_OBJECT_PATH(Structure):
+    pass
+
+struct__ATOM_DISPLAY_EXTERNAL_OBJECT_PATH._pack_ = 1 # source:False
+struct__ATOM_DISPLAY_EXTERNAL_OBJECT_PATH._fields_ = [
     ('usDeviceTag', ctypes.c_uint16),
     ('usSize', ctypes.c_uint16),
     ('usConnObjectId', ctypes.c_uint16),
     ('usGPUObjectId', ctypes.c_uint16),
     ('usGraphicObjIds', ctypes.c_uint16 * 2),
-     ]
+]
 
-class struct__ATOM_DISPLAY_OBJECT_PATH_TABLE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DISPLAY_OBJECT_PATH_TABLE(Structure):
+    pass
+
+struct__ATOM_DISPLAY_OBJECT_PATH_TABLE._pack_ = 1 # source:False
+struct__ATOM_DISPLAY_OBJECT_PATH_TABLE._fields_ = [
     ('ucNumOfDispPath', ctypes.c_ubyte),
     ('ucVersion', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
     ('asDispPath', struct__ATOM_DISPLAY_OBJECT_PATH * 1),
-     ]
+]
 
-class struct__ATOM_OBJECT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_OBJECT(Structure):
+    pass
+
+struct__ATOM_OBJECT._pack_ = 1 # source:False
+struct__ATOM_OBJECT._fields_ = [
     ('usObjectID', ctypes.c_uint16),
     ('usSrcDstTableOffset', ctypes.c_uint16),
     ('usRecordOffset', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_OBJECT_TABLE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_OBJECT_TABLE(Structure):
+    pass
+
+struct__ATOM_OBJECT_TABLE._pack_ = 1 # source:False
+struct__ATOM_OBJECT_TABLE._fields_ = [
     ('ucNumberOfObjects', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 3),
     ('asObjects', struct__ATOM_OBJECT * 1),
-     ]
+]
 
-class struct__ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT(Structure):
+    pass
+
+struct__ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT._pack_ = 1 # source:False
+struct__ATOM_SRC_DST_TABLE_FOR_ONE_OBJECT._fields_ = [
     ('ucNumberOfSrc', ctypes.c_ubyte),
     ('usSrcObjectID', ctypes.c_uint16 * 1),
     ('ucNumberOfDst', ctypes.c_ubyte),
     ('usDstObjectID', ctypes.c_uint16 * 1),
-     ]
+]
 
-class struct__ATOM_DP_CONN_CHANNEL_MAPPING(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DP_CONN_CHANNEL_MAPPING(Structure):
+    pass
+
+struct__ATOM_DP_CONN_CHANNEL_MAPPING._pack_ = 1 # source:False
+struct__ATOM_DP_CONN_CHANNEL_MAPPING._fields_ = [
     ('ucDP_Lane0_Source', ctypes.c_ubyte, 2),
     ('ucDP_Lane1_Source', ctypes.c_ubyte, 2),
     ('ucDP_Lane2_Source', ctypes.c_ubyte, 2),
     ('ucDP_Lane3_Source', ctypes.c_ubyte, 2),
-     ]
+]
 
-class struct__ATOM_DVI_CONN_CHANNEL_MAPPING(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DVI_CONN_CHANNEL_MAPPING(Structure):
+    pass
+
+struct__ATOM_DVI_CONN_CHANNEL_MAPPING._pack_ = 1 # source:False
+struct__ATOM_DVI_CONN_CHANNEL_MAPPING._fields_ = [
     ('ucDVI_DATA2_Source', ctypes.c_ubyte, 2),
     ('ucDVI_DATA1_Source', ctypes.c_ubyte, 2),
     ('ucDVI_DATA0_Source', ctypes.c_ubyte, 2),
     ('ucDVI_CLK_Source', ctypes.c_ubyte, 2),
-     ]
+]
 
-class struct__EXT_DISPLAY_PATH(ctypes.Structure):
+class struct__EXT_DISPLAY_PATH(Structure):
     pass
 
-class union__EXT_DISPLAY_PATH_0(ctypes.Union):
+class union__EXT_DISPLAY_PATH_0(Union):
     pass
 
-ATOM_DVI_CONN_CHANNEL_MAPPING = struct__ATOM_DVI_CONN_CHANNEL_MAPPING
 ATOM_DP_CONN_CHANNEL_MAPPING = struct__ATOM_DP_CONN_CHANNEL_MAPPING
-union__EXT_DISPLAY_PATH_0._pack_ = True # source:False
+ATOM_DVI_CONN_CHANNEL_MAPPING = struct__ATOM_DVI_CONN_CHANNEL_MAPPING
+union__EXT_DISPLAY_PATH_0._pack_ = 1 # source:False
 union__EXT_DISPLAY_PATH_0._fields_ = [
     ('ucChannelMapping', ctypes.c_ubyte),
     ('asDPMapping', ATOM_DP_CONN_CHANNEL_MAPPING),
     ('asDVIMapping', ATOM_DVI_CONN_CHANNEL_MAPPING),
 ]
 
-struct__EXT_DISPLAY_PATH._pack_ = True # source:False
+struct__EXT_DISPLAY_PATH._pack_ = 1 # source:False
 struct__EXT_DISPLAY_PATH._fields_ = [
     ('usDeviceTag', ctypes.c_uint16),
     ('usDeviceACPIEnum', ctypes.c_uint16),
@@ -2638,15 +3046,17 @@ struct__EXT_DISPLAY_PATH._fields_ = [
     ('ucExtAUXDDCLutIndex', ctypes.c_ubyte),
     ('ucExtHPDPINLutIndex', ctypes.c_ubyte),
     ('usExtEncoderObjId', ctypes.c_uint16),
-    ('_6', union__EXT_DISPLAY_PATH_0),
+    ('_EXT_DISPLAY_PATH_0', union__EXT_DISPLAY_PATH_0),
     ('ucChPNInvert', ctypes.c_ubyte),
     ('usCaps', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
 ]
 
-class struct__ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO(Structure):
+    pass
+
+struct__ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO._pack_ = 1 # source:False
+struct__ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucGuid', ctypes.c_ubyte * 16),
     ('sPath', struct__EXT_DISPLAY_PATH * 7),
@@ -2656,72 +3066,86 @@ class struct__ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO(ctypes.Structure):
     ('uceDPToLVDSRxId', ctypes.c_ubyte),
     ('ucFixDPVoltageSwing', ctypes.c_ubyte),
     ('Reserved', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__ATOM_COMMON_RECORD_HEADER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_COMMON_RECORD_HEADER(Structure):
+    pass
+
+struct__ATOM_COMMON_RECORD_HEADER._pack_ = 1 # source:False
+struct__ATOM_COMMON_RECORD_HEADER._fields_ = [
     ('ucRecordType', ctypes.c_ubyte),
     ('ucRecordSize', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_I2C_RECORD(ctypes.Structure):
+class struct__ATOM_I2C_RECORD(Structure):
     pass
 
 ATOM_COMMON_RECORD_HEADER = struct__ATOM_COMMON_RECORD_HEADER
-struct__ATOM_I2C_RECORD._pack_ = True # source:False
+struct__ATOM_I2C_RECORD._pack_ = 1 # source:False
 struct__ATOM_I2C_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('sucI2cId', ATOM_I2C_ID_CONFIG),
     ('ucI2CAddr', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_HPD_INT_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_HPD_INT_RECORD(Structure):
+    pass
+
+struct__ATOM_HPD_INT_RECORD._pack_ = 1 # source:False
+struct__ATOM_HPD_INT_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucHPDIntGPIOID', ctypes.c_ubyte),
     ('ucPlugged_PinState', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_OUTPUT_PROTECTION_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_OUTPUT_PROTECTION_RECORD(Structure):
+    pass
+
+struct__ATOM_OUTPUT_PROTECTION_RECORD._pack_ = 1 # source:False
+struct__ATOM_OUTPUT_PROTECTION_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucProtectionFlag', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_DEVICE_TAG(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_DEVICE_TAG(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_DEVICE_TAG._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_DEVICE_TAG._fields_ = [
     ('ulACPIDeviceEnum', ctypes.c_uint32),
     ('usDeviceID', ctypes.c_uint16),
     ('usPadding', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_DEVICE_TAG_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_DEVICE_TAG_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_DEVICE_TAG_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_DEVICE_TAG_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucNumberOfDevice', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('asDeviceTag', struct__ATOM_CONNECTOR_DEVICE_TAG * 1),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_DVI_EXT_INPUT_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_DVI_EXT_INPUT_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_DVI_EXT_INPUT_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_DVI_EXT_INPUT_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucConfigGPIOID', ctypes.c_ubyte),
     ('ucConfigGPIOState', ctypes.c_ubyte),
     ('ucFlowinGPIPID', ctypes.c_ubyte),
     ('ucExtInGPIPID', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_ENCODER_FPGA_CONTROL_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ENCODER_FPGA_CONTROL_RECORD(Structure):
+    pass
+
+struct__ATOM_ENCODER_FPGA_CONTROL_RECORD._pack_ = 1 # source:False
+struct__ATOM_ENCODER_FPGA_CONTROL_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucCTL1GPIO_ID', ctypes.c_ubyte),
     ('ucCTL1GPIOState', ctypes.c_ubyte),
@@ -2731,19 +3155,23 @@ class struct__ATOM_ENCODER_FPGA_CONTROL_RECORD(ctypes.Structure):
     ('ucCTL3GPIOState', ctypes.c_ubyte),
     ('ucCTLFPGA_IN_ID', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_CVTV_SHARE_DIN_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_CVTV_SHARE_DIN_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_CVTV_SHARE_DIN_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_CVTV_SHARE_DIN_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucGPIOID', ctypes.c_ubyte),
     ('ucTVActiveState', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_JTAG_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_JTAG_RECORD(Structure):
+    pass
+
+struct__ATOM_JTAG_RECORD._pack_ = 1 # source:False
+struct__ATOM_JTAG_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucTMSGPIO_ID', ctypes.c_ubyte),
     ('ucTMSGPIOState', ctypes.c_ubyte),
@@ -2754,188 +3182,220 @@ class struct__ATOM_JTAG_RECORD(ctypes.Structure):
     ('ucTDIGPIO_ID', ctypes.c_ubyte),
     ('ucTDIGPIOState', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_GPIO_PIN_CONTROL_PAIR(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_GPIO_PIN_CONTROL_PAIR(Structure):
+    pass
+
+struct__ATOM_GPIO_PIN_CONTROL_PAIR._pack_ = 1 # source:False
+struct__ATOM_GPIO_PIN_CONTROL_PAIR._fields_ = [
     ('ucGPIOID', ctypes.c_ubyte),
     ('ucGPIO_PinState', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_OBJECT_GPIO_CNTL_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_OBJECT_GPIO_CNTL_RECORD(Structure):
+    pass
+
+struct__ATOM_OBJECT_GPIO_CNTL_RECORD._pack_ = 1 # source:False
+struct__ATOM_OBJECT_GPIO_CNTL_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucFlags', ctypes.c_ubyte),
     ('ucNumberOfPins', ctypes.c_ubyte),
     ('asGpio', struct__ATOM_GPIO_PIN_CONTROL_PAIR * 1),
-     ]
+]
 
-class struct__ATOM_ENCODER_DVO_CF_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ENCODER_DVO_CF_RECORD(Structure):
+    pass
+
+struct__ATOM_ENCODER_DVO_CF_RECORD._pack_ = 1 # source:False
+struct__ATOM_ENCODER_DVO_CF_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ulStrengthControl', ctypes.c_uint32),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_ENCODER_CAP_RECORD(ctypes.Structure):
+class struct__ATOM_ENCODER_CAP_RECORD(Structure):
     pass
 
-class union__ATOM_ENCODER_CAP_RECORD_0(ctypes.Union):
+class union__ATOM_ENCODER_CAP_RECORD_0(Union):
     pass
 
-class struct__ATOM_ENCODER_CAP_RECORD_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ENCODER_CAP_RECORD_0_0(Structure):
+    pass
+
+struct__ATOM_ENCODER_CAP_RECORD_0_0._pack_ = 1 # source:False
+struct__ATOM_ENCODER_CAP_RECORD_0_0._fields_ = [
     ('usHBR2Cap', ctypes.c_uint16, 1),
     ('usHBR2En', ctypes.c_uint16, 1),
     ('usReserved', ctypes.c_uint16, 14),
-     ]
+]
 
-union__ATOM_ENCODER_CAP_RECORD_0._pack_ = True # source:False
+union__ATOM_ENCODER_CAP_RECORD_0._pack_ = 1 # source:False
 union__ATOM_ENCODER_CAP_RECORD_0._fields_ = [
     ('usEncoderCap', ctypes.c_uint16),
-    ('_1', struct__ATOM_ENCODER_CAP_RECORD_0_0),
+    ('_ATOM_ENCODER_CAP_RECORD_0_0', struct__ATOM_ENCODER_CAP_RECORD_0_0),
 ]
 
-struct__ATOM_ENCODER_CAP_RECORD._pack_ = True # source:False
+struct__ATOM_ENCODER_CAP_RECORD._pack_ = 1 # source:False
 struct__ATOM_ENCODER_CAP_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
-    ('_1', union__ATOM_ENCODER_CAP_RECORD_0),
+    ('_ATOM_ENCODER_CAP_RECORD_0', union__ATOM_ENCODER_CAP_RECORD_0),
 ]
 
-class struct__ATOM_ENCODER_CAP_RECORD_V2(ctypes.Structure):
+class struct__ATOM_ENCODER_CAP_RECORD_V2(Structure):
     pass
 
-class union__ATOM_ENCODER_CAP_RECORD_V2_0(ctypes.Union):
+class union__ATOM_ENCODER_CAP_RECORD_V2_0(Union):
     pass
 
-class struct__ATOM_ENCODER_CAP_RECORD_V2_0_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ENCODER_CAP_RECORD_V2_0_0(Structure):
+    pass
+
+struct__ATOM_ENCODER_CAP_RECORD_V2_0_0._pack_ = 1 # source:False
+struct__ATOM_ENCODER_CAP_RECORD_V2_0_0._fields_ = [
     ('usMSTEn', ctypes.c_uint16, 1),
     ('usHBR2En', ctypes.c_uint16, 1),
     ('usHDMI6GEn', ctypes.c_uint16, 1),
     ('usHBR3En', ctypes.c_uint16, 1),
     ('usReserved', ctypes.c_uint16, 12),
-     ]
+]
 
-union__ATOM_ENCODER_CAP_RECORD_V2_0._pack_ = True # source:False
+union__ATOM_ENCODER_CAP_RECORD_V2_0._pack_ = 1 # source:False
 union__ATOM_ENCODER_CAP_RECORD_V2_0._fields_ = [
     ('usEncoderCap', ctypes.c_uint16),
-    ('_1', struct__ATOM_ENCODER_CAP_RECORD_V2_0_0),
+    ('_ATOM_ENCODER_CAP_RECORD_V2_0_0', struct__ATOM_ENCODER_CAP_RECORD_V2_0_0),
 ]
 
-struct__ATOM_ENCODER_CAP_RECORD_V2._pack_ = True # source:False
+struct__ATOM_ENCODER_CAP_RECORD_V2._pack_ = 1 # source:False
 struct__ATOM_ENCODER_CAP_RECORD_V2._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
-    ('_1', union__ATOM_ENCODER_CAP_RECORD_V2_0),
+    ('_ATOM_ENCODER_CAP_RECORD_V2_0', union__ATOM_ENCODER_CAP_RECORD_V2_0),
 ]
 
-class struct__ATOM_CONNECTOR_CF_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_CF_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_CF_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_CF_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('usMaxPixClk', ctypes.c_uint16),
     ('ucFlowCntlGpioId', ctypes.c_ubyte),
     ('ucSwapCntlGpioId', ctypes.c_ubyte),
     ('ucConnectedDvoBundle', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_HARDCODE_DTD_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_CONNECTOR_HARDCODE_DTD_RECORD(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('asTiming', ATOM_DTD_FORMAT),
      ]
 
-class struct__ATOM_CONNECTOR_PCIE_SUBCONNECTOR_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_PCIE_SUBCONNECTOR_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_PCIE_SUBCONNECTOR_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_PCIE_SUBCONNECTOR_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucSubConnectorType', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_ROUTER_DDC_PATH_SELECT_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ROUTER_DDC_PATH_SELECT_RECORD(Structure):
+    pass
+
+struct__ATOM_ROUTER_DDC_PATH_SELECT_RECORD._pack_ = 1 # source:False
+struct__ATOM_ROUTER_DDC_PATH_SELECT_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucMuxType', ctypes.c_ubyte),
     ('ucMuxControlPin', ctypes.c_ubyte),
     ('ucMuxState', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_ROUTER_DATA_CLOCK_PATH_SELECT_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ROUTER_DATA_CLOCK_PATH_SELECT_RECORD(Structure):
+    pass
+
+struct__ATOM_ROUTER_DATA_CLOCK_PATH_SELECT_RECORD._pack_ = 1 # source:False
+struct__ATOM_ROUTER_DATA_CLOCK_PATH_SELECT_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucMuxType', ctypes.c_ubyte),
     ('ucMuxControlPin', ctypes.c_ubyte),
     ('ucMuxState', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_HPDPIN_LUT_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_HPDPIN_LUT_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_HPDPIN_LUT_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_HPDPIN_LUT_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucHPDPINMap', ctypes.c_ubyte * 8),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_AUXDDC_LUT_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_CONNECTOR_AUXDDC_LUT_RECORD(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucAUXDDCMap', struct__ATOM_I2C_ID_CONFIG * 8),
      ]
 
-class struct__ATOM_OBJECT_LINK_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_OBJECT_LINK_RECORD(Structure):
+    pass
+
+struct__ATOM_OBJECT_LINK_RECORD._pack_ = 1 # source:False
+struct__ATOM_OBJECT_LINK_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('usObjectID', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_REMOTE_CAP_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_REMOTE_CAP_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_REMOTE_CAP_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_REMOTE_CAP_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('usReserved', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_FORCED_TMDS_CAP_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_FORCED_TMDS_CAP_RECORD(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_FORCED_TMDS_CAP_RECORD._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_FORCED_TMDS_CAP_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucMaxTmdsClkRateIn2_5Mhz', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_LAYOUT_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_LAYOUT_INFO(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_LAYOUT_INFO._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_LAYOUT_INFO._fields_ = [
     ('usConnectorObjectId', ctypes.c_uint16),
     ('ucConnectorType', ctypes.c_ubyte),
     ('ucPosition', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_BRACKET_LAYOUT_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_BRACKET_LAYOUT_RECORD(Structure):
+    pass
+
+struct__ATOM_BRACKET_LAYOUT_RECORD._pack_ = 1 # source:False
+struct__ATOM_BRACKET_LAYOUT_RECORD._fields_ = [
     ('sheader', ATOM_COMMON_RECORD_HEADER),
     ('ucLength', ctypes.c_ubyte),
     ('ucWidth', ctypes.c_ubyte),
     ('ucConnNum', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('asConnInfo', struct__ATOM_CONNECTOR_LAYOUT_INFO * 1),
-     ]
+]
 
-class struct__ATOM_VOLTAGE_INFO_HEADER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VOLTAGE_INFO_HEADER(Structure):
+    pass
+
+struct__ATOM_VOLTAGE_INFO_HEADER._pack_ = 1 # source:False
+struct__ATOM_VOLTAGE_INFO_HEADER._fields_ = [
     ('usVDDCBaseLevel', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
     ('ucNumOfVoltageEntries', ctypes.c_ubyte),
@@ -2945,22 +3405,24 @@ class struct__ATOM_VOLTAGE_INFO_HEADER(ctypes.Structure):
     ('ucVoltageControlI2cLine', ctypes.c_ubyte),
     ('ucVoltageControlAddress', ctypes.c_ubyte),
     ('ucVoltageControlOffset', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_VOLTAGE_INFO(ctypes.Structure):
+class struct__ATOM_VOLTAGE_INFO(Structure):
     pass
 
 ATOM_VOLTAGE_INFO_HEADER = struct__ATOM_VOLTAGE_INFO_HEADER
-struct__ATOM_VOLTAGE_INFO._pack_ = True # source:False
+struct__ATOM_VOLTAGE_INFO._pack_ = 1 # source:False
 struct__ATOM_VOLTAGE_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('viHeader', ATOM_VOLTAGE_INFO_HEADER),
     ('ucVoltageEntries', ctypes.c_ubyte * 64),
 ]
 
-class struct__ATOM_VOLTAGE_FORMULA(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VOLTAGE_FORMULA(Structure):
+    pass
+
+struct__ATOM_VOLTAGE_FORMULA._pack_ = 1 # source:False
+struct__ATOM_VOLTAGE_FORMULA._fields_ = [
     ('usVoltageBaseLevel', ctypes.c_uint16),
     ('usVoltageStep', ctypes.c_uint16),
     ('ucNumOfVoltageEntries', ctypes.c_ubyte),
@@ -2968,26 +3430,32 @@ class struct__ATOM_VOLTAGE_FORMULA(ctypes.Structure):
     ('ucBaseVID', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('ucVIDAdjustEntries', ctypes.c_ubyte * 32),
-     ]
+]
 
-class struct__VOLTAGE_LUT_ENTRY(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__VOLTAGE_LUT_ENTRY(Structure):
+    pass
+
+struct__VOLTAGE_LUT_ENTRY._pack_ = 1 # source:False
+struct__VOLTAGE_LUT_ENTRY._fields_ = [
     ('usVoltageCode', ctypes.c_uint16),
     ('usVoltageValue', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_VOLTAGE_FORMULA_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VOLTAGE_FORMULA_V2(Structure):
+    pass
+
+struct__ATOM_VOLTAGE_FORMULA_V2._pack_ = 1 # source:False
+struct__ATOM_VOLTAGE_FORMULA_V2._fields_ = [
     ('ucNumOfVoltageEntries', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
     ('asVIDAdjustEntries', struct__VOLTAGE_LUT_ENTRY * 32),
-     ]
+]
 
-class struct__ATOM_VOLTAGE_CONTROL(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VOLTAGE_CONTROL(Structure):
+    pass
+
+struct__ATOM_VOLTAGE_CONTROL._pack_ = 1 # source:False
+struct__ATOM_VOLTAGE_CONTROL._fields_ = [
     ('ucVoltageControlId', ctypes.c_ubyte),
     ('ucVoltageControlI2cLine', ctypes.c_ubyte),
     ('ucVoltageControlAddress', ctypes.c_ubyte),
@@ -2995,14 +3463,14 @@ class struct__ATOM_VOLTAGE_CONTROL(ctypes.Structure):
     ('usGpioPin_AIndex', ctypes.c_uint16),
     ('ucGpioPinBitShift', ctypes.c_ubyte * 9),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_VOLTAGE_OBJECT(ctypes.Structure):
+class struct__ATOM_VOLTAGE_OBJECT(Structure):
     pass
 
 ATOM_VOLTAGE_FORMULA = struct__ATOM_VOLTAGE_FORMULA
 ATOM_VOLTAGE_CONTROL = struct__ATOM_VOLTAGE_CONTROL
-struct__ATOM_VOLTAGE_OBJECT._pack_ = True # source:False
+struct__ATOM_VOLTAGE_OBJECT._pack_ = 1 # source:False
 struct__ATOM_VOLTAGE_OBJECT._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucSize', ctypes.c_ubyte),
@@ -3010,11 +3478,11 @@ struct__ATOM_VOLTAGE_OBJECT._fields_ = [
     ('asFormula', ATOM_VOLTAGE_FORMULA),
 ]
 
-class struct__ATOM_VOLTAGE_OBJECT_V2(ctypes.Structure):
+class struct__ATOM_VOLTAGE_OBJECT_V2(Structure):
     pass
 
 ATOM_VOLTAGE_FORMULA_V2 = struct__ATOM_VOLTAGE_FORMULA_V2
-struct__ATOM_VOLTAGE_OBJECT_V2._pack_ = True # source:False
+struct__ATOM_VOLTAGE_OBJECT_V2._pack_ = 1 # source:False
 struct__ATOM_VOLTAGE_OBJECT_V2._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucSize', ctypes.c_ubyte),
@@ -3022,56 +3490,64 @@ struct__ATOM_VOLTAGE_OBJECT_V2._fields_ = [
     ('asFormula', ATOM_VOLTAGE_FORMULA_V2),
 ]
 
-class struct__ATOM_VOLTAGE_OBJECT_INFO(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_VOLTAGE_OBJECT_INFO(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asVoltageObj', struct__ATOM_VOLTAGE_OBJECT * 3),
      ]
 
-class struct__ATOM_VOLTAGE_OBJECT_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_VOLTAGE_OBJECT_INFO_V2(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asVoltageObj', struct__ATOM_VOLTAGE_OBJECT_V2 * 3),
      ]
 
-class struct__ATOM_LEAKID_VOLTAGE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_LEAKID_VOLTAGE(Structure):
+    pass
+
+struct__ATOM_LEAKID_VOLTAGE._pack_ = 1 # source:False
+struct__ATOM_LEAKID_VOLTAGE._fields_ = [
     ('ucLeakageId', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('usVoltage', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_VOLTAGE_OBJECT_HEADER_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VOLTAGE_OBJECT_HEADER_V3(Structure):
+    pass
+
+struct__ATOM_VOLTAGE_OBJECT_HEADER_V3._pack_ = 1 # source:False
+struct__ATOM_VOLTAGE_OBJECT_HEADER_V3._fields_ = [
     ('ucVoltageType', ctypes.c_ubyte),
     ('ucVoltageMode', ctypes.c_ubyte),
     ('usSize', ctypes.c_uint16),
-     ]
+]
 
-class struct__VOLTAGE_LUT_ENTRY_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__VOLTAGE_LUT_ENTRY_V2(Structure):
+    pass
+
+struct__VOLTAGE_LUT_ENTRY_V2._pack_ = 1 # source:False
+struct__VOLTAGE_LUT_ENTRY_V2._fields_ = [
     ('ulVoltageId', ctypes.c_uint32),
     ('usVoltageValue', ctypes.c_uint16),
-     ]
+]
 
-class struct__LEAKAGE_VOLTAGE_LUT_ENTRY_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__LEAKAGE_VOLTAGE_LUT_ENTRY_V2(Structure):
+    pass
+
+struct__LEAKAGE_VOLTAGE_LUT_ENTRY_V2._pack_ = 1 # source:False
+struct__LEAKAGE_VOLTAGE_LUT_ENTRY_V2._fields_ = [
     ('usVoltageLevel', ctypes.c_uint16),
     ('usVoltageId', ctypes.c_uint16),
     ('usLeakageId', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_I2C_VOLTAGE_OBJECT_V3(ctypes.Structure):
+class struct__ATOM_I2C_VOLTAGE_OBJECT_V3(Structure):
     pass
 
 ATOM_VOLTAGE_OBJECT_HEADER_V3 = struct__ATOM_VOLTAGE_OBJECT_HEADER_V3
-struct__ATOM_I2C_VOLTAGE_OBJECT_V3._pack_ = True # source:False
+struct__ATOM_I2C_VOLTAGE_OBJECT_V3._pack_ = 1 # source:False
 struct__ATOM_I2C_VOLTAGE_OBJECT_V3._fields_ = [
     ('sHeader', ATOM_VOLTAGE_OBJECT_HEADER_V3),
     ('ucVoltageRegulatorId', ctypes.c_ubyte),
@@ -3083,9 +3559,11 @@ struct__ATOM_I2C_VOLTAGE_OBJECT_V3._fields_ = [
     ('asVolI2cLut', struct__VOLTAGE_LUT_ENTRY * 1),
 ]
 
-class struct__ATOM_GPIO_VOLTAGE_OBJECT_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_GPIO_VOLTAGE_OBJECT_V3(Structure):
+    pass
+
+struct__ATOM_GPIO_VOLTAGE_OBJECT_V3._pack_ = 1 # source:False
+struct__ATOM_GPIO_VOLTAGE_OBJECT_V3._fields_ = [
     ('sHeader', ATOM_VOLTAGE_OBJECT_HEADER_V3),
     ('ucVoltageGpioCntlId', ctypes.c_ubyte),
     ('ucGpioEntryNum', ctypes.c_ubyte),
@@ -3093,65 +3571,73 @@ class struct__ATOM_GPIO_VOLTAGE_OBJECT_V3(ctypes.Structure):
     ('ucReserved', ctypes.c_ubyte),
     ('ulGpioMaskVal', ctypes.c_uint32),
     ('asVolGpioLut', struct__VOLTAGE_LUT_ENTRY_V2 * 1),
-     ]
+]
 
-class struct__ATOM_LEAKAGE_VOLTAGE_OBJECT_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_LEAKAGE_VOLTAGE_OBJECT_V3(Structure):
+    pass
+
+struct__ATOM_LEAKAGE_VOLTAGE_OBJECT_V3._pack_ = 1 # source:False
+struct__ATOM_LEAKAGE_VOLTAGE_OBJECT_V3._fields_ = [
     ('sHeader', ATOM_VOLTAGE_OBJECT_HEADER_V3),
     ('ucLeakageCntlId', ctypes.c_ubyte),
     ('ucLeakageEntryNum', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
     ('ulMaxVoltageLevel', ctypes.c_uint32),
     ('asLeakageIdLut', struct__LEAKAGE_VOLTAGE_LUT_ENTRY_V2 * 1),
-     ]
+]
 
-class struct__ATOM_SVID2_VOLTAGE_OBJECT_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SVID2_VOLTAGE_OBJECT_V3(Structure):
+    pass
+
+struct__ATOM_SVID2_VOLTAGE_OBJECT_V3._pack_ = 1 # source:False
+struct__ATOM_SVID2_VOLTAGE_OBJECT_V3._fields_ = [
     ('sHeader', ATOM_VOLTAGE_OBJECT_HEADER_V3),
     ('usLoadLine_PSI', ctypes.c_uint16),
     ('ucSVDGpioId', ctypes.c_ubyte),
     ('ucSVCGpioId', ctypes.c_ubyte),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_MERGED_VOLTAGE_OBJECT_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MERGED_VOLTAGE_OBJECT_V3(Structure):
+    pass
+
+struct__ATOM_MERGED_VOLTAGE_OBJECT_V3._pack_ = 1 # source:False
+struct__ATOM_MERGED_VOLTAGE_OBJECT_V3._fields_ = [
     ('sHeader', ATOM_VOLTAGE_OBJECT_HEADER_V3),
     ('ucMergedVType', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__ATOM_EVV_DPM_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_EVV_DPM_INFO(Structure):
+    pass
+
+struct__ATOM_EVV_DPM_INFO._pack_ = 1 # source:False
+struct__ATOM_EVV_DPM_INFO._fields_ = [
     ('ulDPMSclk', ctypes.c_uint32),
     ('usVAdjOffset', ctypes.c_uint16),
     ('ucDPMTblVIndex', ctypes.c_ubyte),
     ('ucDPMState', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_EVV_VOLTAGE_OBJECT_V3(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_EVV_VOLTAGE_OBJECT_V3(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_VOLTAGE_OBJECT_HEADER_V3),
     ('asEvvDpmList', struct__ATOM_EVV_DPM_INFO * 8),
      ]
 
-class struct__ATOM_VOLTAGE_OBJECT_INFO_V3_1(ctypes.Structure):
+class struct__ATOM_VOLTAGE_OBJECT_INFO_V3_1(Structure):
     pass
 
-class union__ATOM_VOLTAGE_OBJECT_V3(ctypes.Union):
+class union__ATOM_VOLTAGE_OBJECT_V3(Union):
     pass
 
-ATOM_LEAKAGE_VOLTAGE_OBJECT_V3 = struct__ATOM_LEAKAGE_VOLTAGE_OBJECT_V3
 ATOM_I2C_VOLTAGE_OBJECT_V3 = struct__ATOM_I2C_VOLTAGE_OBJECT_V3
-ATOM_SVID2_VOLTAGE_OBJECT_V3 = struct__ATOM_SVID2_VOLTAGE_OBJECT_V3
 ATOM_EVV_VOLTAGE_OBJECT_V3 = struct__ATOM_EVV_VOLTAGE_OBJECT_V3
+ATOM_SVID2_VOLTAGE_OBJECT_V3 = struct__ATOM_SVID2_VOLTAGE_OBJECT_V3
 ATOM_GPIO_VOLTAGE_OBJECT_V3 = struct__ATOM_GPIO_VOLTAGE_OBJECT_V3
-union__ATOM_VOLTAGE_OBJECT_V3._pack_ = True # source:False
+ATOM_LEAKAGE_VOLTAGE_OBJECT_V3 = struct__ATOM_LEAKAGE_VOLTAGE_OBJECT_V3
+union__ATOM_VOLTAGE_OBJECT_V3._pack_ = 1 # source:False
 union__ATOM_VOLTAGE_OBJECT_V3._fields_ = [
     ('asGpioVoltageObj', ATOM_GPIO_VOLTAGE_OBJECT_V3),
     ('asI2cVoltageObj', ATOM_I2C_VOLTAGE_OBJECT_V3),
@@ -3160,36 +3646,40 @@ union__ATOM_VOLTAGE_OBJECT_V3._fields_ = [
     ('asEvvObj', ATOM_EVV_VOLTAGE_OBJECT_V3),
 ]
 
-struct__ATOM_VOLTAGE_OBJECT_INFO_V3_1._pack_ = True # source:False
+struct__ATOM_VOLTAGE_OBJECT_INFO_V3_1._pack_ = 1 # source:False
 struct__ATOM_VOLTAGE_OBJECT_INFO_V3_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asVoltageObj', union__ATOM_VOLTAGE_OBJECT_V3 * 3),
 ]
 
-class struct__ATOM_ASIC_PROFILE_VOLTAGE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_PROFILE_VOLTAGE(Structure):
+    pass
+
+struct__ATOM_ASIC_PROFILE_VOLTAGE._pack_ = 1 # source:False
+struct__ATOM_ASIC_PROFILE_VOLTAGE._fields_ = [
     ('ucProfileId', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('usSize', ctypes.c_uint16),
     ('usEfuseSpareStartAddr', ctypes.c_uint16),
     ('usFuseIndex', ctypes.c_uint16 * 8),
     ('asLeakVol', struct__ATOM_LEAKID_VOLTAGE * 2),
-     ]
+]
 
-class struct__ATOM_ASIC_PROFILING_INFO(ctypes.Structure):
+class struct__ATOM_ASIC_PROFILING_INFO(Structure):
     pass
 
 ATOM_ASIC_PROFILE_VOLTAGE = struct__ATOM_ASIC_PROFILE_VOLTAGE
-struct__ATOM_ASIC_PROFILING_INFO._pack_ = True # source:False
+struct__ATOM_ASIC_PROFILING_INFO._pack_ = 1 # source:False
 struct__ATOM_ASIC_PROFILING_INFO._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('asVoltage', ATOM_ASIC_PROFILE_VOLTAGE),
 ]
 
-class struct__ATOM_ASIC_PROFILING_INFO_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_PROFILING_INFO_V2_1(Structure):
+    pass
+
+struct__ATOM_ASIC_PROFILING_INFO_V2_1._pack_ = 1 # source:False
+struct__ATOM_ASIC_PROFILING_INFO_V2_1._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucLeakageBinNum', ctypes.c_ubyte),
     ('usLeakageBinArrayOffset', ctypes.c_uint16),
@@ -3199,34 +3689,38 @@ class struct__ATOM_ASIC_PROFILING_INFO_V2_1(ctypes.Structure):
     ('ucElbVDDCI_Num', ctypes.c_ubyte),
     ('usElbVDDCI_IdArrayOffset', ctypes.c_uint16),
     ('usElbVDDCI_LevelArrayOffset', ctypes.c_uint16),
-     ]
+]
 
-class struct__EFUSE_LOGISTIC_FUNC_PARAM(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__EFUSE_LOGISTIC_FUNC_PARAM(Structure):
+    pass
+
+struct__EFUSE_LOGISTIC_FUNC_PARAM._pack_ = 1 # source:False
+struct__EFUSE_LOGISTIC_FUNC_PARAM._fields_ = [
     ('usEfuseIndex', ctypes.c_uint16),
     ('ucEfuseBitLSB', ctypes.c_ubyte),
     ('ucEfuseLength', ctypes.c_ubyte),
     ('ulEfuseEncodeRange', ctypes.c_uint32),
     ('ulEfuseEncodeAverage', ctypes.c_uint32),
-     ]
+]
 
-class struct__EFUSE_LINEAR_FUNC_PARAM(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__EFUSE_LINEAR_FUNC_PARAM(Structure):
+    pass
+
+struct__EFUSE_LINEAR_FUNC_PARAM._pack_ = 1 # source:False
+struct__EFUSE_LINEAR_FUNC_PARAM._fields_ = [
     ('usEfuseIndex', ctypes.c_uint16),
     ('ucEfuseBitLSB', ctypes.c_ubyte),
     ('ucEfuseLength', ctypes.c_ubyte),
     ('ulEfuseEncodeRange', ctypes.c_uint32),
     ('ulEfuseMin', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_ASIC_PROFILING_INFO_V3_1(ctypes.Structure):
+class struct__ATOM_ASIC_PROFILING_INFO_V3_1(Structure):
     pass
 
-EFUSE_LOGISTIC_FUNC_PARAM = struct__EFUSE_LOGISTIC_FUNC_PARAM
 EFUSE_LINEAR_FUNC_PARAM = struct__EFUSE_LINEAR_FUNC_PARAM
-struct__ATOM_ASIC_PROFILING_INFO_V3_1._pack_ = True # source:False
+EFUSE_LOGISTIC_FUNC_PARAM = struct__EFUSE_LOGISTIC_FUNC_PARAM
+struct__ATOM_ASIC_PROFILING_INFO_V3_1._pack_ = 1 # source:False
 struct__ATOM_ASIC_PROFILING_INFO_V3_1._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulEvvDerateTdp', ctypes.c_uint32),
@@ -3267,9 +3761,11 @@ struct__ATOM_ASIC_PROFILING_INFO_V3_1._fields_ = [
     ('usCurrentDpm7', ctypes.c_uint16),
 ]
 
-class struct__ATOM_ASIC_PROFILING_INFO_V3_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_PROFILING_INFO_V3_2(Structure):
+    pass
+
+struct__ATOM_ASIC_PROFILING_INFO_V3_2._pack_ = 1 # source:False
+struct__ATOM_ASIC_PROFILING_INFO_V3_2._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulEvvLkgFactor', ctypes.c_uint32),
     ('ulBoardCoreTemp', ctypes.c_uint32),
@@ -3306,19 +3802,21 @@ class struct__ATOM_ASIC_PROFILING_INFO_V3_2(ctypes.Structure):
     ('ulTdpDerateDPM5', ctypes.c_uint32),
     ('ulTdpDerateDPM6', ctypes.c_uint32),
     ('ulTdpDerateDPM7', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_ASIC_PROFILING_INFO_V3_3(ctypes.Structure):
+class struct__ATOM_ASIC_PROFILING_INFO_V3_3(Structure):
     pass
 
-class union__ATOM_ASIC_PROFILING_INFO_V3_3_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__ATOM_ASIC_PROFILING_INFO_V3_3_0(Union):
+    pass
+
+union__ATOM_ASIC_PROFILING_INFO_V3_3_0._pack_ = 1 # source:False
+union__ATOM_ASIC_PROFILING_INFO_V3_3_0._fields_ = [
     ('usPowerDpm0', ctypes.c_uint16),
     ('usParamNegFlag', ctypes.c_uint16),
-     ]
+]
 
-struct__ATOM_ASIC_PROFILING_INFO_V3_3._pack_ = True # source:False
+struct__ATOM_ASIC_PROFILING_INFO_V3_3._pack_ = 1 # source:False
 struct__ATOM_ASIC_PROFILING_INFO_V3_3._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulEvvLkgFactor', ctypes.c_uint32),
@@ -3340,7 +3838,7 @@ struct__ATOM_ASIC_PROFILING_INFO_V3_3._fields_ = [
     ('ulLkgEncodeMax', ctypes.c_uint32),
     ('ulLkgEncodeMin', ctypes.c_uint32),
     ('ulEfuseLogisticAlpha', ctypes.c_uint32),
-    ('_20', union__ATOM_ASIC_PROFILING_INFO_V3_3_0),
+    ('_ATOM_ASIC_PROFILING_INFO_V3_3_0', union__ATOM_ASIC_PROFILING_INFO_V3_3_0),
     ('usPowerDpm1', ctypes.c_uint16),
     ('usPowerDpm2', ctypes.c_uint16),
     ('usPowerDpm3', ctypes.c_uint16),
@@ -3372,9 +3870,11 @@ struct__ATOM_ASIC_PROFILING_INFO_V3_3._fields_ = [
     ('ulSDCMargine', ctypes.c_uint32),
 ]
 
-class struct__ATOM_ASIC_PROFILING_INFO_V3_4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_PROFILING_INFO_V3_4(Structure):
+    pass
+
+struct__ATOM_ASIC_PROFILING_INFO_V3_4._pack_ = 1 # source:False
+struct__ATOM_ASIC_PROFILING_INFO_V3_4._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulEvvLkgFactor', ctypes.c_uint32),
     ('ulBoardCoreTemp', ctypes.c_uint32),
@@ -3442,11 +3942,13 @@ class struct__ATOM_ASIC_PROFILING_INFO_V3_4(ctypes.Structure):
     ('ulMargin_plat_sigma', ctypes.c_uint32),
     ('ulMargin_DC_sigma', ctypes.c_uint32),
     ('ulReserved', ctypes.c_uint32 * 8),
-     ]
+]
 
-class struct__ATOM_ASIC_PROFILING_INFO_V3_5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_PROFILING_INFO_V3_5(Structure):
+    pass
+
+struct__ATOM_ASIC_PROFILING_INFO_V3_5._pack_ = 1 # source:False
+struct__ATOM_ASIC_PROFILING_INFO_V3_5._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulMaxVddc', ctypes.c_uint32),
     ('ulMinVddc', ctypes.c_uint32),
@@ -3486,11 +3988,13 @@ class struct__ATOM_ASIC_PROFILING_INFO_V3_5(ctypes.Structure):
     ('ulMargin_plat_sigma', ctypes.c_uint32),
     ('ulMargin_DC_sigma', ctypes.c_uint32),
     ('ulReserved', ctypes.c_uint32 * 12),
-     ]
+]
 
-class struct__ATOM_ASIC_PROFILING_INFO_V3_6(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_PROFILING_INFO_V3_6(Structure):
+    pass
+
+struct__ATOM_ASIC_PROFILING_INFO_V3_6._pack_ = 1 # source:False
+struct__ATOM_ASIC_PROFILING_INFO_V3_6._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulMaxVddc', ctypes.c_uint32),
     ('ulMinVddc', ctypes.c_uint32),
@@ -3558,31 +4062,39 @@ class struct__ATOM_ASIC_PROFILING_INFO_V3_6(ctypes.Structure):
     ('usPSM_Age_ComFactor', ctypes.c_uint16),
     ('ucEnableApplyAVFS_CKS_OFF_Voltage', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_SCLK_FCW_RANGE_ENTRY_V1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SCLK_FCW_RANGE_ENTRY_V1(Structure):
+    pass
+
+struct__ATOM_SCLK_FCW_RANGE_ENTRY_V1._pack_ = 1 # source:False
+struct__ATOM_SCLK_FCW_RANGE_ENTRY_V1._fields_ = [
     ('ulMaxSclkFreq', ctypes.c_uint32),
     ('ucVco_setting', ctypes.c_ubyte),
     ('ucPostdiv', ctypes.c_ubyte),
     ('ucFcw_pcc', ctypes.c_uint16),
     ('ucFcw_trans_upper', ctypes.c_uint16),
     ('ucRcw_trans_lower', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_SMU_INFO_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SMU_INFO_V2_1(Structure):
+    pass
+
+struct__ATOM_SMU_INFO_V2_1._pack_ = 1 # source:False
+struct__ATOM_SMU_INFO_V2_1._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucSclkEntryNum', ctypes.c_ubyte),
-    ('ucReserved', ctypes.c_ubyte * 3),
+    ('ucSMUVer', ctypes.c_ubyte),
+    ('ucSharePowerSource', ctypes.c_ubyte),
+    ('ucReserved', ctypes.c_ubyte),
     ('asSclkFcwRangeEntry', struct__ATOM_SCLK_FCW_RANGE_ENTRY_V1 * 8),
-     ]
+]
 
-class struct__ATOM_GFX_INFO_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_GFX_INFO_V2_1(Structure):
+    pass
+
+struct__ATOM_GFX_INFO_V2_1._pack_ = 1 # source:False
+struct__ATOM_GFX_INFO_V2_1._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('GfxIpMinVer', ctypes.c_ubyte),
     ('GfxIpMajVer', ctypes.c_ubyte),
@@ -3592,11 +4104,33 @@ class struct__ATOM_GFX_INFO_V2_1(ctypes.Structure):
     ('max_sh_per_se', ctypes.c_ubyte),
     ('max_backends_per_se', ctypes.c_ubyte),
     ('max_texture_channel_caches', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_POWER_SOURCE_OBJECT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_GFX_INFO_V2_3(Structure):
+    pass
+
+struct__ATOM_GFX_INFO_V2_3._pack_ = 1 # source:False
+struct__ATOM_GFX_INFO_V2_3._fields_ = [
+    ('asHeader', ATOM_COMMON_TABLE_HEADER),
+    ('GfxIpMinVer', ctypes.c_ubyte),
+    ('GfxIpMajVer', ctypes.c_ubyte),
+    ('max_shader_engines', ctypes.c_ubyte),
+    ('max_tile_pipes', ctypes.c_ubyte),
+    ('max_cu_per_sh', ctypes.c_ubyte),
+    ('max_sh_per_se', ctypes.c_ubyte),
+    ('max_backends_per_se', ctypes.c_ubyte),
+    ('max_texture_channel_caches', ctypes.c_ubyte),
+    ('usHiLoLeakageThreshold', ctypes.c_uint16),
+    ('usEdcDidtLoDpm7TableOffset', ctypes.c_uint16),
+    ('usEdcDidtHiDpm7TableOffset', ctypes.c_uint16),
+    ('usReserverd', ctypes.c_uint16 * 3),
+]
+
+class struct__ATOM_POWER_SOURCE_OBJECT(Structure):
+    pass
+
+struct__ATOM_POWER_SOURCE_OBJECT._pack_ = 1 # source:False
+struct__ATOM_POWER_SOURCE_OBJECT._fields_ = [
     ('ucPwrSrcId', ctypes.c_ubyte),
     ('ucPwrSensorType', ctypes.c_ubyte),
     ('ucPwrSensId', ctypes.c_ubyte),
@@ -3606,43 +4140,51 @@ class struct__ATOM_POWER_SOURCE_OBJECT(ctypes.Structure):
     ('ucPwrSensActiveState', ctypes.c_ubyte),
     ('ucReserve', ctypes.c_ubyte * 3),
     ('usSensPwr', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_POWER_SOURCE_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_POWER_SOURCE_INFO(Structure):
+    pass
+
+struct__ATOM_POWER_SOURCE_INFO._pack_ = 1 # source:False
+struct__ATOM_POWER_SOURCE_INFO._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('asPwrbehave', ctypes.c_ubyte * 16),
     ('asPwrObj', struct__ATOM_POWER_SOURCE_OBJECT * 1),
-     ]
+]
 
-class struct__ATOM_CLK_VOLT_CAPABILITY(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CLK_VOLT_CAPABILITY(Structure):
+    pass
+
+struct__ATOM_CLK_VOLT_CAPABILITY._pack_ = 1 # source:False
+struct__ATOM_CLK_VOLT_CAPABILITY._fields_ = [
     ('ulVoltageIndex', ctypes.c_uint32),
     ('ulMaximumSupportedCLK', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_CLK_VOLT_CAPABILITY_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CLK_VOLT_CAPABILITY_V2(Structure):
+    pass
+
+struct__ATOM_CLK_VOLT_CAPABILITY_V2._pack_ = 1 # source:False
+struct__ATOM_CLK_VOLT_CAPABILITY_V2._fields_ = [
     ('usVoltageLevel', ctypes.c_uint16),
     ('ulMaximumSupportedCLK', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_AVAILABLE_SCLK_LIST(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_AVAILABLE_SCLK_LIST(Structure):
+    pass
+
+struct__ATOM_AVAILABLE_SCLK_LIST._pack_ = 1 # source:False
+struct__ATOM_AVAILABLE_SCLK_LIST._fields_ = [
     ('ulSupportedSCLK', ctypes.c_uint32),
     ('usVoltageIndex', ctypes.c_uint16),
     ('usVoltageID', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO_V6(ctypes.Structure):
+class struct__ATOM_INTEGRATED_SYSTEM_INFO_V6(Structure):
     pass
 
 ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO = struct__ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO
-struct__ATOM_INTEGRATED_SYSTEM_INFO_V6._pack_ = True # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V6._pack_ = 1 # source:False
 struct__ATOM_INTEGRATED_SYSTEM_INFO_V6._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
@@ -3698,40 +4240,42 @@ struct__ATOM_INTEGRATED_SYSTEM_INFO_V6._fields_ = [
     ('sExtDispConnInfo', ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO),
 ]
 
-class struct__ATOM_FUSION_SYSTEM_INFO_V1(ctypes.Structure):
+class struct__ATOM_FUSION_SYSTEM_INFO_V1(Structure):
     pass
 
 ATOM_INTEGRATED_SYSTEM_INFO_V6 = struct__ATOM_INTEGRATED_SYSTEM_INFO_V6
-struct__ATOM_FUSION_SYSTEM_INFO_V1._pack_ = True # source:False
+struct__ATOM_FUSION_SYSTEM_INFO_V1._pack_ = 1 # source:False
 struct__ATOM_FUSION_SYSTEM_INFO_V1._fields_ = [
     ('sIntegratedSysInfo', ATOM_INTEGRATED_SYSTEM_INFO_V6),
     ('ulPowerplayTable', ctypes.c_uint32 * 128),
 ]
 
-class struct__ATOM_TDP_CONFIG_BITS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_TDP_CONFIG_BITS(Structure):
+    pass
+
+struct__ATOM_TDP_CONFIG_BITS._pack_ = 1 # source:False
+struct__ATOM_TDP_CONFIG_BITS._fields_ = [
     ('uCTDP_Enable', ctypes.c_uint32, 2),
     ('uCTDP_Value', ctypes.c_uint32, 14),
     ('uTDP_Value', ctypes.c_uint32, 14),
     ('uReserved', ctypes.c_uint32, 2),
-     ]
+]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_7(ctypes.Structure):
+class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_7(Structure):
     pass
 
-class union__ATOM_TDP_CONFIG(ctypes.Union):
+class union__ATOM_TDP_CONFIG(Union):
     pass
 
 ATOM_TDP_CONFIG_BITS = struct__ATOM_TDP_CONFIG_BITS
-union__ATOM_TDP_CONFIG._pack_ = True # source:False
+union__ATOM_TDP_CONFIG._pack_ = 1 # source:False
 union__ATOM_TDP_CONFIG._fields_ = [
     ('TDP_config', ATOM_TDP_CONFIG_BITS),
     ('TDP_config_all', ctypes.c_uint32),
 ]
 
 ATOM_TDP_CONFIG = union__ATOM_TDP_CONFIG
-struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_7._pack_ = True # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_7._pack_ = 1 # source:False
 struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_7._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
@@ -3809,11 +4353,11 @@ struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_7._fields_ = [
     ('sExtDispConnInfo', ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO),
 ]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_8(ctypes.Structure):
+class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_8(Structure):
     pass
 
 ATOM_CLK_VOLT_CAPABILITY = struct__ATOM_CLK_VOLT_CAPABILITY
-struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_8._pack_ = True # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_8._pack_ = 1 # source:False
 struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_8._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
@@ -3878,16 +4422,20 @@ struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_8._fields_ = [
     ('sExtDispConnInfo', ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO),
 ]
 
-class struct__ATOM_I2C_REG_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_I2C_REG_INFO(Structure):
+    pass
+
+struct__ATOM_I2C_REG_INFO._pack_ = 1 # source:False
+struct__ATOM_I2C_REG_INFO._fields_ = [
     ('ucI2cRegIndex', ctypes.c_ubyte),
     ('ucI2cRegVal', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_9(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_9(Structure):
+    pass
+
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_9._pack_ = 1 # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_9._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
     ('ulDentistVCOFreq', ctypes.c_uint32),
@@ -3953,42 +4501,50 @@ class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_9(ctypes.Structure):
     ('ucEDPv1_4VSMode', ctypes.c_ubyte),
     ('ucReserved2', ctypes.c_ubyte),
     ('sExtDispConnInfo', ATOM_EXTERNAL_DISPLAY_CONNECTION_INFO),
-     ]
+]
 
-class struct__DPHY_TIMING_PARA(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DPHY_TIMING_PARA(Structure):
+    pass
+
+struct__DPHY_TIMING_PARA._pack_ = 1 # source:False
+struct__DPHY_TIMING_PARA._fields_ = [
     ('ucProfileID', ctypes.c_ubyte),
     ('ucPara', ctypes.c_uint32),
-     ]
+]
 
-class struct__DPHY_ELEC_PARA(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DPHY_ELEC_PARA(Structure):
+    pass
+
+struct__DPHY_ELEC_PARA._pack_ = 1 # source:False
+struct__DPHY_ELEC_PARA._fields_ = [
     ('usPara', ctypes.c_uint16 * 3),
-     ]
+]
 
-class struct__CAMERA_MODULE_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__CAMERA_MODULE_INFO(Structure):
+    pass
+
+struct__CAMERA_MODULE_INFO._pack_ = 1 # source:False
+struct__CAMERA_MODULE_INFO._fields_ = [
     ('ucID', ctypes.c_ubyte),
     ('strModuleName', ctypes.c_ubyte * 8),
     ('asTimingPara', struct__DPHY_TIMING_PARA * 6),
-     ]
+]
 
-class struct__FLASHLIGHT_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ucID', ctypes.c_ubyte),
-    ('strName', ctypes.c_ubyte * 8),
-     ]
-
-class struct__CAMERA_DATA(ctypes.Structure):
+class struct__FLASHLIGHT_INFO(Structure):
     pass
 
-DPHY_ELEC_PARA = struct__DPHY_ELEC_PARA
+struct__FLASHLIGHT_INFO._pack_ = 1 # source:False
+struct__FLASHLIGHT_INFO._fields_ = [
+    ('ucID', ctypes.c_ubyte),
+    ('strName', ctypes.c_ubyte * 8),
+]
+
+class struct__CAMERA_DATA(Structure):
+    pass
+
 FLASHLIGHT_INFO = struct__FLASHLIGHT_INFO
-struct__CAMERA_DATA._pack_ = True # source:False
+DPHY_ELEC_PARA = struct__DPHY_ELEC_PARA
+struct__CAMERA_DATA._pack_ = 1 # source:False
 struct__CAMERA_DATA._fields_ = [
     ('ulVersionCode', ctypes.c_uint32),
     ('asCameraInfo', struct__CAMERA_MODULE_INFO * 3),
@@ -3997,11 +4553,11 @@ struct__CAMERA_DATA._fields_ = [
     ('ulCrcVal', ctypes.c_uint32),
 ]
 
-class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_10(ctypes.Structure):
+class struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_10(Structure):
     pass
 
 CAMERA_DATA = struct__CAMERA_DATA
-struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_10._pack_ = True # source:False
+struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_10._pack_ = 1 # source:False
 struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_10._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulBootUpEngineClock', ctypes.c_uint32),
@@ -4070,185 +4626,211 @@ struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_10._fields_ = [
     ('ulReserved8', ctypes.c_uint32 * 29),
 ]
 
-class struct__ATOM_FUSION_SYSTEM_INFO_V2(ctypes.Structure):
+class struct__ATOM_FUSION_SYSTEM_INFO_V2(Structure):
     pass
 
 ATOM_INTEGRATED_SYSTEM_INFO_V1_8 = struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_8
-struct__ATOM_FUSION_SYSTEM_INFO_V2._pack_ = True # source:False
+struct__ATOM_FUSION_SYSTEM_INFO_V2._pack_ = 1 # source:False
 struct__ATOM_FUSION_SYSTEM_INFO_V2._fields_ = [
     ('sIntegratedSysInfo', ATOM_INTEGRATED_SYSTEM_INFO_V1_8),
     ('ulPowerplayTable', ctypes.c_uint32 * 128),
 ]
 
-class struct__ATOM_FUSION_SYSTEM_INFO_V3(ctypes.Structure):
+class struct__ATOM_FUSION_SYSTEM_INFO_V3(Structure):
     pass
 
 ATOM_INTEGRATED_SYSTEM_INFO_V1_10 = struct__ATOM_INTEGRATED_SYSTEM_INFO_V1_10
-struct__ATOM_FUSION_SYSTEM_INFO_V3._pack_ = True # source:False
+struct__ATOM_FUSION_SYSTEM_INFO_V3._pack_ = 1 # source:False
 struct__ATOM_FUSION_SYSTEM_INFO_V3._fields_ = [
     ('sIntegratedSysInfo', ATOM_INTEGRATED_SYSTEM_INFO_V1_10),
     ('ulPowerplayTable', ctypes.c_uint32 * 192),
 ]
 
-class struct__ATOM_I2C_DATA_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_I2C_DATA_RECORD(Structure):
+    pass
+
+struct__ATOM_I2C_DATA_RECORD._pack_ = 1 # source:False
+struct__ATOM_I2C_DATA_RECORD._fields_ = [
     ('ucNunberOfBytes', ctypes.c_ubyte),
     ('ucI2CData', ctypes.c_ubyte * 1),
-     ]
+]
 
-class struct__ATOM_I2C_DEVICE_SETUP_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_I2C_DEVICE_SETUP_INFO(Structure):
+    pass
+
+struct__ATOM_I2C_DEVICE_SETUP_INFO._pack_ = 1 # source:False
+struct__ATOM_I2C_DEVICE_SETUP_INFO._fields_ = [
     ('sucI2cId', ATOM_I2C_ID_CONFIG_ACCESS),
     ('ucSSChipID', ctypes.c_ubyte),
     ('ucSSChipSlaveAddr', ctypes.c_ubyte),
     ('ucNumOfI2CDataRecords', ctypes.c_ubyte),
     ('asI2CData', struct__ATOM_I2C_DATA_RECORD * 1),
-     ]
+]
 
-class struct__ATOM_ASIC_MVDD_INFO(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_ASIC_MVDD_INFO(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asI2CSetup', struct__ATOM_I2C_DEVICE_SETUP_INFO * 1),
      ]
 
-class struct__ATOM_ASIC_SS_ASSIGNMENT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_SS_ASSIGNMENT(Structure):
+    pass
+
+struct__ATOM_ASIC_SS_ASSIGNMENT._pack_ = 1 # source:False
+struct__ATOM_ASIC_SS_ASSIGNMENT._fields_ = [
     ('ulTargetClockRange', ctypes.c_uint32),
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('usSpreadRateInKhz', ctypes.c_uint16),
     ('ucClockIndication', ctypes.c_ubyte),
     ('ucSpreadSpectrumMode', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_ASIC_SS_ASSIGNMENT_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_SS_ASSIGNMENT_V2(Structure):
+    pass
+
+struct__ATOM_ASIC_SS_ASSIGNMENT_V2._pack_ = 1 # source:False
+struct__ATOM_ASIC_SS_ASSIGNMENT_V2._fields_ = [
     ('ulTargetClockRange', ctypes.c_uint32),
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('usSpreadRateIn10Hz', ctypes.c_uint16),
     ('ucClockIndication', ctypes.c_ubyte),
     ('ucSpreadSpectrumMode', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_ASIC_INTERNAL_SS_INFO(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_ASIC_INTERNAL_SS_INFO(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asSpreadSpectrum', struct__ATOM_ASIC_SS_ASSIGNMENT * 4),
      ]
 
-class struct__ATOM_ASIC_INTERNAL_SS_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_ASIC_INTERNAL_SS_INFO_V2(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asSpreadSpectrum', struct__ATOM_ASIC_SS_ASSIGNMENT_V2 * 1),
      ]
 
-class struct__ATOM_ASIC_SS_ASSIGNMENT_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ASIC_SS_ASSIGNMENT_V3(Structure):
+    pass
+
+struct__ATOM_ASIC_SS_ASSIGNMENT_V3._pack_ = 1 # source:False
+struct__ATOM_ASIC_SS_ASSIGNMENT_V3._fields_ = [
     ('ulTargetClockRange', ctypes.c_uint32),
     ('usSpreadSpectrumPercentage', ctypes.c_uint16),
     ('usSpreadRateIn10Hz', ctypes.c_uint16),
     ('ucClockIndication', ctypes.c_ubyte),
     ('ucSpreadSpectrumMode', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_ASIC_INTERNAL_SS_INFO_V3(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_ASIC_INTERNAL_SS_INFO_V3(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asSpreadSpectrum', struct__ATOM_ASIC_SS_ASSIGNMENT_V3 * 1),
      ]
 
-class struct__MEMORY_PLLINIT_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__MEMORY_PLLINIT_PARAMETERS(Structure):
+    pass
+
+struct__MEMORY_PLLINIT_PARAMETERS._pack_ = 1 # source:False
+struct__MEMORY_PLLINIT_PARAMETERS._fields_ = [
     ('ulTargetMemoryClock', ctypes.c_uint32),
     ('ucAction', ctypes.c_ubyte),
     ('ucFbDiv_Hi', ctypes.c_ubyte),
     ('ucFbDiv', ctypes.c_ubyte),
     ('ucPostDiv', ctypes.c_ubyte),
-     ]
+]
 
-class struct__GPIO_PIN_CONTROL_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GPIO_PIN_CONTROL_PARAMETERS(Structure):
+    pass
+
+struct__GPIO_PIN_CONTROL_PARAMETERS._pack_ = 1 # source:False
+struct__GPIO_PIN_CONTROL_PARAMETERS._fields_ = [
     ('ucGPIO_ID', ctypes.c_ubyte),
     ('ucGPIOBitShift', ctypes.c_ubyte),
     ('ucGPIOBitVal', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ENABLE_SCALER_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_SCALER_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_SCALER_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_SCALER_PARAMETERS._fields_ = [
     ('ucScaler', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('ucTVStandard', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 1),
-     ]
+]
 
-class struct__ENABLE_HARDWARE_ICON_CURSOR_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_HARDWARE_ICON_CURSOR_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_HARDWARE_ICON_CURSOR_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_HARDWARE_ICON_CURSOR_PARAMETERS._fields_ = [
     ('usHWIconHorzVertPosn', ctypes.c_uint32),
     ('ucHWIconVertOffset', ctypes.c_ubyte),
     ('ucHWIconHorzOffset', ctypes.c_ubyte),
     ('ucSelection', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ENABLE_HARDWARE_ICON_CURSOR_PS_ALLOCATION(ctypes.Structure):
+class struct__ENABLE_HARDWARE_ICON_CURSOR_PS_ALLOCATION(Structure):
     pass
 
 ENABLE_HARDWARE_ICON_CURSOR_PARAMETERS = struct__ENABLE_HARDWARE_ICON_CURSOR_PARAMETERS
 ENABLE_CRTC_PARAMETERS = struct__ENABLE_CRTC_PARAMETERS
-struct__ENABLE_HARDWARE_ICON_CURSOR_PS_ALLOCATION._pack_ = True # source:False
+struct__ENABLE_HARDWARE_ICON_CURSOR_PS_ALLOCATION._pack_ = 1 # source:False
 struct__ENABLE_HARDWARE_ICON_CURSOR_PS_ALLOCATION._fields_ = [
     ('sEnableIcon', ENABLE_HARDWARE_ICON_CURSOR_PARAMETERS),
     ('sReserved', ENABLE_CRTC_PARAMETERS),
 ]
 
-class struct__ENABLE_GRAPH_SURFACE_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_GRAPH_SURFACE_PARAMETERS(Structure):
+    pass
+
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS._pack_ = 1 # source:False
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS._fields_ = [
     ('usHight', ctypes.c_uint16),
     ('usWidth', ctypes.c_uint16),
     ('ucSurface', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_2(Structure):
+    pass
+
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_2._pack_ = 1 # source:False
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_2._fields_ = [
     ('usHight', ctypes.c_uint16),
     ('usWidth', ctypes.c_uint16),
     ('ucSurface', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_3(Structure):
+    pass
+
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_3._pack_ = 1 # source:False
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_3._fields_ = [
     ('usHight', ctypes.c_uint16),
     ('usWidth', ctypes.c_uint16),
     ('ucSurface', ctypes.c_ubyte),
     ('ucEnable', ctypes.c_ubyte),
     ('usDeviceId', ctypes.c_uint16),
-     ]
+]
 
-class struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_4(Structure):
+    pass
+
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_4._pack_ = 1 # source:False
+struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_4._fields_ = [
     ('usHight', ctypes.c_uint16),
     ('usWidth', ctypes.c_uint16),
     ('usGraphPitch', ctypes.c_uint16),
@@ -4258,206 +4840,238 @@ class struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_4(ctypes.Structure):
     ('ucEnable', ctypes.c_ubyte),
     ('ucModeType', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION(ctypes.Structure):
+class struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION(Structure):
     pass
 
 ENABLE_GRAPH_SURFACE_PARAMETERS = struct__ENABLE_GRAPH_SURFACE_PARAMETERS
 ENABLE_YUV_PARAMETERS = struct__ENABLE_YUV_PARAMETERS
-struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION._pack_ = True # source:False
+struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION._pack_ = 1 # source:False
 struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION._fields_ = [
     ('sSetSurface', ENABLE_GRAPH_SURFACE_PARAMETERS),
     ('sReserved', ENABLE_YUV_PARAMETERS),
 ]
 
-class struct__MEMORY_CLEAN_UP_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('usMemoryStart', ctypes.c_uint16),
-    ('usMemorySize', ctypes.c_uint16),
-     ]
-
-class struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('usX_Size', ctypes.c_uint16),
-    ('usY_Size', ctypes.c_uint16),
-     ]
-
-class struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2(ctypes.Structure):
+class struct__MEMORY_CLEAN_UP_PARAMETERS(Structure):
     pass
 
-class union__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+struct__MEMORY_CLEAN_UP_PARAMETERS._pack_ = 1 # source:False
+struct__MEMORY_CLEAN_UP_PARAMETERS._fields_ = [
+    ('usMemoryStart', ctypes.c_uint16),
+    ('usMemorySize', ctypes.c_uint16),
+]
+
+class struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS(Structure):
+    pass
+
+struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS._pack_ = 1 # source:False
+struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS._fields_ = [
+    ('usX_Size', ctypes.c_uint16),
+    ('usY_Size', ctypes.c_uint16),
+]
+
+class struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2(Structure):
+    pass
+
+class union__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2_0(Union):
+    pass
+
+union__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2_0._pack_ = 1 # source:False
+union__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2_0._fields_ = [
     ('usX_Size', ctypes.c_uint16),
     ('usSurface', ctypes.c_uint16),
-     ]
+]
 
-struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2._pack_ = True # source:False
+struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2._pack_ = 1 # source:False
 struct__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2._fields_ = [
-    ('_0', union__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2_0),
+    ('_GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2_0', union__GET_DISPLAY_SURFACE_SIZE_PARAMETERS_V2_0),
     ('usY_Size', ctypes.c_uint16),
     ('usDispXStart', ctypes.c_uint16),
     ('usDispYStart', ctypes.c_uint16),
 ]
 
-class struct__PALETTE_DATA_CONTROL_PARAMETERS_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PALETTE_DATA_CONTROL_PARAMETERS_V3(Structure):
+    pass
+
+struct__PALETTE_DATA_CONTROL_PARAMETERS_V3._pack_ = 1 # source:False
+struct__PALETTE_DATA_CONTROL_PARAMETERS_V3._fields_ = [
     ('ucLutId', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('usLutStartIndex', ctypes.c_uint16),
     ('usLutLength', ctypes.c_uint16),
     ('usLutOffsetInVram', ctypes.c_uint16),
-     ]
+]
 
-class struct__INTERRUPT_SERVICE_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__INTERRUPT_SERVICE_PARAMETERS_V2(Structure):
+    pass
+
+struct__INTERRUPT_SERVICE_PARAMETERS_V2._pack_ = 1 # source:False
+struct__INTERRUPT_SERVICE_PARAMETERS_V2._fields_ = [
     ('ucInterruptId', ctypes.c_ubyte),
     ('ucServiceId', ctypes.c_ubyte),
     ('ucStatus', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__EFUSE_INPUT_PARAMETER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__EFUSE_INPUT_PARAMETER(Structure):
+    pass
+
+struct__EFUSE_INPUT_PARAMETER._pack_ = 1 # source:False
+struct__EFUSE_INPUT_PARAMETER._fields_ = [
     ('usEfuseIndex', ctypes.c_uint16),
     ('ucBitShift', ctypes.c_ubyte),
     ('ucBitLength', ctypes.c_ubyte),
-     ]
+]
 
-class struct__INDIRECT_IO_ACCESS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__INDIRECT_IO_ACCESS(Structure):
+    pass
+
+struct__INDIRECT_IO_ACCESS._pack_ = 1 # source:False
+struct__INDIRECT_IO_ACCESS._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('IOAccessSequence', ctypes.c_ubyte * 256),
-     ]
+]
 
-class struct__ATOM_OEM_INFO(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_OEM_INFO(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('sucI2cId', ATOM_I2C_ID_CONFIG_ACCESS),
      ]
 
-class struct__ATOM_TV_MODE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_TV_MODE(Structure):
+    pass
+
+struct__ATOM_TV_MODE._pack_ = 1 # source:False
+struct__ATOM_TV_MODE._fields_ = [
     ('ucVMode_Num', ctypes.c_ubyte),
     ('ucTV_Mode_Num', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_BIOS_INT_TVSTD_MODE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_BIOS_INT_TVSTD_MODE(Structure):
+    pass
+
+struct__ATOM_BIOS_INT_TVSTD_MODE._pack_ = 1 # source:False
+struct__ATOM_BIOS_INT_TVSTD_MODE._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usTV_Mode_LUT_Offset', ctypes.c_uint16),
     ('usTV_FIFO_Offset', ctypes.c_uint16),
     ('usNTSC_Tbl_Offset', ctypes.c_uint16),
     ('usPAL_Tbl_Offset', ctypes.c_uint16),
     ('usCV_Tbl_Offset', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_TV_MODE_SCALER_PTR(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_TV_MODE_SCALER_PTR(Structure):
+    pass
+
+struct__ATOM_TV_MODE_SCALER_PTR._pack_ = 1 # source:False
+struct__ATOM_TV_MODE_SCALER_PTR._fields_ = [
     ('ucFilter0_Offset', ctypes.c_uint16),
     ('usFilter1_Offset', ctypes.c_uint16),
     ('ucTV_Mode_Num', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_STANDARD_VESA_TIMING(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_STANDARD_VESA_TIMING(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('aModeTimings', struct__ATOM_DTD_FORMAT * 16),
      ]
 
-class struct__ATOM_STD_FORMAT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_STD_FORMAT(Structure):
+    pass
+
+struct__ATOM_STD_FORMAT._pack_ = 1 # source:False
+struct__ATOM_STD_FORMAT._fields_ = [
     ('usSTD_HDisp', ctypes.c_uint16),
     ('usSTD_VDisp', ctypes.c_uint16),
     ('usSTD_RefreshRate', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_VESA_TO_EXTENDED_MODE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VESA_TO_EXTENDED_MODE(Structure):
+    pass
+
+struct__ATOM_VESA_TO_EXTENDED_MODE._pack_ = 1 # source:False
+struct__ATOM_VESA_TO_EXTENDED_MODE._fields_ = [
     ('usVESA_ModeNumber', ctypes.c_uint16),
     ('usExtendedModeNumber', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_VESA_TO_INTENAL_MODE_LUT(ctypes.Structure):
-    _pack_ = True # source:False
+class struct__ATOM_VESA_TO_INTENAL_MODE_LUT(Structure):
+    _pack_ = 1 # source:False
     _fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('asVESA_ToExtendedModeInfo', struct__ATOM_VESA_TO_EXTENDED_MODE * 76),
      ]
 
-class struct__ATOM_MEMORY_VENDOR_BLOCK(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MEMORY_VENDOR_BLOCK(Structure):
+    pass
+
+struct__ATOM_MEMORY_VENDOR_BLOCK._pack_ = 1 # source:False
+struct__ATOM_MEMORY_VENDOR_BLOCK._fields_ = [
     ('ucMemoryType', ctypes.c_ubyte),
     ('ucMemoryVendor', ctypes.c_ubyte),
     ('ucAdjMCId', ctypes.c_ubyte),
     ('ucDynClkId', ctypes.c_ubyte),
     ('ulDllResetClkRange', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_MEMORY_SETTING_ID_CONFIG(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ulMemClockRange', ctypes.c_uint32, 24),
-    ('ucMemBlkId', ctypes.c_uint32, 8),
-     ]
-
-class struct__ATOM_MEMORY_SETTING_DATA_BLOCK(ctypes.Structure):
+class struct__ATOM_MEMORY_SETTING_ID_CONFIG(Structure):
     pass
 
-class union__ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS(ctypes.Union):
+struct__ATOM_MEMORY_SETTING_ID_CONFIG._pack_ = 1 # source:False
+struct__ATOM_MEMORY_SETTING_ID_CONFIG._fields_ = [
+    ('ulMemClockRange', ctypes.c_uint32, 24),
+    ('ucMemBlkId', ctypes.c_uint32, 8),
+]
+
+class struct__ATOM_MEMORY_SETTING_DATA_BLOCK(Structure):
+    pass
+
+class union__ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS(Union):
     pass
 
 ATOM_MEMORY_SETTING_ID_CONFIG = struct__ATOM_MEMORY_SETTING_ID_CONFIG
-union__ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS._pack_ = True # source:False
+union__ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS._pack_ = 1 # source:False
 union__ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS._fields_ = [
     ('slAccess', ATOM_MEMORY_SETTING_ID_CONFIG),
     ('ulAccess', ctypes.c_uint32),
 ]
 
 ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS = union__ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS
-struct__ATOM_MEMORY_SETTING_DATA_BLOCK._pack_ = True # source:False
+struct__ATOM_MEMORY_SETTING_DATA_BLOCK._pack_ = 1 # source:False
 struct__ATOM_MEMORY_SETTING_DATA_BLOCK._fields_ = [
     ('ulMemoryID', ATOM_MEMORY_SETTING_ID_CONFIG_ACCESS),
     ('aulMemData', ctypes.c_uint32 * 1),
 ]
 
-class struct__ATOM_INIT_REG_INDEX_FORMAT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_INIT_REG_INDEX_FORMAT(Structure):
+    pass
+
+struct__ATOM_INIT_REG_INDEX_FORMAT._pack_ = 1 # source:False
+struct__ATOM_INIT_REG_INDEX_FORMAT._fields_ = [
     ('usRegIndex', ctypes.c_uint16),
     ('ucPreRegDataLength', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_INIT_REG_BLOCK(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_INIT_REG_BLOCK(Structure):
+    pass
+
+struct__ATOM_INIT_REG_BLOCK._pack_ = 1 # source:False
+struct__ATOM_INIT_REG_BLOCK._fields_ = [
     ('usRegIndexTblSize', ctypes.c_uint16),
     ('usRegDataBlkSize', ctypes.c_uint16),
     ('asRegIndexBuf', struct__ATOM_INIT_REG_INDEX_FORMAT * 1),
     ('asRegDataBuf', struct__ATOM_MEMORY_SETTING_DATA_BLOCK * 1),
-     ]
+]
 
-class struct__ATOM_MC_INIT_PARAM_TABLE(ctypes.Structure):
+class struct__ATOM_MC_INIT_PARAM_TABLE(Structure):
     pass
 
 ATOM_INIT_REG_BLOCK = struct__ATOM_INIT_REG_BLOCK
-struct__ATOM_MC_INIT_PARAM_TABLE._pack_ = True # source:False
+struct__ATOM_MC_INIT_PARAM_TABLE._pack_ = 1 # source:False
 struct__ATOM_MC_INIT_PARAM_TABLE._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usAdjustARB_SEQDataOffset', ctypes.c_uint16),
@@ -4469,27 +5083,33 @@ struct__ATOM_MC_INIT_PARAM_TABLE._fields_ = [
     ('asMCInitCommon', ATOM_INIT_REG_BLOCK),
 ]
 
-class struct__ATOM_REG_INIT_SETTING(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_REG_INIT_SETTING(Structure):
+    pass
+
+struct__ATOM_REG_INIT_SETTING._pack_ = 1 # source:False
+struct__ATOM_REG_INIT_SETTING._fields_ = [
     ('usRegIndex', ctypes.c_uint16),
     ('ulRegValue', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_MC_INIT_PARAM_TABLE_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MC_INIT_PARAM_TABLE_V2_1(Structure):
+    pass
+
+struct__ATOM_MC_INIT_PARAM_TABLE_V2_1._pack_ = 1 # source:False
+struct__ATOM_MC_INIT_PARAM_TABLE_V2_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulMCUcodeVersion', ctypes.c_uint32),
     ('ulMCUcodeRomStartAddr', ctypes.c_uint32),
     ('ulMCUcodeLength', ctypes.c_uint32),
     ('usMcRegInitTableOffset', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
-     ]
+]
 
-class struct__MCuCodeHeader(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__MCuCodeHeader(Structure):
+    pass
+
+struct__MCuCodeHeader._pack_ = 1 # source:False
+struct__MCuCodeHeader._fields_ = [
     ('ulSignature', ctypes.c_uint32),
     ('ucRevision', ctypes.c_ubyte),
     ('ucChecksum', ctypes.c_ubyte),
@@ -4499,11 +5119,13 @@ class struct__MCuCodeHeader(ctypes.Structure):
     ('usUCodeLength', ctypes.c_uint16),
     ('usReserved1', ctypes.c_uint16),
     ('usReserved2', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_VRAM_MODULE_V1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_MODULE_V1(Structure):
+    pass
+
+struct__ATOM_VRAM_MODULE_V1._pack_ = 1 # source:False
+struct__ATOM_VRAM_MODULE_V1._fields_ = [
     ('ulReserved', ctypes.c_uint32),
     ('usEMRSValue', ctypes.c_uint16),
     ('usMRSValue', ctypes.c_uint16),
@@ -4521,11 +5143,13 @@ class struct__ATOM_VRAM_MODULE_V1(ctypes.Structure):
     ('ucDefaultMVDDQ_ID', ctypes.c_ubyte),
     ('ucDefaultMVDDC_ID', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_VRAM_MODULE_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_MODULE_V2(Structure):
+    pass
+
+struct__ATOM_VRAM_MODULE_V2._pack_ = 1 # source:False
+struct__ATOM_VRAM_MODULE_V2._fields_ = [
     ('ulReserved', ctypes.c_uint32),
     ('ulFlags', ctypes.c_uint32),
     ('ulEngineClock', ctypes.c_uint32),
@@ -4549,46 +5173,52 @@ class struct__ATOM_VRAM_MODULE_V2(ctypes.Structure):
     ('ucDefaultMVDDC_ID', ctypes.c_ubyte),
     ('ucRefreshRateFactor', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__ATOM_MEMORY_TIMING_FORMAT(ctypes.Structure):
+class struct__ATOM_MEMORY_TIMING_FORMAT(Structure):
     pass
 
-class union__ATOM_MEMORY_TIMING_FORMAT_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('usMRS', ctypes.c_uint16),
-    ('usDDR3_MR0', ctypes.c_uint16),
-     ]
-
-class union__ATOM_MEMORY_TIMING_FORMAT_1(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('usEMRS', ctypes.c_uint16),
-    ('usDDR3_MR1', ctypes.c_uint16),
-     ]
-
-class union__ATOM_MEMORY_TIMING_FORMAT_2(ctypes.Union):
+class union__ATOM_MEMORY_TIMING_FORMAT_2(Union):
     pass
 
-class struct__ATOM_MEMORY_TIMING_FORMAT_2_0(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MEMORY_TIMING_FORMAT_2_0(Structure):
+    pass
+
+struct__ATOM_MEMORY_TIMING_FORMAT_2_0._pack_ = 1 # source:False
+struct__ATOM_MEMORY_TIMING_FORMAT_2_0._fields_ = [
     ('ucflag', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-union__ATOM_MEMORY_TIMING_FORMAT_2._pack_ = True # source:False
+union__ATOM_MEMORY_TIMING_FORMAT_2._pack_ = 1 # source:False
 union__ATOM_MEMORY_TIMING_FORMAT_2._fields_ = [
-    ('_0', struct__ATOM_MEMORY_TIMING_FORMAT_2_0),
+    ('_ATOM_MEMORY_TIMING_FORMAT_2_0', struct__ATOM_MEMORY_TIMING_FORMAT_2_0),
     ('usDDR3_MR2', ctypes.c_uint16),
 ]
 
-struct__ATOM_MEMORY_TIMING_FORMAT._pack_ = True # source:False
+class union__ATOM_MEMORY_TIMING_FORMAT_1(Union):
+    pass
+
+union__ATOM_MEMORY_TIMING_FORMAT_1._pack_ = 1 # source:False
+union__ATOM_MEMORY_TIMING_FORMAT_1._fields_ = [
+    ('usEMRS', ctypes.c_uint16),
+    ('usDDR3_MR1', ctypes.c_uint16),
+]
+
+class union__ATOM_MEMORY_TIMING_FORMAT_0(Union):
+    pass
+
+union__ATOM_MEMORY_TIMING_FORMAT_0._pack_ = 1 # source:False
+union__ATOM_MEMORY_TIMING_FORMAT_0._fields_ = [
+    ('usMRS', ctypes.c_uint16),
+    ('usDDR3_MR0', ctypes.c_uint16),
+]
+
+struct__ATOM_MEMORY_TIMING_FORMAT._pack_ = 1 # source:False
 struct__ATOM_MEMORY_TIMING_FORMAT._fields_ = [
     ('ulClkRange', ctypes.c_uint32),
-    ('_1', union__ATOM_MEMORY_TIMING_FORMAT_0),
-    ('_2', union__ATOM_MEMORY_TIMING_FORMAT_1),
+    ('_ATOM_MEMORY_TIMING_FORMAT_0', union__ATOM_MEMORY_TIMING_FORMAT_0),
+    ('_ATOM_MEMORY_TIMING_FORMAT_1', union__ATOM_MEMORY_TIMING_FORMAT_1),
     ('ucCL', ctypes.c_ubyte),
     ('ucWL', ctypes.c_ubyte),
     ('uctRAS', ctypes.c_ubyte),
@@ -4603,12 +5233,14 @@ struct__ATOM_MEMORY_TIMING_FORMAT._fields_ = [
     ('uctPDIX', ctypes.c_ubyte),
     ('uctFAW', ctypes.c_ubyte),
     ('uctAOND', ctypes.c_ubyte),
-    ('_17', union__ATOM_MEMORY_TIMING_FORMAT_2),
+    ('_ATOM_MEMORY_TIMING_FORMAT_2', union__ATOM_MEMORY_TIMING_FORMAT_2),
 ]
 
-class struct__ATOM_MEMORY_TIMING_FORMAT_V1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MEMORY_TIMING_FORMAT_V1(Structure):
+    pass
+
+struct__ATOM_MEMORY_TIMING_FORMAT_V1._pack_ = 1 # source:False
+struct__ATOM_MEMORY_TIMING_FORMAT_V1._fields_ = [
     ('ulClkRange', ctypes.c_uint32),
     ('usMRS', ctypes.c_uint16),
     ('usEMRS', ctypes.c_uint16),
@@ -4637,11 +5269,13 @@ class struct__ATOM_MEMORY_TIMING_FORMAT_V1(ctypes.Structure):
     ('ucMR5lo', ctypes.c_ubyte),
     ('ucMR5hi', ctypes.c_ubyte),
     ('ucTerminator', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_MEMORY_TIMING_FORMAT_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MEMORY_TIMING_FORMAT_V2(Structure):
+    pass
+
+struct__ATOM_MEMORY_TIMING_FORMAT_V2._pack_ = 1 # source:False
+struct__ATOM_MEMORY_TIMING_FORMAT_V2._fields_ = [
     ('ulClkRange', ctypes.c_uint32),
     ('usMRS', ctypes.c_uint16),
     ('usEMRS', ctypes.c_uint16),
@@ -4673,30 +5307,34 @@ class struct__ATOM_MEMORY_TIMING_FORMAT_V2(ctypes.Structure):
     ('ucMR5hi', ctypes.c_ubyte),
     ('ucTerminator', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_MEMORY_FORMAT(ctypes.Structure):
+class struct__ATOM_MEMORY_FORMAT(Structure):
     pass
 
-class union__ATOM_MEMORY_FORMAT_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('usEMRS2Value', ctypes.c_uint16),
-    ('usDDR3_Reserved', ctypes.c_uint16),
-     ]
+class union__ATOM_MEMORY_FORMAT_1(Union):
+    pass
 
-class union__ATOM_MEMORY_FORMAT_1(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+union__ATOM_MEMORY_FORMAT_1._pack_ = 1 # source:False
+union__ATOM_MEMORY_FORMAT_1._fields_ = [
     ('usEMRS3Value', ctypes.c_uint16),
     ('usDDR3_MR3', ctypes.c_uint16),
-     ]
+]
 
-struct__ATOM_MEMORY_FORMAT._pack_ = True # source:False
+class union__ATOM_MEMORY_FORMAT_0(Union):
+    pass
+
+union__ATOM_MEMORY_FORMAT_0._pack_ = 1 # source:False
+union__ATOM_MEMORY_FORMAT_0._fields_ = [
+    ('usEMRS2Value', ctypes.c_uint16),
+    ('usDDR3_Reserved', ctypes.c_uint16),
+]
+
+struct__ATOM_MEMORY_FORMAT._pack_ = 1 # source:False
 struct__ATOM_MEMORY_FORMAT._fields_ = [
     ('ulDllDisClock', ctypes.c_uint32),
-    ('_1', union__ATOM_MEMORY_FORMAT_0),
-    ('_2', union__ATOM_MEMORY_FORMAT_1),
+    ('_ATOM_MEMORY_FORMAT_0', union__ATOM_MEMORY_FORMAT_0),
+    ('_ATOM_MEMORY_FORMAT_1', union__ATOM_MEMORY_FORMAT_1),
     ('ucMemoryType', ctypes.c_ubyte),
     ('ucMemoryVenderID', ctypes.c_ubyte),
     ('ucRow', ctypes.c_ubyte),
@@ -4712,11 +5350,11 @@ struct__ATOM_MEMORY_FORMAT._fields_ = [
     ('asMemTiming', struct__ATOM_MEMORY_TIMING_FORMAT * 5),
 ]
 
-class struct__ATOM_VRAM_MODULE_V3(ctypes.Structure):
+class struct__ATOM_VRAM_MODULE_V3(Structure):
     pass
 
 ATOM_MEMORY_FORMAT = struct__ATOM_MEMORY_FORMAT
-struct__ATOM_VRAM_MODULE_V3._pack_ = True # source:False
+struct__ATOM_VRAM_MODULE_V3._pack_ = 1 # source:False
 struct__ATOM_VRAM_MODULE_V3._fields_ = [
     ('ulChannelMapCfg', ctypes.c_uint32),
     ('usSize', ctypes.c_uint16),
@@ -4731,24 +5369,28 @@ struct__ATOM_VRAM_MODULE_V3._fields_ = [
     ('asMemory', ATOM_MEMORY_FORMAT),
 ]
 
-class struct__ATOM_VRAM_MODULE_V4(ctypes.Structure):
+class struct__ATOM_VRAM_MODULE_V4(Structure):
     pass
 
-class union__ATOM_VRAM_MODULE_V4_1(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__ATOM_VRAM_MODULE_V4_1(Union):
+    pass
+
+union__ATOM_VRAM_MODULE_V4_1._pack_ = 1 # source:False
+union__ATOM_VRAM_MODULE_V4_1._fields_ = [
     ('usEMRS3Value', ctypes.c_uint16),
     ('usDDR3_MR3', ctypes.c_uint16),
-     ]
+]
 
-class union__ATOM_VRAM_MODULE_V4_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__ATOM_VRAM_MODULE_V4_0(Union):
+    pass
+
+union__ATOM_VRAM_MODULE_V4_0._pack_ = 1 # source:False
+union__ATOM_VRAM_MODULE_V4_0._fields_ = [
     ('usEMRS2Value', ctypes.c_uint16),
     ('usDDR3_Reserved', ctypes.c_uint16),
-     ]
+]
 
-struct__ATOM_VRAM_MODULE_V4._pack_ = True # source:False
+struct__ATOM_VRAM_MODULE_V4._pack_ = 1 # source:False
 struct__ATOM_VRAM_MODULE_V4._fields_ = [
     ('ulChannelMapCfg', ctypes.c_uint32),
     ('usModuleSize', ctypes.c_uint16),
@@ -4766,17 +5408,19 @@ struct__ATOM_VRAM_MODULE_V4._fields_ = [
     ('ucPreamble', ctypes.c_ubyte),
     ('ucMemorySize', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
-    ('_16', union__ATOM_VRAM_MODULE_V4_0),
-    ('_17', union__ATOM_VRAM_MODULE_V4_1),
+    ('_ATOM_VRAM_MODULE_V4_0', union__ATOM_VRAM_MODULE_V4_0),
+    ('_ATOM_VRAM_MODULE_V4_1', union__ATOM_VRAM_MODULE_V4_1),
     ('ucMemoryVenderID', ctypes.c_ubyte),
     ('ucRefreshRateFactor', ctypes.c_ubyte),
     ('ucReserved2', ctypes.c_ubyte * 2),
     ('asMemTiming', struct__ATOM_MEMORY_TIMING_FORMAT * 5),
 ]
 
-class struct__ATOM_VRAM_MODULE_V5(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_MODULE_V5(Structure):
+    pass
+
+struct__ATOM_VRAM_MODULE_V5._pack_ = 1 # source:False
+struct__ATOM_VRAM_MODULE_V5._fields_ = [
     ('ulChannelMapCfg', ctypes.c_uint32),
     ('usModuleSize', ctypes.c_uint16),
     ('usPrivateReserved', ctypes.c_uint16),
@@ -4800,11 +5444,13 @@ class struct__ATOM_VRAM_MODULE_V5(ctypes.Structure):
     ('ucFIFODepth', ctypes.c_ubyte),
     ('ucCDR_Bandwidth', ctypes.c_ubyte),
     ('asMemTiming', struct__ATOM_MEMORY_TIMING_FORMAT_V1 * 5),
-     ]
+]
 
-class struct__ATOM_VRAM_MODULE_V6(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_MODULE_V6(Structure):
+    pass
+
+struct__ATOM_VRAM_MODULE_V6._pack_ = 1 # source:False
+struct__ATOM_VRAM_MODULE_V6._fields_ = [
     ('ulChannelMapCfg', ctypes.c_uint32),
     ('usModuleSize', ctypes.c_uint16),
     ('usPrivateReserved', ctypes.c_uint16),
@@ -4828,11 +5474,13 @@ class struct__ATOM_VRAM_MODULE_V6(ctypes.Structure):
     ('ucFIFODepth', ctypes.c_ubyte),
     ('ucCDR_Bandwidth', ctypes.c_ubyte),
     ('asMemTiming', struct__ATOM_MEMORY_TIMING_FORMAT_V2 * 5),
-     ]
+]
 
-class struct__ATOM_VRAM_MODULE_V7(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_MODULE_V7(Structure):
+    pass
+
+struct__ATOM_VRAM_MODULE_V7._pack_ = 1 # source:False
+struct__ATOM_VRAM_MODULE_V7._fields_ = [
     ('ulChannelMapCfg', ctypes.c_uint32),
     ('usModuleSize', ctypes.c_uint16),
     ('usPrivateReserved', ctypes.c_uint16),
@@ -4857,11 +5505,13 @@ class struct__ATOM_VRAM_MODULE_V7(ctypes.Structure):
     ('ucFIFODepth', ctypes.c_ubyte),
     ('ucCDR_Bandwidth', ctypes.c_ubyte),
     ('strMemPNString', ctypes.c_char * 20),
-     ]
+]
 
-class struct__ATOM_VRAM_MODULE_V8(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_MODULE_V8(Structure):
+    pass
+
+struct__ATOM_VRAM_MODULE_V8._pack_ = 1 # source:False
+struct__ATOM_VRAM_MODULE_V8._fields_ = [
     ('ulChannelMapCfg', ctypes.c_uint32),
     ('usModuleSize', ctypes.c_uint16),
     ('usMcRamCfg', ctypes.c_uint16),
@@ -4888,19 +5538,23 @@ class struct__ATOM_VRAM_MODULE_V8(ctypes.Structure):
     ('ulBankMapCfg', ctypes.c_uint32),
     ('ulReserved', ctypes.c_uint32),
     ('strMemPNString', ctypes.c_char * 20),
-     ]
+]
 
-class struct__ATOM_VRAM_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_INFO_V2(Structure):
+    pass
+
+struct__ATOM_VRAM_INFO_V2._pack_ = 1 # source:False
+struct__ATOM_VRAM_INFO_V2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucNumOfVRAMModule', ctypes.c_ubyte),
     ('aVramInfo', struct__ATOM_VRAM_MODULE_V3 * 16),
-     ]
+]
 
-class struct__ATOM_VRAM_INFO_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_INFO_V3(Structure):
+    pass
+
+struct__ATOM_VRAM_INFO_V3._pack_ = 1 # source:False
+struct__ATOM_VRAM_INFO_V3._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usMemAdjustTblOffset', ctypes.c_uint16),
     ('usMemClkPatchTblOffset', ctypes.c_uint16),
@@ -4909,11 +5563,13 @@ class struct__ATOM_VRAM_INFO_V3(ctypes.Structure):
     ('ucNumOfVRAMModule', ctypes.c_ubyte),
     ('aVramInfo', struct__ATOM_VRAM_MODULE_V3 * 16),
     ('asMemPatch', ATOM_INIT_REG_BLOCK),
-     ]
+]
 
-class struct__ATOM_VRAM_INFO_V4(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_INFO_V4(Structure):
+    pass
+
+struct__ATOM_VRAM_INFO_V4._pack_ = 1 # source:False
+struct__ATOM_VRAM_INFO_V4._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usMemAdjustTblOffset', ctypes.c_uint16),
     ('usMemClkPatchTblOffset', ctypes.c_uint16),
@@ -4924,11 +5580,13 @@ class struct__ATOM_VRAM_INFO_V4(ctypes.Structure):
     ('ucNumOfVRAMModule', ctypes.c_ubyte),
     ('aVramInfo', struct__ATOM_VRAM_MODULE_V4 * 16),
     ('asMemPatch', ATOM_INIT_REG_BLOCK),
-     ]
+]
 
-class struct__ATOM_VRAM_INFO_HEADER_V2_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_INFO_HEADER_V2_1(Structure):
+    pass
+
+struct__ATOM_VRAM_INFO_HEADER_V2_1._pack_ = 1 # source:False
+struct__ATOM_VRAM_INFO_HEADER_V2_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usMemAdjustTblOffset', ctypes.c_uint16),
     ('usMemClkPatchTblOffset', ctypes.c_uint16),
@@ -4939,11 +5597,13 @@ class struct__ATOM_VRAM_INFO_HEADER_V2_1(ctypes.Structure):
     ('ucVramModuleVer', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('aVramInfo', struct__ATOM_VRAM_MODULE_V7 * 16),
-     ]
+]
 
-class struct__ATOM_VRAM_INFO_HEADER_V2_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_INFO_HEADER_V2_2(Structure):
+    pass
+
+struct__ATOM_VRAM_INFO_HEADER_V2_2._pack_ = 1 # source:False
+struct__ATOM_VRAM_INFO_HEADER_V2_2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usMemAdjustTblOffset', ctypes.c_uint16),
     ('usMemClkPatchTblOffset', ctypes.c_uint16),
@@ -4956,11 +5616,13 @@ class struct__ATOM_VRAM_INFO_HEADER_V2_2(ctypes.Structure):
     ('ucVramModuleVer', ctypes.c_ubyte),
     ('ucMcPhyTileNum', ctypes.c_ubyte),
     ('aVramInfo', struct__ATOM_VRAM_MODULE_V8 * 16),
-     ]
+]
 
-class struct__ATOM_DRAM_DATA_REMAP(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DRAM_DATA_REMAP(Structure):
+    pass
+
+struct__ATOM_DRAM_DATA_REMAP._pack_ = 1 # source:False
+struct__ATOM_DRAM_DATA_REMAP._fields_ = [
     ('ucByteRemapCh0', ctypes.c_ubyte),
     ('ucByteRemapCh1', ctypes.c_ubyte),
     ('ulByte0BitRemapCh0', ctypes.c_uint32),
@@ -4971,74 +5633,86 @@ class struct__ATOM_DRAM_DATA_REMAP(ctypes.Structure):
     ('ulByte1BitRemapCh1', ctypes.c_uint32),
     ('ulByte2BitRemapCh1', ctypes.c_uint32),
     ('ulByte3BitRemapCh1', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_VRAM_GPIO_DETECTION_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_VRAM_GPIO_DETECTION_INFO(Structure):
+    pass
+
+struct__ATOM_VRAM_GPIO_DETECTION_INFO._pack_ = 1 # source:False
+struct__ATOM_VRAM_GPIO_DETECTION_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('aVID_PinsShift', ctypes.c_ubyte * 9),
-     ]
+]
 
-class struct__ATOM_MEMORY_TRAINING_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MEMORY_TRAINING_INFO(Structure):
+    pass
+
+struct__ATOM_MEMORY_TRAINING_INFO._pack_ = 1 # source:False
+struct__ATOM_MEMORY_TRAINING_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucTrainingLoop', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
     ('asMemTrainingSetting', ATOM_INIT_REG_BLOCK),
-     ]
+]
 
-class struct__ATOM_MEMORY_TRAINING_INFO_V3_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MEMORY_TRAINING_INFO_V3_1(Structure):
+    pass
+
+struct__ATOM_MEMORY_TRAINING_INFO_V3_1._pack_ = 1 # source:False
+struct__ATOM_MEMORY_TRAINING_INFO_V3_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ulMCUcodeVersion', ctypes.c_uint32),
     ('usMCIOInitLen', ctypes.c_uint16),
     ('usMCUcodeLen', ctypes.c_uint16),
     ('usMCIORegInitOffset', ctypes.c_uint16),
     ('usMCUcodeOffset', ctypes.c_uint16),
-     ]
+]
 
-class struct_SW_I2C_CNTL_DATA_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_SW_I2C_CNTL_DATA_PARAMETERS(Structure):
+    pass
+
+struct_SW_I2C_CNTL_DATA_PARAMETERS._pack_ = 1 # source:False
+struct_SW_I2C_CNTL_DATA_PARAMETERS._fields_ = [
     ('ucControl', ctypes.c_ubyte),
     ('ucData', ctypes.c_ubyte),
     ('ucSatus', ctypes.c_ubyte),
     ('ucTemp', ctypes.c_ubyte),
-     ]
+]
 
-class struct__SW_I2C_IO_DATA_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SW_I2C_IO_DATA_PARAMETERS(Structure):
+    pass
+
+struct__SW_I2C_IO_DATA_PARAMETERS._pack_ = 1 # source:False
+struct__SW_I2C_IO_DATA_PARAMETERS._fields_ = [
     ('GPIO_Info', ctypes.c_uint16),
     ('ucAct', ctypes.c_ubyte),
     ('ucData', ctypes.c_ubyte),
-     ]
+]
 
-class struct__PTR_32_BIT_STRUCTURE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('Offset16', ctypes.c_uint16),
-    ('Segment16', ctypes.c_uint16),
-     ]
-
-class struct__VBE_1_2_INFO_BLOCK_UPDATABLE(ctypes.Structure):
+class struct__PTR_32_BIT_STRUCTURE(Structure):
     pass
 
-class union__PTR_32_BIT_UNION(ctypes.Union):
+struct__PTR_32_BIT_STRUCTURE._pack_ = 1 # source:False
+struct__PTR_32_BIT_STRUCTURE._fields_ = [
+    ('Offset16', ctypes.c_uint16),
+    ('Segment16', ctypes.c_uint16),
+]
+
+class struct__VBE_1_2_INFO_BLOCK_UPDATABLE(Structure):
+    pass
+
+class union__PTR_32_BIT_UNION(Union):
     pass
 
 PTR_32_BIT_STRUCTURE = struct__PTR_32_BIT_STRUCTURE
-union__PTR_32_BIT_UNION._pack_ = True # source:False
+union__PTR_32_BIT_UNION._pack_ = 1 # source:False
 union__PTR_32_BIT_UNION._fields_ = [
     ('SegmentOffset', PTR_32_BIT_STRUCTURE),
     ('Ptr32_Bit', ctypes.c_uint32),
 ]
 
 PTR_32_BIT_UNION = union__PTR_32_BIT_UNION
-struct__VBE_1_2_INFO_BLOCK_UPDATABLE._pack_ = True # source:False
+struct__VBE_1_2_INFO_BLOCK_UPDATABLE._pack_ = 1 # source:False
 struct__VBE_1_2_INFO_BLOCK_UPDATABLE._fields_ = [
     ('VbeSignature', ctypes.c_ubyte * 4),
     ('VbeVersion', ctypes.c_uint16),
@@ -5048,11 +5722,11 @@ struct__VBE_1_2_INFO_BLOCK_UPDATABLE._fields_ = [
     ('TotalMemory', ctypes.c_uint16),
 ]
 
-class struct__VBE_2_0_INFO_BLOCK_UPDATABLE(ctypes.Structure):
+class struct__VBE_2_0_INFO_BLOCK_UPDATABLE(Structure):
     pass
 
 VBE_1_2_INFO_BLOCK_UPDATABLE = struct__VBE_1_2_INFO_BLOCK_UPDATABLE
-struct__VBE_2_0_INFO_BLOCK_UPDATABLE._pack_ = True # source:False
+struct__VBE_2_0_INFO_BLOCK_UPDATABLE._pack_ = 1 # source:False
 struct__VBE_2_0_INFO_BLOCK_UPDATABLE._fields_ = [
     ('CommonBlock', VBE_1_2_INFO_BLOCK_UPDATABLE),
     ('OemSoftRev', ctypes.c_uint16),
@@ -5061,14 +5735,14 @@ struct__VBE_2_0_INFO_BLOCK_UPDATABLE._fields_ = [
     ('OemProductRevPtr', PTR_32_BIT_UNION),
 ]
 
-class struct__VBE_INFO_BLOCK(ctypes.Structure):
+class struct__VBE_INFO_BLOCK(Structure):
     pass
 
-class union__VBE_VERSION_UNION(ctypes.Union):
+class union__VBE_VERSION_UNION(Union):
     pass
 
 VBE_2_0_INFO_BLOCK_UPDATABLE = struct__VBE_2_0_INFO_BLOCK_UPDATABLE
-union__VBE_VERSION_UNION._pack_ = True # source:False
+union__VBE_VERSION_UNION._pack_ = 1 # source:False
 union__VBE_VERSION_UNION._fields_ = [
     ('VBE_2_0_InfoBlock', VBE_2_0_INFO_BLOCK_UPDATABLE),
     ('VBE_1_2_InfoBlock', VBE_1_2_INFO_BLOCK_UPDATABLE),
@@ -5076,16 +5750,18 @@ union__VBE_VERSION_UNION._fields_ = [
 ]
 
 VBE_VERSION_UNION = union__VBE_VERSION_UNION
-struct__VBE_INFO_BLOCK._pack_ = True # source:False
+struct__VBE_INFO_BLOCK._pack_ = 1 # source:False
 struct__VBE_INFO_BLOCK._fields_ = [
     ('UpdatableVBE_Info', VBE_VERSION_UNION),
     ('Reserved', ctypes.c_ubyte * 222),
     ('OemData', ctypes.c_ubyte * 256),
 ]
 
-class struct__VBE_FP_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__VBE_FP_INFO(Structure):
+    pass
+
+struct__VBE_FP_INFO._pack_ = 1 # source:False
+struct__VBE_FP_INFO._fields_ = [
     ('HSize', ctypes.c_uint16),
     ('VSize', ctypes.c_uint16),
     ('FPType', ctypes.c_uint16),
@@ -5096,11 +5772,13 @@ class struct__VBE_FP_INFO(ctypes.Structure):
     ('RsvdOffScrnMemSize', ctypes.c_uint32),
     ('RsvdOffScrnMEmPtr', ctypes.c_uint32),
     ('Reserved', ctypes.c_ubyte * 14),
-     ]
+]
 
-class struct__VESA_MODE_INFO_BLOCK(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__VESA_MODE_INFO_BLOCK(Structure):
+    pass
+
+struct__VESA_MODE_INFO_BLOCK._pack_ = 1 # source:False
+struct__VESA_MODE_INFO_BLOCK._fields_ = [
     ('ModeAttributes', ctypes.c_uint16),
     ('WinAAttributes', ctypes.c_ubyte),
     ('WinBAttributes', ctypes.c_ubyte),
@@ -5146,11 +5824,13 @@ class struct__VESA_MODE_INFO_BLOCK(ctypes.Structure):
     ('LinRsvdFieldPosition', ctypes.c_ubyte),
     ('MaxPixelClock', ctypes.c_uint32),
     ('Reserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ASIC_TRANSMITTER_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ASIC_TRANSMITTER_INFO(Structure):
+    pass
+
+struct__ASIC_TRANSMITTER_INFO._pack_ = 1 # source:False
+struct__ASIC_TRANSMITTER_INFO._fields_ = [
     ('usTransmitterObjId', ctypes.c_uint16),
     ('usSupportDevice', ctypes.c_uint16),
     ('ucTransmitterCmdTblId', ctypes.c_ubyte),
@@ -5159,47 +5839,57 @@ class struct__ASIC_TRANSMITTER_INFO(ctypes.Structure):
     ('ucOptionEncoderID', ctypes.c_ubyte),
     ('uc2ndEncoderID', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ASIC_ENCODER_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ASIC_ENCODER_INFO(Structure):
+    pass
+
+struct__ASIC_ENCODER_INFO._pack_ = 1 # source:False
+struct__ASIC_ENCODER_INFO._fields_ = [
     ('ucEncoderID', ctypes.c_ubyte),
     ('ucEncoderConfig', ctypes.c_ubyte),
     ('usEncoderCmdTblId', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_DISP_OUT_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DISP_OUT_INFO(Structure):
+    pass
+
+struct__ATOM_DISP_OUT_INFO._pack_ = 1 # source:False
+struct__ATOM_DISP_OUT_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ptrTransmitterInfo', ctypes.c_uint16),
     ('ptrEncoderInfo', ctypes.c_uint16),
     ('asTransmitterInfo', struct__ASIC_TRANSMITTER_INFO * 1),
     ('asEncoderInfo', struct__ASIC_ENCODER_INFO * 1),
-     ]
+]
 
-class struct__ATOM_DISP_OUT_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DISP_OUT_INFO_V2(Structure):
+    pass
+
+struct__ATOM_DISP_OUT_INFO_V2._pack_ = 1 # source:False
+struct__ATOM_DISP_OUT_INFO_V2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ptrTransmitterInfo', ctypes.c_uint16),
     ('ptrEncoderInfo', ctypes.c_uint16),
     ('ptrMainCallParserFar', ctypes.c_uint16),
     ('asTransmitterInfo', struct__ASIC_TRANSMITTER_INFO * 1),
     ('asEncoderInfo', struct__ASIC_ENCODER_INFO * 1),
-     ]
+]
 
-class struct__ATOM_DISP_CLOCK_ID(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DISP_CLOCK_ID(Structure):
+    pass
+
+struct__ATOM_DISP_CLOCK_ID._pack_ = 1 # source:False
+struct__ATOM_DISP_CLOCK_ID._fields_ = [
     ('ucPpllId', ctypes.c_ubyte),
     ('ucPpllAttribute', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ASIC_TRANSMITTER_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ASIC_TRANSMITTER_INFO_V2(Structure):
+    pass
+
+struct__ASIC_TRANSMITTER_INFO_V2._pack_ = 1 # source:False
+struct__ASIC_TRANSMITTER_INFO_V2._fields_ = [
     ('usTransmitterObjId', ctypes.c_uint16),
     ('usDispClkIdOffset', ctypes.c_uint16),
     ('ucTransmitterCmdTblId', ctypes.c_ubyte),
@@ -5208,11 +5898,13 @@ class struct__ASIC_TRANSMITTER_INFO_V2(ctypes.Structure):
     ('ucOptionEncoderID', ctypes.c_ubyte),
     ('uc2ndEncoderID', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_DISP_OUT_INFO_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DISP_OUT_INFO_V3(Structure):
+    pass
+
+struct__ATOM_DISP_OUT_INFO_V3._pack_ = 1 # source:False
+struct__ATOM_DISP_OUT_INFO_V3._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ptrTransmitterInfo', ctypes.c_uint16),
     ('ptrEncoderInfo', ctypes.c_uint16),
@@ -5226,111 +5918,123 @@ class struct__ATOM_DISP_OUT_INFO_V3(ctypes.Structure):
     ('ucDispCaps', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
     ('asTransmitterInfo', struct__ASIC_TRANSMITTER_INFO_V2 * 1),
-     ]
+]
 
-class struct__ATOM_DISPLAY_DEVICE_PRIORITY_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('sHeader', ATOM_COMMON_TABLE_HEADER),
-    ('asDevicePriority', ctypes.c_uint16 * 16),
-     ]
-
-class struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS(ctypes.Structure):
+class struct__ATOM_DISPLAY_DEVICE_PRIORITY_INFO(Structure):
     pass
 
-class union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+struct__ATOM_DISPLAY_DEVICE_PRIORITY_INFO._pack_ = 1 # source:False
+struct__ATOM_DISPLAY_DEVICE_PRIORITY_INFO._fields_ = [
+    ('sHeader', ATOM_COMMON_TABLE_HEADER),
+    ('asDevicePriority', ctypes.c_uint16 * 16),
+]
+
+class struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS(Structure):
+    pass
+
+class union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_0(Union):
+    pass
+
+union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_0._pack_ = 1 # source:False
+union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_0._fields_ = [
     ('ucReplyStatus', ctypes.c_ubyte),
     ('ucDelay', ctypes.c_ubyte),
-     ]
+]
 
-struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS._pack_ = True # source:False
+struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS._pack_ = 1 # source:False
 struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS._fields_ = [
     ('lpAuxRequest', ctypes.c_uint16),
     ('lpDataOut', ctypes.c_uint16),
     ('ucChannelID', ctypes.c_ubyte),
-    ('_3', union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_0),
+    ('_PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_0', union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_0),
     ('ucDataOutLen', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
 ]
 
-class struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2(ctypes.Structure):
+class struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2(Structure):
     pass
 
-class union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2_0(Union):
+    pass
+
+union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2_0._pack_ = 1 # source:False
+union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2_0._fields_ = [
     ('ucReplyStatus', ctypes.c_ubyte),
     ('ucDelay', ctypes.c_ubyte),
-     ]
+]
 
-struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2._pack_ = True # source:False
+struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2._pack_ = 1 # source:False
 struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2._fields_ = [
     ('lpAuxRequest', ctypes.c_uint16),
     ('lpDataOut', ctypes.c_uint16),
     ('ucChannelID', ctypes.c_ubyte),
-    ('_3', union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2_0),
+    ('_PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2_0', union__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2_0),
     ('ucDataOutLen', ctypes.c_ubyte),
     ('ucHPD_ID', ctypes.c_ubyte),
 ]
 
-class struct__DP_ENCODER_SERVICE_PARAMETERS(ctypes.Structure):
+class struct__DP_ENCODER_SERVICE_PARAMETERS(Structure):
     pass
 
-class union__DP_ENCODER_SERVICE_PARAMETERS_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__DP_ENCODER_SERVICE_PARAMETERS_0(Union):
+    pass
+
+union__DP_ENCODER_SERVICE_PARAMETERS_0._pack_ = 1 # source:False
+union__DP_ENCODER_SERVICE_PARAMETERS_0._fields_ = [
     ('ucConfig', ctypes.c_ubyte),
     ('ucI2cId', ctypes.c_ubyte),
-     ]
+]
 
-struct__DP_ENCODER_SERVICE_PARAMETERS._pack_ = True # source:False
+struct__DP_ENCODER_SERVICE_PARAMETERS._pack_ = 1 # source:False
 struct__DP_ENCODER_SERVICE_PARAMETERS._fields_ = [
     ('ucLinkClock', ctypes.c_uint16),
-    ('_1', union__DP_ENCODER_SERVICE_PARAMETERS_0),
+    ('_DP_ENCODER_SERVICE_PARAMETERS_0', union__DP_ENCODER_SERVICE_PARAMETERS_0),
     ('ucAction', ctypes.c_ubyte),
     ('ucStatus', ctypes.c_ubyte),
     ('ucLaneNum', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
 ]
 
-class struct__DP_ENCODER_SERVICE_PARAMETERS_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DP_ENCODER_SERVICE_PARAMETERS_V2(Structure):
+    pass
+
+struct__DP_ENCODER_SERVICE_PARAMETERS_V2._pack_ = 1 # source:False
+struct__DP_ENCODER_SERVICE_PARAMETERS_V2._fields_ = [
     ('usExtEncoderObjId', ctypes.c_uint16),
     ('ucAuxId', ctypes.c_ubyte),
     ('ucAction', ctypes.c_ubyte),
     ('ucSinkType', ctypes.c_ubyte),
     ('ucHPDId', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__DP_ENCODER_SERVICE_PS_ALLOCATION_V2(ctypes.Structure):
+class struct__DP_ENCODER_SERVICE_PS_ALLOCATION_V2(Structure):
     pass
 
 PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2 = struct__PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2
 DP_ENCODER_SERVICE_PARAMETERS_V2 = struct__DP_ENCODER_SERVICE_PARAMETERS_V2
-struct__DP_ENCODER_SERVICE_PS_ALLOCATION_V2._pack_ = True # source:False
+struct__DP_ENCODER_SERVICE_PS_ALLOCATION_V2._pack_ = 1 # source:False
 struct__DP_ENCODER_SERVICE_PS_ALLOCATION_V2._fields_ = [
     ('asDPServiceParam', DP_ENCODER_SERVICE_PARAMETERS_V2),
     ('asAuxParam', PROCESS_AUX_CHANNEL_TRANSACTION_PARAMETERS_V2),
 ]
 
-class struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS(ctypes.Structure):
+class struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS(Structure):
     pass
 
-class union__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS_0(ctypes.Union):
-    _pack_ = True # source:False
-    _fields_ = [
+class union__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS_0(Union):
+    pass
+
+union__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS_0._pack_ = 1 # source:False
+union__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS_0._fields_ = [
     ('ucRegIndex', ctypes.c_ubyte),
     ('ucStatus', ctypes.c_ubyte),
-     ]
+]
 
-struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS._pack_ = True # source:False
+struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS._pack_ = 1 # source:False
 struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS._fields_ = [
     ('ucI2CSpeed', ctypes.c_ubyte),
-    ('_1', union__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS_0),
+    ('_PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS_0', union__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS_0),
     ('lpI2CDataOut', ctypes.c_uint16),
     ('ucFlag', ctypes.c_ubyte),
     ('ucTransBytes', ctypes.c_ubyte),
@@ -5338,54 +6042,64 @@ struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS._fields_ = [
     ('ucLineNumber', ctypes.c_ubyte),
 ]
 
-class struct__ATOM_HW_MISC_OPERATION_INPUT_PARAMETER_V1_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_HW_MISC_OPERATION_INPUT_PARAMETER_V1_1(Structure):
+    pass
+
+struct__ATOM_HW_MISC_OPERATION_INPUT_PARAMETER_V1_1._pack_ = 1 # source:False
+struct__ATOM_HW_MISC_OPERATION_INPUT_PARAMETER_V1_1._fields_ = [
     ('ucCmd', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_HW_MISC_OPERATION_OUTPUT_PARAMETER_V1_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_HW_MISC_OPERATION_OUTPUT_PARAMETER_V1_1(Structure):
+    pass
+
+struct__ATOM_HW_MISC_OPERATION_OUTPUT_PARAMETER_V1_1._pack_ = 1 # source:False
+struct__ATOM_HW_MISC_OPERATION_OUTPUT_PARAMETER_V1_1._fields_ = [
     ('ucReturnCode', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
     ('ulReserved', ctypes.c_uint32),
-     ]
+]
 
-class struct__ATOM_HW_MISC_OPERATION_PS_ALLOCATION(ctypes.Structure):
+class struct__ATOM_HW_MISC_OPERATION_PS_ALLOCATION(Structure):
     pass
 
-PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS = struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS
 ATOM_HW_MISC_OPERATION_INPUT_PARAMETER_V1_1 = struct__ATOM_HW_MISC_OPERATION_INPUT_PARAMETER_V1_1
-struct__ATOM_HW_MISC_OPERATION_PS_ALLOCATION._pack_ = True # source:False
+PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS = struct__PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS
+struct__ATOM_HW_MISC_OPERATION_PS_ALLOCATION._pack_ = 1 # source:False
 struct__ATOM_HW_MISC_OPERATION_PS_ALLOCATION._fields_ = [
     ('sInput_Output', ATOM_HW_MISC_OPERATION_INPUT_PARAMETER_V1_1),
     ('sReserved', PROCESS_I2C_CHANNEL_TRANSACTION_PARAMETERS),
 ]
 
-class struct__SET_HWBLOCK_INSTANCE_PARAMETER_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__SET_HWBLOCK_INSTANCE_PARAMETER_V2(Structure):
+    pass
+
+struct__SET_HWBLOCK_INSTANCE_PARAMETER_V2._pack_ = 1 # source:False
+struct__SET_HWBLOCK_INSTANCE_PARAMETER_V2._fields_ = [
     ('ucHWBlkInst', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte * 3),
-     ]
+]
 
-class struct__DIG_TRANSMITTER_INFO_HEADER_V3_1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DIG_TRANSMITTER_INFO_HEADER_V3_1(Structure):
+    pass
+
+struct__DIG_TRANSMITTER_INFO_HEADER_V3_1._pack_ = 1 # source:False
+struct__DIG_TRANSMITTER_INFO_HEADER_V3_1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDPVsPreEmphSettingOffset', ctypes.c_uint16),
     ('usPhyAnalogRegListOffset', ctypes.c_uint16),
     ('usPhyAnalogSettingOffset', ctypes.c_uint16),
     ('usPhyPllRegListOffset', ctypes.c_uint16),
     ('usPhyPllSettingOffset', ctypes.c_uint16),
-     ]
+]
 
-class struct__DIG_TRANSMITTER_INFO_HEADER_V3_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DIG_TRANSMITTER_INFO_HEADER_V3_2(Structure):
+    pass
+
+struct__DIG_TRANSMITTER_INFO_HEADER_V3_2._pack_ = 1 # source:False
+struct__DIG_TRANSMITTER_INFO_HEADER_V3_2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDPVsPreEmphSettingOffset', ctypes.c_uint16),
     ('usPhyAnalogRegListOffset', ctypes.c_uint16),
@@ -5394,11 +6108,13 @@ class struct__DIG_TRANSMITTER_INFO_HEADER_V3_2(ctypes.Structure):
     ('usPhyPllSettingOffset', ctypes.c_uint16),
     ('usDPSSRegListOffset', ctypes.c_uint16),
     ('usDPSSSettingOffset', ctypes.c_uint16),
-     ]
+]
 
-class struct__DIG_TRANSMITTER_INFO_HEADER_V3_3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DIG_TRANSMITTER_INFO_HEADER_V3_3(Structure):
+    pass
+
+struct__DIG_TRANSMITTER_INFO_HEADER_V3_3._pack_ = 1 # source:False
+struct__DIG_TRANSMITTER_INFO_HEADER_V3_3._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDPVsPreEmphSettingOffset', ctypes.c_uint16),
     ('usPhyAnalogRegListOffset', ctypes.c_uint16),
@@ -5413,93 +6129,115 @@ class struct__DIG_TRANSMITTER_INFO_HEADER_V3_3(ctypes.Structure):
     ('useDPVsStretchModeOffset', ctypes.c_uint16),
     ('useDPVsSingleVdiffModeOffset', ctypes.c_uint16),
     ('useDPVsVariablePremModeOffset', ctypes.c_uint16),
-     ]
+]
 
-class struct__CLOCK_CONDITION_REGESTER_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__CLOCK_CONDITION_REGESTER_INFO(Structure):
+    pass
+
+struct__CLOCK_CONDITION_REGESTER_INFO._pack_ = 1 # source:False
+struct__CLOCK_CONDITION_REGESTER_INFO._fields_ = [
     ('usRegisterIndex', ctypes.c_uint16),
     ('ucStartBit', ctypes.c_ubyte),
     ('ucEndBit', ctypes.c_ubyte),
-     ]
+]
 
-class struct__CLOCK_CONDITION_SETTING_ENTRY(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__CLOCK_CONDITION_SETTING_ENTRY(Structure):
+    pass
+
+struct__CLOCK_CONDITION_SETTING_ENTRY._pack_ = 1 # source:False
+struct__CLOCK_CONDITION_SETTING_ENTRY._fields_ = [
     ('usMaxClockFreq', ctypes.c_uint16),
     ('ucEncodeMode', ctypes.c_ubyte),
     ('ucPhySel', ctypes.c_ubyte),
     ('ulAnalogSetting', ctypes.c_uint32 * 1),
-     ]
+]
 
-class struct__CLOCK_CONDITION_SETTING_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__CLOCK_CONDITION_SETTING_INFO(Structure):
+    pass
+
+struct__CLOCK_CONDITION_SETTING_INFO._pack_ = 1 # source:False
+struct__CLOCK_CONDITION_SETTING_INFO._fields_ = [
     ('usEntrySize', ctypes.c_uint16),
     ('asClkCondSettingEntry', struct__CLOCK_CONDITION_SETTING_ENTRY * 1),
-     ]
+]
 
-class struct__PHY_CONDITION_REG_VAL(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PHY_CONDITION_REG_VAL(Structure):
+    pass
+
+struct__PHY_CONDITION_REG_VAL._pack_ = 1 # source:False
+struct__PHY_CONDITION_REG_VAL._fields_ = [
     ('ulCondition', ctypes.c_uint32),
     ('ulRegVal', ctypes.c_uint32),
-     ]
+]
 
-class struct__PHY_CONDITION_REG_VAL_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PHY_CONDITION_REG_VAL_V2(Structure):
+    pass
+
+struct__PHY_CONDITION_REG_VAL_V2._pack_ = 1 # source:False
+struct__PHY_CONDITION_REG_VAL_V2._fields_ = [
     ('ulCondition', ctypes.c_uint32),
     ('ucCondition2', ctypes.c_ubyte),
     ('ulRegVal', ctypes.c_uint32),
-     ]
+]
 
-class struct__PHY_CONDITION_REG_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PHY_CONDITION_REG_INFO(Structure):
+    pass
+
+struct__PHY_CONDITION_REG_INFO._pack_ = 1 # source:False
+struct__PHY_CONDITION_REG_INFO._fields_ = [
     ('usRegIndex', ctypes.c_uint16),
     ('usSize', ctypes.c_uint16),
     ('asRegVal', struct__PHY_CONDITION_REG_VAL * 1),
-     ]
+]
 
-class struct__PHY_CONDITION_REG_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PHY_CONDITION_REG_INFO_V2(Structure):
+    pass
+
+struct__PHY_CONDITION_REG_INFO_V2._pack_ = 1 # source:False
+struct__PHY_CONDITION_REG_INFO_V2._fields_ = [
     ('usRegIndex', ctypes.c_uint16),
     ('usSize', ctypes.c_uint16),
     ('asRegVal', struct__PHY_CONDITION_REG_VAL_V2 * 1),
-     ]
+]
 
-class struct__PHY_ANALOG_SETTING_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PHY_ANALOG_SETTING_INFO(Structure):
+    pass
+
+struct__PHY_ANALOG_SETTING_INFO._pack_ = 1 # source:False
+struct__PHY_ANALOG_SETTING_INFO._fields_ = [
     ('ucEncodeMode', ctypes.c_ubyte),
     ('ucPhySel', ctypes.c_ubyte),
     ('usSize', ctypes.c_uint16),
     ('asAnalogSetting', struct__PHY_CONDITION_REG_INFO * 1),
-     ]
+]
 
-class struct__PHY_ANALOG_SETTING_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__PHY_ANALOG_SETTING_INFO_V2(Structure):
+    pass
+
+struct__PHY_ANALOG_SETTING_INFO_V2._pack_ = 1 # source:False
+struct__PHY_ANALOG_SETTING_INFO_V2._fields_ = [
     ('ucEncodeMode', ctypes.c_ubyte),
     ('ucPhySel', ctypes.c_ubyte),
     ('usSize', ctypes.c_uint16),
     ('asAnalogSetting', struct__PHY_CONDITION_REG_INFO_V2 * 1),
-     ]
+]
 
-class struct__GFX_HAVESTING_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__GFX_HAVESTING_PARAMETERS(Structure):
+    pass
+
+struct__GFX_HAVESTING_PARAMETERS._pack_ = 1 # source:False
+struct__GFX_HAVESTING_PARAMETERS._fields_ = [
     ('ucGfxBlkId', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('ucActiveUnitNumPerSH', ctypes.c_ubyte),
     ('ucMaxUnitNumPerSH', ctypes.c_ubyte),
-     ]
+]
 
-class struct__VBIOS_ROM_HEADER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__VBIOS_ROM_HEADER(Structure):
+    pass
+
+struct__VBIOS_ROM_HEADER._pack_ = 1 # source:False
+struct__VBIOS_ROM_HEADER._fields_ = [
     ('PciRomSignature', ctypes.c_ubyte * 2),
     ('ucPciRomSizeIn512bytes', ctypes.c_ubyte),
     ('ucJumpCoreMainInitBIOS', ctypes.c_ubyte),
@@ -5525,19 +6263,23 @@ class struct__VBIOS_ROM_HEADER(ctypes.Structure):
     ('usCoreVFuncFarHandlerOffset', ctypes.c_uint16),
     ('Rsved6d_6b', ctypes.c_ubyte * 3),
     ('usATOM_BIOS_MESSAGE_Offset', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_DAC_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_DAC_INFO(Structure):
+    pass
+
+struct__ATOM_DAC_INFO._pack_ = 1 # source:False
+struct__ATOM_DAC_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usMaxFrequency', ctypes.c_uint16),
     ('usReserved', ctypes.c_uint16),
-     ]
+]
 
-class struct__COMPASSIONATE_DATA(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__COMPASSIONATE_DATA(Structure):
+    pass
+
+struct__COMPASSIONATE_DATA._pack_ = 1 # source:False
+struct__COMPASSIONATE_DATA._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucDAC1_BG_Adjustment', ctypes.c_ubyte),
     ('ucDAC1_DAC_Adjustment', ctypes.c_ubyte),
@@ -5560,115 +6302,133 @@ class struct__COMPASSIONATE_DATA(ctypes.Structure):
     ('ucDAC2_PAL_BG_Adjustment', ctypes.c_ubyte),
     ('ucDAC2_PAL_DAC_Adjustment', ctypes.c_ubyte),
     ('usDAC2_TV2_FORCE_Data', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('bfAssociatedDAC', ctypes.c_ubyte, 4),
-    ('bfConnectorType', ctypes.c_ubyte, 4),
-     ]
-
-class struct__ATOM_CONNECTOR_INFO_I2C(ctypes.Structure):
+class struct__ATOM_CONNECTOR_INFO(Structure):
     pass
 
-class union__ATOM_CONNECTOR_INFO_ACCESS(ctypes.Union):
+struct__ATOM_CONNECTOR_INFO._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_INFO._fields_ = [
+    ('bfAssociatedDAC', ctypes.c_ubyte, 4),
+    ('bfConnectorType', ctypes.c_ubyte, 4),
+]
+
+class struct__ATOM_CONNECTOR_INFO_I2C(Structure):
+    pass
+
+class union__ATOM_CONNECTOR_INFO_ACCESS(Union):
     pass
 
 ATOM_CONNECTOR_INFO = struct__ATOM_CONNECTOR_INFO
-union__ATOM_CONNECTOR_INFO_ACCESS._pack_ = True # source:False
+union__ATOM_CONNECTOR_INFO_ACCESS._pack_ = 1 # source:False
 union__ATOM_CONNECTOR_INFO_ACCESS._fields_ = [
     ('sbfAccess', ATOM_CONNECTOR_INFO),
     ('ucAccess', ctypes.c_ubyte),
 ]
 
 ATOM_CONNECTOR_INFO_ACCESS = union__ATOM_CONNECTOR_INFO_ACCESS
-struct__ATOM_CONNECTOR_INFO_I2C._pack_ = True # source:False
+struct__ATOM_CONNECTOR_INFO_I2C._pack_ = 1 # source:False
 struct__ATOM_CONNECTOR_INFO_I2C._fields_ = [
     ('sucConnectorInfo', ATOM_CONNECTOR_INFO_ACCESS),
     ('sucI2cId', ATOM_I2C_ID_CONFIG_ACCESS),
 ]
 
-class struct__ATOM_SUPPORTED_DEVICES_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SUPPORTED_DEVICES_INFO(Structure):
+    pass
+
+struct__ATOM_SUPPORTED_DEVICES_INFO._pack_ = 1 # source:False
+struct__ATOM_SUPPORTED_DEVICES_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDeviceSupport', ctypes.c_uint16),
     ('asConnInfo', struct__ATOM_CONNECTOR_INFO_I2C * 10),
-     ]
+]
 
-class struct__ATOM_CONNECTOR_INC_SRC_BITMAP(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_CONNECTOR_INC_SRC_BITMAP(Structure):
+    pass
+
+struct__ATOM_CONNECTOR_INC_SRC_BITMAP._pack_ = 1 # source:False
+struct__ATOM_CONNECTOR_INC_SRC_BITMAP._fields_ = [
     ('ucIntSrcBitmap', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_SUPPORTED_DEVICES_INFO_2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SUPPORTED_DEVICES_INFO_2(Structure):
+    pass
+
+struct__ATOM_SUPPORTED_DEVICES_INFO_2._pack_ = 1 # source:False
+struct__ATOM_SUPPORTED_DEVICES_INFO_2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDeviceSupport', ctypes.c_uint16),
     ('asConnInfo', struct__ATOM_CONNECTOR_INFO_I2C * 10),
     ('asIntSrcInfo', struct__ATOM_CONNECTOR_INC_SRC_BITMAP * 10),
-     ]
+]
 
-class struct__ATOM_SUPPORTED_DEVICES_INFO_2d1(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SUPPORTED_DEVICES_INFO_2d1(Structure):
+    pass
+
+struct__ATOM_SUPPORTED_DEVICES_INFO_2d1._pack_ = 1 # source:False
+struct__ATOM_SUPPORTED_DEVICES_INFO_2d1._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usDeviceSupport', ctypes.c_uint16),
     ('asConnInfo', struct__ATOM_CONNECTOR_INFO_I2C * 16),
     ('asIntSrcInfo', struct__ATOM_CONNECTOR_INC_SRC_BITMAP * 16),
-     ]
+]
 
-class struct__ATOM_MISC_CONTROL_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_MISC_CONTROL_INFO(Structure):
+    pass
+
+struct__ATOM_MISC_CONTROL_INFO._pack_ = 1 # source:False
+struct__ATOM_MISC_CONTROL_INFO._fields_ = [
     ('usFrequency', ctypes.c_uint16),
     ('ucPLL_ChargePump', ctypes.c_ubyte),
     ('ucPLL_DutyCycle', ctypes.c_ubyte),
     ('ucPLL_VCO_Gain', ctypes.c_ubyte),
     ('ucPLL_VoltageSwing', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_TMDS_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_TMDS_INFO(Structure):
+    pass
+
+struct__ATOM_TMDS_INFO._pack_ = 1 # source:False
+struct__ATOM_TMDS_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usMaxFrequency', ctypes.c_uint16),
     ('asMiscInfo', struct__ATOM_MISC_CONTROL_INFO * 4),
-     ]
+]
 
-class struct__ATOM_ENCODER_ANALOG_ATTRIBUTE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ENCODER_ANALOG_ATTRIBUTE(Structure):
+    pass
+
+struct__ATOM_ENCODER_ANALOG_ATTRIBUTE._pack_ = 1 # source:False
+struct__ATOM_ENCODER_ANALOG_ATTRIBUTE._fields_ = [
     ('ucTVStandard', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 1),
-     ]
+]
 
-class struct__ATOM_ENCODER_DIGITAL_ATTRIBUTE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_ENCODER_DIGITAL_ATTRIBUTE(Structure):
+    pass
+
+struct__ATOM_ENCODER_DIGITAL_ATTRIBUTE._pack_ = 1 # source:False
+struct__ATOM_ENCODER_DIGITAL_ATTRIBUTE._fields_ = [
     ('ucAttribute', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 1),
-     ]
+]
 
-class struct__DVO_ENCODER_CONTROL_PARAMETERS(ctypes.Structure):
+class struct__DVO_ENCODER_CONTROL_PARAMETERS(Structure):
     pass
 
-class union__ATOM_ENCODER_ATTRIBUTE(ctypes.Union):
+class union__ATOM_ENCODER_ATTRIBUTE(Union):
     pass
 
-ATOM_ENCODER_ANALOG_ATTRIBUTE = struct__ATOM_ENCODER_ANALOG_ATTRIBUTE
 ATOM_ENCODER_DIGITAL_ATTRIBUTE = struct__ATOM_ENCODER_DIGITAL_ATTRIBUTE
-union__ATOM_ENCODER_ATTRIBUTE._pack_ = True # source:False
+ATOM_ENCODER_ANALOG_ATTRIBUTE = struct__ATOM_ENCODER_ANALOG_ATTRIBUTE
+union__ATOM_ENCODER_ATTRIBUTE._pack_ = 1 # source:False
 union__ATOM_ENCODER_ATTRIBUTE._fields_ = [
     ('sAlgAttrib', ATOM_ENCODER_ANALOG_ATTRIBUTE),
     ('sDigAttrib', ATOM_ENCODER_DIGITAL_ATTRIBUTE),
 ]
 
 ATOM_ENCODER_ATTRIBUTE = union__ATOM_ENCODER_ATTRIBUTE
-struct__DVO_ENCODER_CONTROL_PARAMETERS._pack_ = True # source:False
+struct__DVO_ENCODER_CONTROL_PARAMETERS._pack_ = 1 # source:False
 struct__DVO_ENCODER_CONTROL_PARAMETERS._fields_ = [
     ('usPixelClock', ctypes.c_uint16),
     ('usEncoderID', ctypes.c_uint16),
@@ -5677,19 +6437,21 @@ struct__DVO_ENCODER_CONTROL_PARAMETERS._fields_ = [
     ('usDevAttr', ATOM_ENCODER_ATTRIBUTE),
 ]
 
-class struct__DVO_ENCODER_CONTROL_PS_ALLOCATION(ctypes.Structure):
+class struct__DVO_ENCODER_CONTROL_PS_ALLOCATION(Structure):
     pass
 
 DVO_ENCODER_CONTROL_PARAMETERS = struct__DVO_ENCODER_CONTROL_PARAMETERS
-struct__DVO_ENCODER_CONTROL_PS_ALLOCATION._pack_ = True # source:False
+struct__DVO_ENCODER_CONTROL_PS_ALLOCATION._pack_ = 1 # source:False
 struct__DVO_ENCODER_CONTROL_PS_ALLOCATION._fields_ = [
     ('sDVOEncoder', DVO_ENCODER_CONTROL_PARAMETERS),
     ('sReserved', WRITE_ONE_BYTE_HW_I2C_DATA_PARAMETERS),
 ]
 
-class struct__ATOM_XTMDS_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_XTMDS_INFO(Structure):
+    pass
+
+struct__ATOM_XTMDS_INFO._pack_ = 1 # source:False
+struct__ATOM_XTMDS_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('usSingleLinkMaxFrequency', ctypes.c_uint16),
     ('sucI2cId', ATOM_I2C_ID_CONFIG_ACCESS),
@@ -5698,19 +6460,23 @@ class struct__ATOM_XTMDS_INFO(ctypes.Structure):
     ('ucSequnceAlterID', ctypes.c_ubyte),
     ('ucMasterAddress', ctypes.c_ubyte),
     ('ucSlaveAddress', ctypes.c_ubyte),
-     ]
+]
 
-class struct__DFP_DPMS_STATUS_CHANGE_PARAMETERS(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__DFP_DPMS_STATUS_CHANGE_PARAMETERS(Structure):
+    pass
+
+struct__DFP_DPMS_STATUS_CHANGE_PARAMETERS._pack_ = 1 # source:False
+struct__DFP_DPMS_STATUS_CHANGE_PARAMETERS._fields_ = [
     ('ucEnable', ctypes.c_ubyte),
     ('ucDevice', ctypes.c_ubyte),
     ('ucPadding', ctypes.c_ubyte * 2),
-     ]
+]
 
-class struct__ATOM_POWERMODE_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_POWERMODE_INFO(Structure):
+    pass
+
+struct__ATOM_POWERMODE_INFO._pack_ = 1 # source:False
+struct__ATOM_POWERMODE_INFO._fields_ = [
     ('ulMiscInfo', ctypes.c_uint32),
     ('ulReserved1', ctypes.c_uint32),
     ('ulReserved2', ctypes.c_uint32),
@@ -5721,11 +6487,13 @@ class struct__ATOM_POWERMODE_INFO(ctypes.Structure):
     ('ucMinTemperature', ctypes.c_ubyte),
     ('ucMaxTemperature', ctypes.c_ubyte),
     ('ucNumPciELanes', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_POWERMODE_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_POWERMODE_INFO_V2(Structure):
+    pass
+
+struct__ATOM_POWERMODE_INFO_V2._pack_ = 1 # source:False
+struct__ATOM_POWERMODE_INFO_V2._fields_ = [
     ('ulMiscInfo', ctypes.c_uint32),
     ('ulMiscInfo2', ctypes.c_uint32),
     ('ulEngineClock', ctypes.c_uint32),
@@ -5735,11 +6503,13 @@ class struct__ATOM_POWERMODE_INFO_V2(ctypes.Structure):
     ('ucMinTemperature', ctypes.c_ubyte),
     ('ucMaxTemperature', ctypes.c_ubyte),
     ('ucNumPciELanes', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_POWERMODE_INFO_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_POWERMODE_INFO_V3(Structure):
+    pass
+
+struct__ATOM_POWERMODE_INFO_V3._pack_ = 1 # source:False
+struct__ATOM_POWERMODE_INFO_V3._fields_ = [
     ('ulMiscInfo', ctypes.c_uint32),
     ('ulMiscInfo2', ctypes.c_uint32),
     ('ulEngineClock', ctypes.c_uint32),
@@ -5750,11 +6520,13 @@ class struct__ATOM_POWERMODE_INFO_V3(ctypes.Structure):
     ('ucMaxTemperature', ctypes.c_ubyte),
     ('ucNumPciELanes', ctypes.c_ubyte),
     ('ucVDDCI_VoltageDropIndex', ctypes.c_ubyte),
-     ]
+]
 
-class struct__ATOM_POWERPLAY_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_POWERPLAY_INFO(Structure):
+    pass
+
+struct__ATOM_POWERPLAY_INFO._pack_ = 1 # source:False
+struct__ATOM_POWERPLAY_INFO._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucOverdriveThermalController', ctypes.c_ubyte),
     ('ucOverdriveI2cLine', ctypes.c_ubyte),
@@ -5763,11 +6535,13 @@ class struct__ATOM_POWERPLAY_INFO(ctypes.Structure):
     ('ucSizeOfPowerModeEntry', ctypes.c_ubyte),
     ('ucNumOfPowerModeEntries', ctypes.c_ubyte),
     ('asPowerPlayInfo', struct__ATOM_POWERMODE_INFO * 8),
-     ]
+]
 
-class struct__ATOM_POWERPLAY_INFO_V2(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_POWERPLAY_INFO_V2(Structure):
+    pass
+
+struct__ATOM_POWERPLAY_INFO_V2._pack_ = 1 # source:False
+struct__ATOM_POWERPLAY_INFO_V2._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucOverdriveThermalController', ctypes.c_ubyte),
     ('ucOverdriveI2cLine', ctypes.c_ubyte),
@@ -5776,11 +6550,13 @@ class struct__ATOM_POWERPLAY_INFO_V2(ctypes.Structure):
     ('ucSizeOfPowerModeEntry', ctypes.c_ubyte),
     ('ucNumOfPowerModeEntries', ctypes.c_ubyte),
     ('asPowerPlayInfo', struct__ATOM_POWERMODE_INFO_V2 * 8),
-     ]
+]
 
-class struct__ATOM_POWERPLAY_INFO_V3(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_POWERPLAY_INFO_V3(Structure):
+    pass
+
+struct__ATOM_POWERPLAY_INFO_V3._pack_ = 1 # source:False
+struct__ATOM_POWERPLAY_INFO_V3._fields_ = [
     ('sHeader', ATOM_COMMON_TABLE_HEADER),
     ('ucOverdriveThermalController', ctypes.c_ubyte),
     ('ucOverdriveI2cLine', ctypes.c_ubyte),
@@ -5789,31 +6565,35 @@ class struct__ATOM_POWERPLAY_INFO_V3(ctypes.Structure):
     ('ucSizeOfPowerModeEntry', ctypes.c_ubyte),
     ('ucNumOfPowerModeEntries', ctypes.c_ubyte),
     ('asPowerPlayInfo', struct__ATOM_POWERMODE_INFO_V3 * 8),
-     ]
+]
 
-class struct__ATOM_HOLE_INFO(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_HOLE_INFO(Structure):
+    pass
+
+struct__ATOM_HOLE_INFO._pack_ = 1 # source:False
+struct__ATOM_HOLE_INFO._fields_ = [
     ('usOffset', ctypes.c_uint16),
     ('usLength', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_SERVICE_DESCRIPTION(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct__ATOM_SERVICE_DESCRIPTION(Structure):
+    pass
+
+struct__ATOM_SERVICE_DESCRIPTION._pack_ = 1 # source:False
+struct__ATOM_SERVICE_DESCRIPTION._fields_ = [
     ('ucRevision', ctypes.c_ubyte),
     ('ucAlgorithm', ctypes.c_ubyte),
     ('ucSignatureType', ctypes.c_ubyte),
     ('ucReserved', ctypes.c_ubyte),
     ('usSigOffset', ctypes.c_uint16),
     ('usSigLength', ctypes.c_uint16),
-     ]
+]
 
-class struct__ATOM_SERVICE_INFO(ctypes.Structure):
+class struct__ATOM_SERVICE_INFO(Structure):
     pass
 
 ATOM_SERVICE_DESCRIPTION = struct__ATOM_SERVICE_DESCRIPTION
-struct__ATOM_SERVICE_INFO._pack_ = True # source:False
+struct__ATOM_SERVICE_INFO._pack_ = 1 # source:False
 struct__ATOM_SERVICE_INFO._fields_ = [
     ('asHeader', ATOM_COMMON_TABLE_HEADER),
     ('asDescr', ATOM_SERVICE_DESCRIPTION),
@@ -5821,9 +6601,11 @@ struct__ATOM_SERVICE_INFO._fields_ = [
     ('holes', struct__ATOM_HOLE_INFO * 1),
 ]
 
-class struct_c__SA_AMD_ACPI_DESCRIPTION_HEADER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_AMD_ACPI_DESCRIPTION_HEADER(Structure):
+    pass
+
+struct_c__SA_AMD_ACPI_DESCRIPTION_HEADER._pack_ = 1 # source:False
+struct_c__SA_AMD_ACPI_DESCRIPTION_HEADER._fields_ = [
     ('Signature', ctypes.c_uint32),
     ('TableLength', ctypes.c_uint32),
     ('Revision', ctypes.c_ubyte),
@@ -5833,13 +6615,13 @@ class struct_c__SA_AMD_ACPI_DESCRIPTION_HEADER(ctypes.Structure):
     ('OemRevision', ctypes.c_uint32),
     ('CreatorId', ctypes.c_uint32),
     ('CreatorRevision', ctypes.c_uint32),
-     ]
+]
 
-class struct_c__SA_UEFI_ACPI_VFCT(ctypes.Structure):
+class struct_c__SA_UEFI_ACPI_VFCT(Structure):
     pass
 
 AMD_ACPI_DESCRIPTION_HEADER = struct_c__SA_AMD_ACPI_DESCRIPTION_HEADER
-struct_c__SA_UEFI_ACPI_VFCT._pack_ = True # source:False
+struct_c__SA_UEFI_ACPI_VFCT._pack_ = 1 # source:False
 struct_c__SA_UEFI_ACPI_VFCT._fields_ = [
     ('SHeader', AMD_ACPI_DESCRIPTION_HEADER),
     ('TableUUID', ctypes.c_ubyte * 16),
@@ -5848,9 +6630,11 @@ struct_c__SA_UEFI_ACPI_VFCT._fields_ = [
     ('Reserved', ctypes.c_uint32 * 4),
 ]
 
-class struct_c__SA_VFCT_IMAGE_HEADER(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_VFCT_IMAGE_HEADER(Structure):
+    pass
+
+struct_c__SA_VFCT_IMAGE_HEADER._pack_ = 1 # source:False
+struct_c__SA_VFCT_IMAGE_HEADER._fields_ = [
     ('PCIBus', ctypes.c_uint32),
     ('PCIDevice', ctypes.c_uint32),
     ('PCIFunction', ctypes.c_uint32),
@@ -5860,24 +6644,26 @@ class struct_c__SA_VFCT_IMAGE_HEADER(ctypes.Structure):
     ('SSID', ctypes.c_uint16),
     ('Revision', ctypes.c_uint32),
     ('ImageLength', ctypes.c_uint32),
-     ]
+]
 
-class struct_c__SA_GOP_VBIOS_CONTENT(ctypes.Structure):
+class struct_c__SA_GOP_VBIOS_CONTENT(Structure):
     pass
 
 VFCT_IMAGE_HEADER = struct_c__SA_VFCT_IMAGE_HEADER
-struct_c__SA_GOP_VBIOS_CONTENT._pack_ = True # source:False
+struct_c__SA_GOP_VBIOS_CONTENT._pack_ = 1 # source:False
 struct_c__SA_GOP_VBIOS_CONTENT._fields_ = [
     ('VbiosHeader', VFCT_IMAGE_HEADER),
     ('VbiosContent', ctypes.c_ubyte * 1),
 ]
 
-class struct_c__SA_GOP_LIB1_CONTENT(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_GOP_LIB1_CONTENT(Structure):
+    pass
+
+struct_c__SA_GOP_LIB1_CONTENT._pack_ = 1 # source:False
+struct_c__SA_GOP_LIB1_CONTENT._fields_ = [
     ('Lib1Header', VFCT_IMAGE_HEADER),
     ('Lib1Content', ctypes.c_ubyte * 1),
-     ]
+]
 
 __all__ = \
     ['ADJUST_DISPLAY_PLL_INPUT_PARAMETERS_V3',
@@ -6036,9 +6822,9 @@ __all__ = \
     'struct__ATOM_FUSION_SYSTEM_INFO_V1',
     'struct__ATOM_FUSION_SYSTEM_INFO_V2',
     'struct__ATOM_FUSION_SYSTEM_INFO_V3',
-    'struct__ATOM_GFX_INFO_V2_1', 'struct__ATOM_GPIO_I2C_ASSIGMENT',
-    'struct__ATOM_GPIO_I2C_INFO', 'struct__ATOM_GPIO_INFO',
-    'struct__ATOM_GPIO_PIN_ASSIGNMENT',
+    'struct__ATOM_GFX_INFO_V2_1', 'struct__ATOM_GFX_INFO_V2_3',
+    'struct__ATOM_GPIO_I2C_ASSIGMENT', 'struct__ATOM_GPIO_I2C_INFO',
+    'struct__ATOM_GPIO_INFO', 'struct__ATOM_GPIO_PIN_ASSIGNMENT',
     'struct__ATOM_GPIO_PIN_CONTROL_PAIR', 'struct__ATOM_GPIO_PIN_LUT',
     'struct__ATOM_GPIO_VOLTAGE_OBJECT_V3',
     'struct__ATOM_GPU_VIRTUALIZATION_INFO_V2_1',

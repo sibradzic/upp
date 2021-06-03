@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['--include', 'stdint.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if.h', '']
+# TARGET arch is: ['--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '--include', 'linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if.h', '']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -8,19 +8,176 @@
 import ctypes
 
 
+class AsDictMixin:
+    @classmethod
+    def as_dict(cls, self):
+        result = {}
+        if not isinstance(self, AsDictMixin):
+            # not a structure, assume it's already a python object
+            return self
+        if not hasattr(cls, "_fields_"):
+            return result
+        # sys.version_info >= (3, 5)
+        # for (field, *_) in cls._fields_:  # noqa
+        for field_tuple in cls._fields_:  # noqa
+            field = field_tuple[0]
+            if field.startswith('PADDING_'):
+                continue
+            value = getattr(self, field)
+            type_ = type(value)
+            if hasattr(value, "_length_") and hasattr(value, "_type_"):
+                # array
+                if not hasattr(type_, "as_dict"):
+                    value = [v for v in value]
+                else:
+                    type_ = type_._type_
+                    value = [type_.as_dict(v) for v in value]
+            elif hasattr(value, "contents") and hasattr(value, "_type_"):
+                # pointer
+                try:
+                    if not hasattr(type_, "as_dict"):
+                        value = value.contents
+                    else:
+                        type_ = type_._type_
+                        value = type_.as_dict(value.contents)
+                except ValueError:
+                    # nullptr
+                    value = None
+            elif isinstance(value, AsDictMixin):
+                # other structure
+                value = type_.as_dict(value)
+            result[field] = value
+        return result
 
 
-class struct_atom_common_table_header(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class Structure(ctypes.Structure, AsDictMixin):
+
+    def __init__(self, *args, **kwds):
+        # We don't want to use positional arguments fill PADDING_* fields
+
+        args = dict(zip(self.__class__._field_names_(), args))
+        args.update(kwds)
+        super(Structure, self).__init__(**args)
+
+    @classmethod
+    def _field_names_(cls):
+        if hasattr(cls, '_fields_'):
+            return (f[0] for f in cls._fields_ if not f[0].startswith('PADDING'))
+        else:
+            return ()
+
+    @classmethod
+    def get_type(cls, field):
+        for f in cls._fields_:
+            if f[0] == field:
+                return f[1]
+        return None
+
+    @classmethod
+    def bind(cls, bound_fields):
+        fields = {}
+        for name, type_ in cls._fields_:
+            if hasattr(type_, "restype"):
+                if name in bound_fields:
+                    if bound_fields[name] is None:
+                        fields[name] = type_()
+                    else:
+                        # use a closure to capture the callback from the loop scope
+                        fields[name] = (
+                            type_((lambda callback: lambda *args: callback(*args))(
+                                bound_fields[name]))
+                        )
+                    del bound_fields[name]
+                else:
+                    # default callback implementation (does nothing)
+                    try:
+                        default_ = type_(0).restype().value
+                    except TypeError:
+                        default_ = None
+                    fields[name] = type_((
+                        lambda default_: lambda *args: default_)(default_))
+            else:
+                # not a callback function, use default initialization
+                if name in bound_fields:
+                    fields[name] = bound_fields[name]
+                    del bound_fields[name]
+                else:
+                    fields[name] = type_()
+        if len(bound_fields) != 0:
+            raise ValueError(
+                "Cannot bind the following unknown callback(s) {}.{}".format(
+                    cls.__name__, bound_fields.keys()
+            ))
+        return cls(**fields)
+
+
+class Union(ctypes.Union, AsDictMixin):
+    pass
+
+
+
+
+
+_VEGA20_PPTABLE_H_ = True # macro
+ATOM_VEGA20_PP_THERMALCONTROLLER_NONE = 0 # macro
+ATOM_VEGA20_PP_THERMALCONTROLLER_VEGA20 = 26 # macro
+ATOM_VEGA20_PP_PLATFORM_CAP_POWERPLAY = 0x1 # macro
+ATOM_VEGA20_PP_PLATFORM_CAP_SBIOSPOWERSOURCE = 0x2 # macro
+ATOM_VEGA20_PP_PLATFORM_CAP_HARDWAREDC = 0x4 # macro
+ATOM_VEGA20_PP_PLATFORM_CAP_BACO = 0x8 # macro
+ATOM_VEGA20_PP_PLATFORM_CAP_BAMACO = 0x10 # macro
+ATOM_VEGA20_PP_PLATFORM_CAP_ENABLESHADOWPSTATE = 0x20 # macro
+ATOM_VEGA20_TABLE_REVISION_VEGA20 = 11 # macro
+ATOM_VEGA20_ODFEATURE_MAX_COUNT = 32 # macro
+ATOM_VEGA20_ODSETTING_MAX_COUNT = 32 # macro
+ATOM_VEGA20_PPCLOCK_MAX_COUNT = 16 # macro
+class struct__ATOM_VEGA20_OVERDRIVE8_RECORD(Structure):
+    pass
+
+struct__ATOM_VEGA20_OVERDRIVE8_RECORD._pack_ = 1 # source:False
+struct__ATOM_VEGA20_OVERDRIVE8_RECORD._fields_ = [
+    ('ucODTableRevision', ctypes.c_ubyte),
+    ('ODFeatureCount', ctypes.c_uint32),
+    ('ODFeatureCapabilities', ctypes.c_ubyte * 32),
+    ('ODSettingCount', ctypes.c_uint32),
+    ('ODSettingsMax', ctypes.c_uint32 * 32),
+    ('ODSettingsMin', ctypes.c_uint32 * 32),
+]
+
+ATOM_VEGA20_OVERDRIVE8_RECORD = struct__ATOM_VEGA20_OVERDRIVE8_RECORD
+class struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD(Structure):
+    pass
+
+struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD._pack_ = 1 # source:False
+struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD._fields_ = [
+    ('ucTableRevision', ctypes.c_ubyte),
+    ('PowerSavingClockCount', ctypes.c_uint32),
+    ('PowerSavingClockMax', ctypes.c_uint32 * 16),
+    ('PowerSavingClockMin', ctypes.c_uint32 * 16),
+]
+
+ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD = struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD
+class struct__ATOM_VEGA20_POWERPLAYTABLE(Structure):
+    pass
+
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
     ('structuresize', ctypes.c_uint16),
     ('format_revision', ctypes.c_ubyte),
     ('content_revision', ctypes.c_ubyte),
-     ]
+]
 
-class struct_c__SA_I2cControllerConfig_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_PPTable_t(Structure):
+    pass
+
+class struct_c__SA_I2cControllerConfig_t(Structure):
+    pass
+
+struct_c__SA_I2cControllerConfig_t._pack_ = 1 # source:False
+struct_c__SA_I2cControllerConfig_t._fields_ = [
     ('Enabled', ctypes.c_uint32),
     ('SlaveAddress', ctypes.c_uint32),
     ('ControllerPort', ctypes.c_uint32),
@@ -28,45 +185,52 @@ class struct_c__SA_I2cControllerConfig_t(ctypes.Structure):
     ('ThermalThrottler', ctypes.c_uint32),
     ('I2cProtocol', ctypes.c_uint32),
     ('I2cSpeed', ctypes.c_uint32),
-     ]
+]
 
-class struct_c__SA_QuadraticInt_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
-     ]
+class struct_c__SA_LinearInt_t(Structure):
+    pass
 
-class struct_c__SA_LinearInt_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+struct_c__SA_LinearInt_t._pack_ = 1 # source:False
+struct_c__SA_LinearInt_t._fields_ = [
     ('m', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
-     ]
+]
 
-class struct_c__SA_DroopInt_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_QuadraticInt_t(Structure):
+    pass
+
+struct_c__SA_QuadraticInt_t._pack_ = 1 # source:False
+struct_c__SA_QuadraticInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
-     ]
+]
 
-class struct_c__SA_DpmDescriptor_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_DroopInt_t(Structure):
+    pass
+
+struct_c__SA_DroopInt_t._pack_ = 1 # source:False
+struct_c__SA_DroopInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
+]
+
+class struct_c__SA_DpmDescriptor_t(Structure):
+    pass
+
+struct_c__SA_DpmDescriptor_t._pack_ = 1 # source:False
+struct_c__SA_DpmDescriptor_t._fields_ = [
     ('VoltageMode', ctypes.c_ubyte),
     ('SnapToDiscrete', ctypes.c_ubyte),
     ('NumDiscreteLevels', ctypes.c_ubyte),
     ('padding', ctypes.c_ubyte),
     ('ConversionToAvfsClk', struct_c__SA_LinearInt_t),
     ('SsCurve', struct_c__SA_QuadraticInt_t),
-     ]
+]
 
-class struct_c__SA_PPTable_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+struct_c__SA_PPTable_t._pack_ = 1 # source:False
+struct_c__SA_PPTable_t._fields_ = [
     ('Version', ctypes.c_uint32),
     ('FeaturesToRun', ctypes.c_uint32 * 2),
     ('SocketPowerLimitAc0', ctypes.c_uint16),
@@ -247,46 +411,10 @@ class struct_c__SA_PPTable_t(ctypes.Structure):
     ('I2cControllers', struct_c__SA_I2cControllerConfig_t * 7),
     ('BoardReserved', ctypes.c_uint32 * 10),
     ('MmHubPadding', ctypes.c_uint32 * 8),
-     ]
+]
 
-_VEGA20_PPTABLE_H_ = True # macro
-ATOM_VEGA20_PP_THERMALCONTROLLER_NONE = 0 # macro
-ATOM_VEGA20_PP_THERMALCONTROLLER_VEGA20 = 26 # macro
-ATOM_VEGA20_PP_PLATFORM_CAP_POWERPLAY = 0x1 # macro
-ATOM_VEGA20_PP_PLATFORM_CAP_SBIOSPOWERSOURCE = 0x2 # macro
-ATOM_VEGA20_PP_PLATFORM_CAP_HARDWAREDC = 0x4 # macro
-ATOM_VEGA20_PP_PLATFORM_CAP_BACO = 0x8 # macro
-ATOM_VEGA20_PP_PLATFORM_CAP_BAMACO = 0x10 # macro
-ATOM_VEGA20_PP_PLATFORM_CAP_ENABLESHADOWPSTATE = 0x20 # macro
-ATOM_VEGA20_TABLE_REVISION_VEGA20 = 11 # macro
-ATOM_VEGA20_ODFEATURE_MAX_COUNT = 32 # macro
-ATOM_VEGA20_ODSETTING_MAX_COUNT = 32 # macro
-ATOM_VEGA20_PPCLOCK_MAX_COUNT = 16 # macro
-class struct__ATOM_VEGA20_OVERDRIVE8_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ucODTableRevision', ctypes.c_ubyte),
-    ('ODFeatureCount', ctypes.c_uint32),
-    ('ODFeatureCapabilities', ctypes.c_ubyte * 32),
-    ('ODSettingCount', ctypes.c_uint32),
-    ('ODSettingsMax', ctypes.c_uint32 * 32),
-    ('ODSettingsMin', ctypes.c_uint32 * 32),
-     ]
-
-ATOM_VEGA20_OVERDRIVE8_RECORD = struct__ATOM_VEGA20_OVERDRIVE8_RECORD
-class struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('ucTableRevision', ctypes.c_ubyte),
-    ('PowerSavingClockCount', ctypes.c_uint32),
-    ('PowerSavingClockMax', ctypes.c_uint32 * 16),
-    ('PowerSavingClockMin', ctypes.c_uint32 * 16),
-     ]
-
-ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD = struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD
-class struct__ATOM_VEGA20_POWERPLAYTABLE(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+struct__ATOM_VEGA20_POWERPLAYTABLE._pack_ = 1 # source:False
+struct__ATOM_VEGA20_POWERPLAYTABLE._fields_ = [
     ('sHeader', struct_atom_common_table_header),
     ('ucTableRevision', ctypes.c_ubyte),
     ('usTableSize', ctypes.c_uint16),
@@ -305,7 +433,7 @@ class struct__ATOM_VEGA20_POWERPLAYTABLE(ctypes.Structure):
     ('OverDrive8Table', ATOM_VEGA20_OVERDRIVE8_RECORD),
     ('usReserve', ctypes.c_uint16 * 5),
     ('smcPPTable', struct_c__SA_PPTable_t),
-     ]
+]
 
 ATOM_Vega20_POWERPLAYTABLE = struct__ATOM_VEGA20_POWERPLAYTABLE
 __all__ = \

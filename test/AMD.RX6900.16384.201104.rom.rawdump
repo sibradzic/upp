@@ -302,9 +302,12 @@ PowerPlay table rev 15.0 size 2470 bytes
  0x037a (0890) H     0000 SmnclkDpmVoltage                : 0
  0x037c (0892) H     0000 SmnclkDpmVoltage                : 0
  0x037e (0894) I 00000000 PaddingAPCC                     : 0
- 0x0382 (0898) I 00000000 PaddingAPCC                     : 0
- 0x0386 (0902) I 00000000 PaddingAPCC                     : 0
- 0x038a (0906) I 00000000 PaddingAPCC                     : 0
+ 0x0382 (0898) H     0000 PerPartDroopVsetGfxDfll         : 0
+ 0x0384 (0900) H     0000 PerPartDroopVsetGfxDfll         : 0
+ 0x0386 (0902) H     0000 PerPartDroopVsetGfxDfll         : 0
+ 0x0388 (0904) H     0000 PerPartDroopVsetGfxDfll         : 0
+ 0x038a (0906) H     0000 PerPartDroopVsetGfxDfll         : 0
+ 0x038c (0908) H     0000 PaddingPerPartDroop             : 0
  0x038e (0910) I fe380000 ThrottlerControlMask            : 14590
  0x0392 (0914) I 730f0000 FwDStateMask                    : 3955
  0x0396 (0918) H     6400 UlvVoltageOffsetSoc             : 100
@@ -567,21 +570,21 @@ PowerPlay table rev 15.0 size 2470 bytes
  0x05e2 (1506) H     0000 FreqTableFclk                   : 0
  0x05e4 (1508) H     0000 FreqTableFclk                   : 0
  0x05e6 (1510) I 00000000 Paddingclks                     : 0
- 0x05ea (1514) I 00000000 Paddingclks                     : 0
- 0x05ee (1518) I 00000000 Paddingclks                     : 0
- 0x05f2 (1522) I 00000000 Paddingclks                     : 0
- 0x05f6 (1526) I 00000000 Paddingclks                     : 0
- 0x05fa (1530) I 00000000 Paddingclks                     : 0
- 0x05fe (1534) I 00000000 Paddingclks                     : 0
- 0x0602 (1538) I 00000000 Paddingclks                     : 0
- 0x0606 (1542) I 00000000 Paddingclks                     : 0
- 0x060a (1546) I 00000000 Paddingclks                     : 0
- 0x060e (1550) I 00000000 Paddingclks                     : 0
- 0x0612 (1554) I 00000000 Paddingclks                     : 0
- 0x0616 (1558) I 00000000 Paddingclks                     : 0
- 0x061a (1562) I 00000000 Paddingclks                     : 0
- 0x061e (1566) I 00000000 Paddingclks                     : 0
- 0x0622 (1570) I 00000000 Paddingclks                     : 0
+ 0x05ea (1514) f 00000000 a                               : 0
+ 0x05ee (1518) f 00000000 b                               : 0
+ 0x05f2 (1522) f 00000000 c                               : 0
+ 0x05f6 (1526) f 00000000 a                               : 0
+ 0x05fa (1530) f 00000000 b                               : 0
+ 0x05fe (1534) f 00000000 c                               : 0
+ 0x0602 (1538) f 00000000 a                               : 0
+ 0x0606 (1542) f 00000000 b                               : 0
+ 0x060a (1546) f 00000000 c                               : 0
+ 0x060e (1550) f 00000000 a                               : 0
+ 0x0612 (1554) f 00000000 b                               : 0
+ 0x0616 (1558) f 00000000 c                               : 0
+ 0x061a (1562) f 00000000 a                               : 0
+ 0x061e (1566) f 00000000 b                               : 0
+ 0x0622 (1570) f 00000000 c                               : 0
  0x0626 (1574) I 640a0000 DcModeMaxFreq                   : 2660
  0x062a (1578) I b0040000 DcModeMaxFreq                   : 1200
  0x062e (1582) I e8030000 DcModeMaxFreq                   : 1000
@@ -782,7 +785,8 @@ PowerPlay table rev 15.0 size 2470 bytes
  0x081a (2074) f 9fabcd3e VcBtcPsmB                       : 0.4017
  0x081e (2078) f ed0d3e3c VcBtcVminA                      : 0.0116
  0x0822 (2082) f 7593f83e VcBtcVminB                      : 0.4855
- 0x0826 (2086) I 00000100 SkuReserved                     : 65536
+ 0x0826 (2086) H     0000 LedGpio                         : 0
+ 0x0828 (2088) H     0100 GfxPowerStagesGpio              : 1
  0x082a (2090) I 00000000 SkuReserved                     : 0
  0x082e (2094) I 00000000 SkuReserved                     : 0
  0x0832 (2098) I 00000000 SkuReserved                     : 0

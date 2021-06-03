@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['--include', 'stdint.h']
+# TARGET arch is: ['-Ilinux/include', '-Ilinux/drivers/gpu/drm/amd/include']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16

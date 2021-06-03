@@ -435,7 +435,10 @@ PowerTuneTable:
   Vr_I2C_Line: 150
   Plx_I2C_address: 0
   Plx_I2C_Line: 144
-  Reserved: 0
+  BoostPowerLimit: 0
+  CKS_LDO_REFSEL: 6
+  HotSpotOnly: 0
+  Reserve: 0
 HardLimitTable: UNUSED
 PCIETable:
   RevId: 1

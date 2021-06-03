@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['--include', 'stdint.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '--include', 'linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if_sienna_cichlid.h', '']
+# TARGET arch is: ['--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '--include', 'linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if_sienna_cichlid.h', '']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -8,19 +8,180 @@
 import ctypes
 
 
+class AsDictMixin:
+    @classmethod
+    def as_dict(cls, self):
+        result = {}
+        if not isinstance(self, AsDictMixin):
+            # not a structure, assume it's already a python object
+            return self
+        if not hasattr(cls, "_fields_"):
+            return result
+        # sys.version_info >= (3, 5)
+        # for (field, *_) in cls._fields_:  # noqa
+        for field_tuple in cls._fields_:  # noqa
+            field = field_tuple[0]
+            if field.startswith('PADDING_'):
+                continue
+            value = getattr(self, field)
+            type_ = type(value)
+            if hasattr(value, "_length_") and hasattr(value, "_type_"):
+                # array
+                if not hasattr(type_, "as_dict"):
+                    value = [v for v in value]
+                else:
+                    type_ = type_._type_
+                    value = [type_.as_dict(v) for v in value]
+            elif hasattr(value, "contents") and hasattr(value, "_type_"):
+                # pointer
+                try:
+                    if not hasattr(type_, "as_dict"):
+                        value = value.contents
+                    else:
+                        type_ = type_._type_
+                        value = type_.as_dict(value.contents)
+                except ValueError:
+                    # nullptr
+                    value = None
+            elif isinstance(value, AsDictMixin):
+                # other structure
+                value = type_.as_dict(value)
+            result[field] = value
+        return result
 
 
-class struct_atom_common_table_header(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class Structure(ctypes.Structure, AsDictMixin):
+
+    def __init__(self, *args, **kwds):
+        # We don't want to use positional arguments fill PADDING_* fields
+
+        args = dict(zip(self.__class__._field_names_(), args))
+        args.update(kwds)
+        super(Structure, self).__init__(**args)
+
+    @classmethod
+    def _field_names_(cls):
+        if hasattr(cls, '_fields_'):
+            return (f[0] for f in cls._fields_ if not f[0].startswith('PADDING'))
+        else:
+            return ()
+
+    @classmethod
+    def get_type(cls, field):
+        for f in cls._fields_:
+            if f[0] == field:
+                return f[1]
+        return None
+
+    @classmethod
+    def bind(cls, bound_fields):
+        fields = {}
+        for name, type_ in cls._fields_:
+            if hasattr(type_, "restype"):
+                if name in bound_fields:
+                    if bound_fields[name] is None:
+                        fields[name] = type_()
+                    else:
+                        # use a closure to capture the callback from the loop scope
+                        fields[name] = (
+                            type_((lambda callback: lambda *args: callback(*args))(
+                                bound_fields[name]))
+                        )
+                    del bound_fields[name]
+                else:
+                    # default callback implementation (does nothing)
+                    try:
+                        default_ = type_(0).restype().value
+                    except TypeError:
+                        default_ = None
+                    fields[name] = type_((
+                        lambda default_: lambda *args: default_)(default_))
+            else:
+                # not a callback function, use default initialization
+                if name in bound_fields:
+                    fields[name] = bound_fields[name]
+                    del bound_fields[name]
+                else:
+                    fields[name] = type_()
+        if len(bound_fields) != 0:
+            raise ValueError(
+                "Cannot bind the following unknown callback(s) {}.{}".format(
+                    cls.__name__, bound_fields.keys()
+            ))
+        return cls(**fields)
+
+
+class Union(ctypes.Union, AsDictMixin):
+    pass
+
+
+
+
+
+SMU_11_0_7_PPTABLE_H = True # macro
+SMU_11_0_7_TABLE_FORMAT_REVISION = 15 # macro
+SMU_11_0_7_PP_PLATFORM_CAP_POWERPLAY = 0x1 # macro
+SMU_11_0_7_PP_PLATFORM_CAP_SBIOSPOWERSOURCE = 0x2 # macro
+SMU_11_0_7_PP_PLATFORM_CAP_HARDWAREDC = 0x4 # macro
+SMU_11_0_7_PP_PLATFORM_CAP_BACO = 0x8 # macro
+SMU_11_0_7_PP_PLATFORM_CAP_MACO = 0x10 # macro
+SMU_11_0_7_PP_PLATFORM_CAP_SHADOWPSTATE = 0x20 # macro
+SMU_11_0_7_PP_THERMALCONTROLLER_NONE = 0 # macro
+SMU_11_0_7_PP_THERMALCONTROLLER_SIENNA_CICHLID = 28 # macro
+SMU_11_0_7_PP_OVERDRIVE_VERSION = 0x81 # macro
+SMU_11_0_7_PP_POWERSAVINGCLOCK_VERSION = 0x01 # macro
+SMU_11_0_7_MAX_ODFEATURE = 32 # macro
+SMU_11_0_7_MAX_ODSETTING = 64 # macro
+SMU_11_0_7_MAX_PMSETTING = 32 # macro
+SMU_11_0_7_MAX_PPCLOCK = 16 # macro
+class struct_smu_11_0_7_overdrive_table(Structure):
+    pass
+
+struct_smu_11_0_7_overdrive_table._pack_ = 1 # source:True
+struct_smu_11_0_7_overdrive_table._fields_ = [
+    ('revision', ctypes.c_ubyte),
+    ('reserve', ctypes.c_ubyte * 3),
+    ('feature_count', ctypes.c_uint32),
+    ('setting_count', ctypes.c_uint32),
+    ('cap', ctypes.c_ubyte * 32),
+    ('max', ctypes.c_uint32 * 64),
+    ('min', ctypes.c_uint32 * 64),
+    ('pm_setting', ctypes.c_int16 * 32),
+]
+
+class struct_smu_11_0_7_power_saving_clock_table(Structure):
+    pass
+
+struct_smu_11_0_7_power_saving_clock_table._pack_ = 1 # source:True
+struct_smu_11_0_7_power_saving_clock_table._fields_ = [
+    ('revision', ctypes.c_ubyte),
+    ('reserve', ctypes.c_ubyte * 3),
+    ('count', ctypes.c_uint32),
+    ('max', ctypes.c_uint32 * 16),
+    ('min', ctypes.c_uint32 * 16),
+]
+
+class struct_smu_11_0_7_powerplay_table(Structure):
+    pass
+
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
     ('structuresize', ctypes.c_uint16),
     ('format_revision', ctypes.c_ubyte),
     ('content_revision', ctypes.c_ubyte),
-     ]
+]
 
-class struct_c__SA_I2cControllerConfig_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_PPTable_t(Structure):
+    pass
+
+class struct_c__SA_I2cControllerConfig_t(Structure):
+    pass
+
+struct_c__SA_I2cControllerConfig_t._pack_ = 1 # source:False
+struct_c__SA_I2cControllerConfig_t._fields_ = [
     ('Enabled', ctypes.c_ubyte),
     ('Speed', ctypes.c_ubyte),
     ('SlaveAddress', ctypes.c_ubyte),
@@ -29,41 +190,32 @@ class struct_c__SA_I2cControllerConfig_t(ctypes.Structure):
     ('ThermalThrotter', ctypes.c_ubyte),
     ('I2cProtocol', ctypes.c_ubyte),
     ('PaddingConfig', ctypes.c_ubyte),
-     ]
+]
 
-class struct_c__SA_QuadraticInt_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_DpmDescriptor_t(Structure):
+    pass
+
+class struct_c__SA_QuadraticInt_t(Structure):
+    pass
+
+struct_c__SA_QuadraticInt_t._pack_ = 1 # source:False
+struct_c__SA_QuadraticInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
-     ]
+]
 
-class struct_c__SA_LinearInt_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_LinearInt_t(Structure):
+    pass
+
+struct_c__SA_LinearInt_t._pack_ = 1 # source:False
+struct_c__SA_LinearInt_t._fields_ = [
     ('m', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
-     ]
+]
 
-class struct_c__SA_DroopInt_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
-     ]
-
-class struct_c__SA_PiecewiseLinearDroopInt_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
-    ('Fset', ctypes.c_uint32 * 5),
-    ('Vdroop', ctypes.c_uint32 * 5),
-     ]
-
-class struct_c__SA_DpmDescriptor_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+struct_c__SA_DpmDescriptor_t._pack_ = 1 # source:False
+struct_c__SA_DpmDescriptor_t._fields_ = [
     ('VoltageMode', ctypes.c_ubyte),
     ('SnapToDiscrete', ctypes.c_ubyte),
     ('NumDiscreteLevels', ctypes.c_ubyte),
@@ -72,18 +224,38 @@ class struct_c__SA_DpmDescriptor_t(ctypes.Structure):
     ('SsCurve', struct_c__SA_QuadraticInt_t),
     ('SsFmin', ctypes.c_uint16),
     ('Padding16', ctypes.c_uint16),
-     ]
+]
 
-class struct_c__SA_UclkDpmChangeRange_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_PiecewiseLinearDroopInt_t(Structure):
+    pass
+
+struct_c__SA_PiecewiseLinearDroopInt_t._pack_ = 1 # source:False
+struct_c__SA_PiecewiseLinearDroopInt_t._fields_ = [
+    ('Fset', ctypes.c_uint32 * 5),
+    ('Vdroop', ctypes.c_uint32 * 5),
+]
+
+class struct_c__SA_UclkDpmChangeRange_t(Structure):
+    pass
+
+struct_c__SA_UclkDpmChangeRange_t._pack_ = 1 # source:False
+struct_c__SA_UclkDpmChangeRange_t._fields_ = [
     ('Fmin', ctypes.c_uint16),
     ('Fmax', ctypes.c_uint16),
-     ]
+]
 
-class struct_c__SA_PPTable_t(ctypes.Structure):
-    _pack_ = True # source:False
-    _fields_ = [
+class struct_c__SA_DroopInt_t(Structure):
+    pass
+
+struct_c__SA_DroopInt_t._pack_ = 1 # source:False
+struct_c__SA_DroopInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
+]
+
+struct_c__SA_PPTable_t._pack_ = 1 # source:False
+struct_c__SA_PPTable_t._fields_ = [
     ('Version', ctypes.c_uint32),
     ('FeaturesToRun', ctypes.c_uint32 * 2),
     ('SocketPowerLimitAc', ctypes.c_uint16 * 4),
@@ -99,7 +271,9 @@ class struct_c__SA_PPTable_t(ctypes.Structure):
     ('ApccPlusResidencyLimit', ctypes.c_uint32),
     ('SmnclkDpmFreq', ctypes.c_uint16 * 2),
     ('SmnclkDpmVoltage', ctypes.c_uint16 * 2),
-    ('PaddingAPCC', ctypes.c_uint32 * 4),
+    ('PaddingAPCC', ctypes.c_uint32),
+    ('PerPartDroopVsetGfxDfll', ctypes.c_uint16 * 5),
+    ('PaddingPerPartDroop', ctypes.c_uint16),
     ('ThrottlerControlMask', ctypes.c_uint32),
     ('FwDStateMask', ctypes.c_uint32),
     ('UlvVoltageOffsetSoc', ctypes.c_uint16),
@@ -136,7 +310,8 @@ class struct_c__SA_PPTable_t(ctypes.Structure):
     ('FreqTablePhyclk', ctypes.c_uint16 * 8),
     ('FreqTableDtbclk', ctypes.c_uint16 * 8),
     ('FreqTableFclk', ctypes.c_uint16 * 8),
-    ('Paddingclks', ctypes.c_uint32 * 16),
+    ('Paddingclks', ctypes.c_uint32),
+    ('PerPartDroopModelGfxDfll', struct_c__SA_DroopInt_t * 5),
     ('DcModeMaxFreq', ctypes.c_uint32 * 13),
     ('FreqTableUclkDiv', ctypes.c_ubyte * 4),
     ('FclkBoostFreq', ctypes.c_uint16),
@@ -228,7 +403,9 @@ class struct_c__SA_PPTable_t(ctypes.Structure):
     ('VcBtcPsmB', ctypes.c_uint32),
     ('VcBtcVminA', ctypes.c_uint32),
     ('VcBtcVminB', ctypes.c_uint32),
-    ('SkuReserved', ctypes.c_uint32 * 9),
+    ('LedGpio', ctypes.c_uint16),
+    ('GfxPowerStagesGpio', ctypes.c_uint16),
+    ('SkuReserved', ctypes.c_uint32 * 8),
     ('GamingClk', ctypes.c_uint32 * 6),
     ('I2cControllers', struct_c__SA_I2cControllerConfig_t * 16),
     ('GpioScl', ctypes.c_ubyte),
@@ -297,50 +474,10 @@ class struct_c__SA_PPTable_t(ctypes.Structure):
     ('UclkSpreadPercent', ctypes.c_ubyte * 16),
     ('BoardReserved', ctypes.c_uint32 * 11),
     ('MmHubPadding', ctypes.c_uint32 * 8),
-     ]
+]
 
-SMU_11_0_7_PPTABLE_H = True # macro
-SMU_11_0_7_TABLE_FORMAT_REVISION = 15 # macro
-SMU_11_0_7_PP_PLATFORM_CAP_POWERPLAY = 0x1 # macro
-SMU_11_0_7_PP_PLATFORM_CAP_SBIOSPOWERSOURCE = 0x2 # macro
-SMU_11_0_7_PP_PLATFORM_CAP_HARDWAREDC = 0x4 # macro
-SMU_11_0_7_PP_PLATFORM_CAP_BACO = 0x8 # macro
-SMU_11_0_7_PP_PLATFORM_CAP_MACO = 0x10 # macro
-SMU_11_0_7_PP_PLATFORM_CAP_SHADOWPSTATE = 0x20 # macro
-SMU_11_0_7_PP_THERMALCONTROLLER_NONE = 0 # macro
-SMU_11_0_7_PP_THERMALCONTROLLER_SIENNA_CICHLID = 28 # macro
-SMU_11_0_7_PP_OVERDRIVE_VERSION = 0x81 # macro
-SMU_11_0_7_PP_POWERSAVINGCLOCK_VERSION = 0x01 # macro
-SMU_11_0_7_MAX_ODFEATURE = 32 # macro
-SMU_11_0_7_MAX_ODSETTING = 64 # macro
-SMU_11_0_7_MAX_PMSETTING = 32 # macro
-class struct_smu_11_0_7_overdrive_table(ctypes.Structure):
-    _pack_ = True # source:True
-    _fields_ = [
-    ('revision', ctypes.c_ubyte),
-    ('reserve', ctypes.c_ubyte * 3),
-    ('feature_count', ctypes.c_uint32),
-    ('setting_count', ctypes.c_uint32),
-    ('cap', ctypes.c_ubyte * 32),
-    ('max', ctypes.c_uint32 * 64),
-    ('min', ctypes.c_uint32 * 64),
-    ('pm_setting', ctypes.c_int16 * 32),
-     ]
-
-SMU_11_0_7_MAX_PPCLOCK = 16 # macro
-class struct_smu_11_0_7_power_saving_clock_table(ctypes.Structure):
-    _pack_ = True # source:True
-    _fields_ = [
-    ('revision', ctypes.c_ubyte),
-    ('reserve', ctypes.c_ubyte * 3),
-    ('count', ctypes.c_uint32),
-    ('max', ctypes.c_uint32 * 16),
-    ('min', ctypes.c_uint32 * 16),
-     ]
-
-class struct_smu_11_0_7_powerplay_table(ctypes.Structure):
-    _pack_ = True # source:True
-    _fields_ = [
+struct_smu_11_0_7_powerplay_table._pack_ = 1 # source:True
+struct_smu_11_0_7_powerplay_table._fields_ = [
     ('header', struct_atom_common_table_header),
     ('table_revision', ctypes.c_ubyte),
     ('table_size', ctypes.c_uint16),
@@ -357,7 +494,7 @@ class struct_smu_11_0_7_powerplay_table(ctypes.Structure):
     ('power_saving_clock', struct_smu_11_0_7_power_saving_clock_table),
     ('overdrive_table', struct_smu_11_0_7_overdrive_table),
     ('smc_pptable', struct_c__SA_PPTable_t),
-     ]
+]
 
 __all__ = \
     ['SMU_11_0_7_MAX_ODFEATURE', 'SMU_11_0_7_MAX_ODSETTING',
