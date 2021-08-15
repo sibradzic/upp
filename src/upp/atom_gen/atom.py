@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['-Ilinux/include', '-Ilinux/drivers/gpu/drm/amd/include']
+# TARGET arch is: ['', '-Ilinux/include', '-Ilinux/drivers/gpu/drm/amd/include']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -80,6 +80,9 @@ ATOM_IO_MM = 0 # macro
 ATOM_IO_PCI = 1 # macro
 ATOM_IO_SYSIO = 2 # macro
 ATOM_IO_IIO = 0x80 # macro
+STRLEN_NORMAL = 32 # macro
+STRLEN_LONG = 64 # macro
+STRLEN_VERYLONG = 254 # macro
 __all__ = \
     ['ATOM_ARG_FB', 'ATOM_ARG_ID', 'ATOM_ARG_IMM', 'ATOM_ARG_MC',
     'ATOM_ARG_PLL', 'ATOM_ARG_PS', 'ATOM_ARG_REG', 'ATOM_ARG_WS',
@@ -103,4 +106,5 @@ __all__ = \
     'ATOM_SRC_WORD16', 'ATOM_SRC_WORD8', 'ATOM_WS_AND_MASK',
     'ATOM_WS_ATTRIBUTES', 'ATOM_WS_DATAPTR', 'ATOM_WS_FB_WINDOW',
     'ATOM_WS_OR_MASK', 'ATOM_WS_QUOTIENT', 'ATOM_WS_REGPTR',
-    'ATOM_WS_REMAINDER', 'ATOM_WS_SHIFT']
+    'ATOM_WS_REMAINDER', 'ATOM_WS_SHIFT', 'STRLEN_LONG',
+    'STRLEN_NORMAL', 'STRLEN_VERYLONG']

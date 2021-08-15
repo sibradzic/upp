@@ -951,7 +951,7 @@ PowerPlay table rev 15.0 size 2470 bytes
  0x08f8 (2296) b       00 Mem0Offset                      : 0
  0x08f9 (2297) B       00 Padding_TelemetryMem0           : 0
  0x08fa (2298) H     0000 Mem1MaxCurrent                  : 0
- 0x08fc (2300) b       00 Mem1Offset                      : 0
+ 0x08fc (2300) B       00 Mem1Offset                      : 0
  0x08fd (2301) B       00 Padding_TelemetryMem1           : 0
  0x08fe (2302) I 00000000 MvddRatio                       : 0
  0x0902 (2306) B       00 AcDcGpio                        : 0

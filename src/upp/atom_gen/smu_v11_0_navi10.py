@@ -161,6 +161,16 @@ struct_smu_11_0_power_saving_clock_table._fields_ = [
 class struct_smu_11_0_powerplay_table(Structure):
     pass
 
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
+    ('structuresize', ctypes.c_uint16),
+    ('format_revision', ctypes.c_ubyte),
+    ('content_revision', ctypes.c_ubyte),
+]
+
 class struct_c__SA_PPTable_t(Structure):
     pass
 
@@ -422,16 +432,6 @@ struct_c__SA_PPTable_t._fields_ = [
     ('Padding8_Loadline', ctypes.c_ubyte),
     ('BoardReserved', ctypes.c_uint32 * 8),
     ('MmHubPadding', ctypes.c_uint32 * 8),
-]
-
-class struct_atom_common_table_header(Structure):
-    pass
-
-struct_atom_common_table_header._pack_ = 1 # source:False
-struct_atom_common_table_header._fields_ = [
-    ('structuresize', ctypes.c_uint16),
-    ('format_revision', ctypes.c_ubyte),
-    ('content_revision', ctypes.c_ubyte),
 ]
 
 struct_smu_11_0_powerplay_table._pack_ = 1 # source:True

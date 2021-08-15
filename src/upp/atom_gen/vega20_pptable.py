@@ -160,32 +160,21 @@ ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD = struct__ATOM_VEGA20_POWER_SAVING_CLOCK_R
 class struct__ATOM_VEGA20_POWERPLAYTABLE(Structure):
     pass
 
-class struct_atom_common_table_header(Structure):
-    pass
-
-struct_atom_common_table_header._pack_ = 1 # source:False
-struct_atom_common_table_header._fields_ = [
-    ('structuresize', ctypes.c_uint16),
-    ('format_revision', ctypes.c_ubyte),
-    ('content_revision', ctypes.c_ubyte),
-]
-
 class struct_c__SA_PPTable_t(Structure):
     pass
 
-class struct_c__SA_I2cControllerConfig_t(Structure):
+class struct_c__SA_DroopInt_t(Structure):
     pass
 
-struct_c__SA_I2cControllerConfig_t._pack_ = 1 # source:False
-struct_c__SA_I2cControllerConfig_t._fields_ = [
-    ('Enabled', ctypes.c_uint32),
-    ('SlaveAddress', ctypes.c_uint32),
-    ('ControllerPort', ctypes.c_uint32),
-    ('ControllerName', ctypes.c_uint32),
-    ('ThermalThrottler', ctypes.c_uint32),
-    ('I2cProtocol', ctypes.c_uint32),
-    ('I2cSpeed', ctypes.c_uint32),
+struct_c__SA_DroopInt_t._pack_ = 1 # source:False
+struct_c__SA_DroopInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
 ]
+
+class struct_c__SA_DpmDescriptor_t(Structure):
+    pass
 
 class struct_c__SA_LinearInt_t(Structure):
     pass
@@ -206,19 +195,6 @@ struct_c__SA_QuadraticInt_t._fields_ = [
     ('c', ctypes.c_uint32),
 ]
 
-class struct_c__SA_DroopInt_t(Structure):
-    pass
-
-struct_c__SA_DroopInt_t._pack_ = 1 # source:False
-struct_c__SA_DroopInt_t._fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
-]
-
-class struct_c__SA_DpmDescriptor_t(Structure):
-    pass
-
 struct_c__SA_DpmDescriptor_t._pack_ = 1 # source:False
 struct_c__SA_DpmDescriptor_t._fields_ = [
     ('VoltageMode', ctypes.c_ubyte),
@@ -227,6 +203,20 @@ struct_c__SA_DpmDescriptor_t._fields_ = [
     ('padding', ctypes.c_ubyte),
     ('ConversionToAvfsClk', struct_c__SA_LinearInt_t),
     ('SsCurve', struct_c__SA_QuadraticInt_t),
+]
+
+class struct_c__SA_I2cControllerConfig_t(Structure):
+    pass
+
+struct_c__SA_I2cControllerConfig_t._pack_ = 1 # source:False
+struct_c__SA_I2cControllerConfig_t._fields_ = [
+    ('Enabled', ctypes.c_uint32),
+    ('SlaveAddress', ctypes.c_uint32),
+    ('ControllerPort', ctypes.c_uint32),
+    ('ControllerName', ctypes.c_uint32),
+    ('ThermalThrottler', ctypes.c_uint32),
+    ('I2cProtocol', ctypes.c_uint32),
+    ('I2cSpeed', ctypes.c_uint32),
 ]
 
 struct_c__SA_PPTable_t._pack_ = 1 # source:False
@@ -411,6 +401,16 @@ struct_c__SA_PPTable_t._fields_ = [
     ('I2cControllers', struct_c__SA_I2cControllerConfig_t * 7),
     ('BoardReserved', ctypes.c_uint32 * 10),
     ('MmHubPadding', ctypes.c_uint32 * 8),
+]
+
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
+    ('structuresize', ctypes.c_uint16),
+    ('format_revision', ctypes.c_ubyte),
+    ('content_revision', ctypes.c_ubyte),
 ]
 
 struct__ATOM_VEGA20_POWERPLAYTABLE._pack_ = 1 # source:False

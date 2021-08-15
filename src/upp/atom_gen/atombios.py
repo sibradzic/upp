@@ -353,8 +353,8 @@ class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3(Structure):
 class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0(Union):
     pass
 
-ATOM_S_MPLL_FB_DIVIDER = struct__ATOM_S_MPLL_FB_DIVIDER
 ATOM_COMPUTE_CLOCK_FREQ = struct__ATOM_COMPUTE_CLOCK_FREQ
+ATOM_S_MPLL_FB_DIVIDER = struct__ATOM_S_MPLL_FB_DIVIDER
 union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0._pack_ = 1 # source:False
 union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V3_0._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
@@ -383,6 +383,15 @@ struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V4._fields_ = [
 class struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5(Structure):
     pass
 
+class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1(Union):
+    pass
+
+union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1._pack_ = 1 # source:False
+union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1._fields_ = [
+    ('ucCntlFlag', ctypes.c_ubyte),
+    ('ucInputFlag', ctypes.c_ubyte),
+]
+
 class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0(Union):
     pass
 
@@ -391,15 +400,6 @@ union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_0._fields_ = [
     ('ulClock', ATOM_COMPUTE_CLOCK_FREQ),
     ('ulClockParams', ctypes.c_uint32),
     ('ulFbDiv', ATOM_S_MPLL_FB_DIVIDER),
-]
-
-class union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1(Union):
-    pass
-
-union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1._pack_ = 1 # source:False
-union__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5_1._fields_ = [
-    ('ucCntlFlag', ctypes.c_ubyte),
-    ('ucInputFlag', ctypes.c_ubyte),
 ]
 
 struct__COMPUTE_MEMORY_ENGINE_PLL_PARAMETERS_V5._pack_ = 1 # source:False
@@ -1672,8 +1672,8 @@ struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL_V3._fields_ = [
 class struct__SET_PIXEL_CLOCK_PS_ALLOCATION(Structure):
     pass
 
-ENABLE_SPREAD_SPECTRUM_ON_PPLL = struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL
 PIXEL_CLOCK_PARAMETERS = struct__PIXEL_CLOCK_PARAMETERS
+ENABLE_SPREAD_SPECTRUM_ON_PPLL = struct__ENABLE_SPREAD_SPECTRUM_ON_PPLL
 struct__SET_PIXEL_CLOCK_PS_ALLOCATION._pack_ = 1 # source:False
 struct__SET_PIXEL_CLOCK_PS_ALLOCATION._fields_ = [
     ('sPCLKInput', PIXEL_CLOCK_PARAMETERS),
@@ -3029,8 +3029,8 @@ class struct__EXT_DISPLAY_PATH(Structure):
 class union__EXT_DISPLAY_PATH_0(Union):
     pass
 
-ATOM_DP_CONN_CHANNEL_MAPPING = struct__ATOM_DP_CONN_CHANNEL_MAPPING
 ATOM_DVI_CONN_CHANNEL_MAPPING = struct__ATOM_DVI_CONN_CHANNEL_MAPPING
+ATOM_DP_CONN_CHANNEL_MAPPING = struct__ATOM_DP_CONN_CHANNEL_MAPPING
 union__EXT_DISPLAY_PATH_0._pack_ = 1 # source:False
 union__EXT_DISPLAY_PATH_0._fields_ = [
     ('ucChannelMapping', ctypes.c_ubyte),
@@ -3635,8 +3635,8 @@ class union__ATOM_VOLTAGE_OBJECT_V3(Union):
 ATOM_I2C_VOLTAGE_OBJECT_V3 = struct__ATOM_I2C_VOLTAGE_OBJECT_V3
 ATOM_EVV_VOLTAGE_OBJECT_V3 = struct__ATOM_EVV_VOLTAGE_OBJECT_V3
 ATOM_SVID2_VOLTAGE_OBJECT_V3 = struct__ATOM_SVID2_VOLTAGE_OBJECT_V3
-ATOM_GPIO_VOLTAGE_OBJECT_V3 = struct__ATOM_GPIO_VOLTAGE_OBJECT_V3
 ATOM_LEAKAGE_VOLTAGE_OBJECT_V3 = struct__ATOM_LEAKAGE_VOLTAGE_OBJECT_V3
+ATOM_GPIO_VOLTAGE_OBJECT_V3 = struct__ATOM_GPIO_VOLTAGE_OBJECT_V3
 union__ATOM_VOLTAGE_OBJECT_V3._pack_ = 1 # source:False
 union__ATOM_VOLTAGE_OBJECT_V3._fields_ = [
     ('asGpioVoltageObj', ATOM_GPIO_VOLTAGE_OBJECT_V3),
@@ -4845,8 +4845,8 @@ struct__ENABLE_GRAPH_SURFACE_PARAMETERS_V1_4._fields_ = [
 class struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION(Structure):
     pass
 
-ENABLE_GRAPH_SURFACE_PARAMETERS = struct__ENABLE_GRAPH_SURFACE_PARAMETERS
 ENABLE_YUV_PARAMETERS = struct__ENABLE_YUV_PARAMETERS
+ENABLE_GRAPH_SURFACE_PARAMETERS = struct__ENABLE_GRAPH_SURFACE_PARAMETERS
 struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION._pack_ = 1 # source:False
 struct__ENABLE_GRAPH_SURFACE_PS_ALLOCATION._fields_ = [
     ('sSetSurface', ENABLE_GRAPH_SURFACE_PARAMETERS),
@@ -5178,6 +5178,15 @@ struct__ATOM_VRAM_MODULE_V2._fields_ = [
 class struct__ATOM_MEMORY_TIMING_FORMAT(Structure):
     pass
 
+class union__ATOM_MEMORY_TIMING_FORMAT_0(Union):
+    pass
+
+union__ATOM_MEMORY_TIMING_FORMAT_0._pack_ = 1 # source:False
+union__ATOM_MEMORY_TIMING_FORMAT_0._fields_ = [
+    ('usMRS', ctypes.c_uint16),
+    ('usDDR3_MR0', ctypes.c_uint16),
+]
+
 class union__ATOM_MEMORY_TIMING_FORMAT_2(Union):
     pass
 
@@ -5203,15 +5212,6 @@ union__ATOM_MEMORY_TIMING_FORMAT_1._pack_ = 1 # source:False
 union__ATOM_MEMORY_TIMING_FORMAT_1._fields_ = [
     ('usEMRS', ctypes.c_uint16),
     ('usDDR3_MR1', ctypes.c_uint16),
-]
-
-class union__ATOM_MEMORY_TIMING_FORMAT_0(Union):
-    pass
-
-union__ATOM_MEMORY_TIMING_FORMAT_0._pack_ = 1 # source:False
-union__ATOM_MEMORY_TIMING_FORMAT_0._fields_ = [
-    ('usMRS', ctypes.c_uint16),
-    ('usDDR3_MR0', ctypes.c_uint16),
 ]
 
 struct__ATOM_MEMORY_TIMING_FORMAT._pack_ = 1 # source:False
@@ -6419,8 +6419,8 @@ class struct__DVO_ENCODER_CONTROL_PARAMETERS(Structure):
 class union__ATOM_ENCODER_ATTRIBUTE(Union):
     pass
 
-ATOM_ENCODER_DIGITAL_ATTRIBUTE = struct__ATOM_ENCODER_DIGITAL_ATTRIBUTE
 ATOM_ENCODER_ANALOG_ATTRIBUTE = struct__ATOM_ENCODER_ANALOG_ATTRIBUTE
+ATOM_ENCODER_DIGITAL_ATTRIBUTE = struct__ATOM_ENCODER_DIGITAL_ATTRIBUTE
 union__ATOM_ENCODER_ATTRIBUTE._pack_ = 1 # source:False
 union__ATOM_ENCODER_ATTRIBUTE._fields_ = [
     ('sAlgAttrib', ATOM_ENCODER_ANALOG_ATTRIBUTE),

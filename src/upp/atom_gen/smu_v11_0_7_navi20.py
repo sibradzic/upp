@@ -164,16 +164,6 @@ struct_smu_11_0_7_power_saving_clock_table._fields_ = [
 class struct_smu_11_0_7_powerplay_table(Structure):
     pass
 
-class struct_atom_common_table_header(Structure):
-    pass
-
-struct_atom_common_table_header._pack_ = 1 # source:False
-struct_atom_common_table_header._fields_ = [
-    ('structuresize', ctypes.c_uint16),
-    ('format_revision', ctypes.c_ubyte),
-    ('content_revision', ctypes.c_ubyte),
-]
-
 class struct_c__SA_PPTable_t(Structure):
     pass
 
@@ -195,6 +185,15 @@ struct_c__SA_I2cControllerConfig_t._fields_ = [
 class struct_c__SA_DpmDescriptor_t(Structure):
     pass
 
+class struct_c__SA_LinearInt_t(Structure):
+    pass
+
+struct_c__SA_LinearInt_t._pack_ = 1 # source:False
+struct_c__SA_LinearInt_t._fields_ = [
+    ('m', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+]
+
 class struct_c__SA_QuadraticInt_t(Structure):
     pass
 
@@ -203,15 +202,6 @@ struct_c__SA_QuadraticInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
-]
-
-class struct_c__SA_LinearInt_t(Structure):
-    pass
-
-struct_c__SA_LinearInt_t._pack_ = 1 # source:False
-struct_c__SA_LinearInt_t._fields_ = [
-    ('m', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
 ]
 
 struct_c__SA_DpmDescriptor_t._pack_ = 1 # source:False
@@ -235,15 +225,6 @@ struct_c__SA_PiecewiseLinearDroopInt_t._fields_ = [
     ('Vdroop', ctypes.c_uint32 * 5),
 ]
 
-class struct_c__SA_UclkDpmChangeRange_t(Structure):
-    pass
-
-struct_c__SA_UclkDpmChangeRange_t._pack_ = 1 # source:False
-struct_c__SA_UclkDpmChangeRange_t._fields_ = [
-    ('Fmin', ctypes.c_uint16),
-    ('Fmax', ctypes.c_uint16),
-]
-
 class struct_c__SA_DroopInt_t(Structure):
     pass
 
@@ -252,6 +233,15 @@ struct_c__SA_DroopInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
+]
+
+class struct_c__SA_UclkDpmChangeRange_t(Structure):
+    pass
+
+struct_c__SA_UclkDpmChangeRange_t._pack_ = 1 # source:False
+struct_c__SA_UclkDpmChangeRange_t._fields_ = [
+    ('Fmin', ctypes.c_uint16),
+    ('Fmax', ctypes.c_uint16),
 ]
 
 struct_c__SA_PPTable_t._pack_ = 1 # source:False
@@ -430,7 +420,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('Mem0Offset', ctypes.c_byte),
     ('Padding_TelemetryMem0', ctypes.c_ubyte),
     ('Mem1MaxCurrent', ctypes.c_uint16),
-    ('Mem1Offset', ctypes.c_byte),
+    ('Mem1Offset', ctypes.c_ubyte),
     ('Padding_TelemetryMem1', ctypes.c_ubyte),
     ('MvddRatio', ctypes.c_uint32),
     ('AcDcGpio', ctypes.c_ubyte),
@@ -474,6 +464,16 @@ struct_c__SA_PPTable_t._fields_ = [
     ('UclkSpreadPercent', ctypes.c_ubyte * 16),
     ('BoardReserved', ctypes.c_uint32 * 11),
     ('MmHubPadding', ctypes.c_uint32 * 8),
+]
+
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
+    ('structuresize', ctypes.c_uint16),
+    ('format_revision', ctypes.c_ubyte),
+    ('content_revision', ctypes.c_ubyte),
 ]
 
 struct_smu_11_0_7_powerplay_table._pack_ = 1 # source:True
