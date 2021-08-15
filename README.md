@@ -30,6 +30,7 @@ on the following AMD GPU families:
 * Navi 14
 * Navi 21 (Sienna Cichlid)
 * Navi 22 (Navy Flounder)
+* Navi 23 (Dimgrey Cavefish)
 
 Note: iGPUs found in many recent AMD APUs are using completely different
 PowerPlay control methods, this tool does not support them.
