@@ -625,6 +625,11 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
         gpugen = 'Navi 10 or 14'
         from upp.atom_gen import smu_v11_0_navi10 as pp_struct
         ctypes_strct = pp_struct.struct_smu_11_0_powerplay_table
+    # Navi 12 aka PRO V520
+    elif pp_ver == (14, 0):
+        gpugen = 'Navi 12'
+        from upp.atom_gen import smu_v11_0_navi10 as pp_struct
+        ctypes_strct = pp_struct.struct_smu_11_0_powerplay_table
     # Navi 21 (Sienna Cichlid) aka RX6900XT/RX6800(XT)
     # Navi 22 (Navy Flounder) aka RX6700(XT)/RX6800M
     # Navi 23 (Dimgrey Cavefish) aka RX6600(XT)/RX6600M

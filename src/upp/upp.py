@@ -144,7 +144,7 @@ def cli(ctx, debug, pp_file, from_registry):
       - Polaris
       - Vega
       - Radeon VII
-      - Navi 10, 14
+      - Navi 10, 12, 14
       - Navi 21, 22, 23
 
     Note: iGPUs found in many recent AMD APUs are using completely different
