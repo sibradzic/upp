@@ -9,12 +9,12 @@ import os.path
 import sys
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-REG_CTRL_CLASS = 'Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000'
+REG_CTRL_CLASS = 'Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
 REG_KEY = 'ControlSet001\\' + REG_CTRL_CLASS
 REG_KEY_VAL = 'PP_PhmSoftPowerPlayTable'
 REG_HEADER = 'Windows Registry Editor Version 5.00' + 2 * '\r\n' + \
              '[HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\' + \
-             REG_CTRL_CLASS + ']\r\n'
+             REG_CTRL_CLASS + '\\0000]\r\n'
 
 
 def _normalize_var_path(var_path_str):
@@ -48,9 +48,6 @@ def _validate_set_pair(set_pair):
 
 def _get_pp_data_from_registry(reg_file_path):
     reg_path = 'HKLM\\SYSTEM\\' + REG_KEY + ':' + REG_KEY_VAL
-    tmp_pp_file = tempfile.NamedTemporaryFile(prefix='reg_pp_table_',
-                                              delete=False)
-    msg = ' Soft PowerPlay data from {}\n  key:value > {}\n'
     try:
         from Registry import Registry
     except ImportError as e:
@@ -59,16 +56,33 @@ def _get_pp_data_from_registry(reg_file_path):
         sys.exit(-2)
     try:
         reg = Registry.Registry(reg_file_path)
-        key = reg.open(REG_KEY)
-        data_type = key.value(REG_KEY_VAL).value_type_str()
-        registry_data = key.value(REG_KEY_VAL).raw_data()
+        keys = reg.open(REG_KEY)
     except Exception as e:
-        print(('ERROR: Can not get' + msg).format(reg_file_path, reg_path))
+        print('ERROR: Can not access', REG_KEY, 'in', reg_file_path)
         print(e)
         return None
-    print(('Successfully loaded' + msg).format(reg_file_path, reg_path))
-    decode._write_binary_file(tmp_pp_file.name, registry_data)
-    tmp_pp_file.close()
+    found_data = False
+    for key in keys.subkeys():
+        index = key.name()
+        key_path = REG_KEY + '\\' + index
+        if index.startswith('0'):
+            try:
+                data_type = key.value(REG_KEY_VAL).value_type_str()
+                registry_data = key.value(REG_KEY_VAL).raw_data()
+                print('Found', data_type, 'type value', REG_KEY_VAL,
+                      'in', key_path)
+                if found_data:
+                    print('WARNING: Multiple PP tables found in the registry,',
+                          'only using data from last table found!')
+                found_data = True
+                tmpf_prefix = 'registry_device_' + index + '_pp_table_'
+                tmp_pp_file = tempfile.NamedTemporaryFile(prefix=tmpf_prefix,
+                                                          delete=False)
+                decode._write_binary_file(tmp_pp_file.name, registry_data)
+                print('Saved registry PP table', 'data to', tmp_pp_file.name)
+                tmp_pp_file.close()
+            except Registry.RegistryValueNotFoundException:
+                print("Can't find needed value", REG_KEY_VAL, 'in', key_path)
 
     return tmp_pp_file.name
 
