@@ -1,0 +1,414 @@
+sHeader:
+  structuresize: 642
+  format_revision: 8
+  content_revision: 1
+TableRevision: 0
+TableSize: 92
+GoldenPPID: 1810
+GoldenRevision: 11069
+FormatID: 27
+PlatformCaps: 72
+MaxODEngineClock: 240000
+MaxODMemoryClock: 150000
+PowerControlLimit: 50
+UlvVoltageOffset: 8
+UlvSmnclkDid: 0
+UlvMp1clkDid: 0
+UlvGfxclkBypass: 0
+GfxclkSlewRate: 0
+GfxVoltageMode: 0
+SocVoltageMode: 0
+UclkVoltageMode: 0
+UvdVoltageMode: 0
+VceVoltageMode: 0
+Mp0VoltageMode: 2
+DcefVoltageMode: 1
+StateArray:
+  RevId: 2
+  NumEntries: 2
+  states:
+    states 0:
+      SocClockIndexHigh: 0
+      SocClockIndexLow: 0
+      GfxClockIndexHigh: 0
+      GfxClockIndexLow: 0
+      MemClockIndexHigh: 0
+      MemClockIndexLow: 0
+      Classification: 8
+      CapsAndSettings: 0
+      Classification2: 0
+    states 1:
+      SocClockIndexHigh: 5
+      SocClockIndexLow: 0
+      GfxClockIndexHigh: 7
+      GfxClockIndexLow: 0
+      MemClockIndexHigh: 3
+      MemClockIndexLow: 0
+      Classification: 5
+      CapsAndSettings: 0
+      Classification2: 0
+FanTable:
+  RevId: 11
+  FanOutputSensitivity: 4836
+  FanAcousticLimitRpm: 1500
+  ThrottlingRPM: 2300
+  TargetTemperature: 65
+  MinimumPWMLimit: 15
+  TargetGfxClk: 852
+  FanGainEdge: 400
+  FanGainHotspot: 400
+  FanGainLiquid: 400
+  FanGainVrVddc: 400
+  FanGainVrMvdd: 400
+  FanGainPlx: 400
+  FanGainHbm: 400
+  EnableZeroRPM: 0
+  FanStopTemperature: 0
+  FanStartTemperature: 0
+  FanParameters: 2
+  FanMinRPM: 4
+  FanMaxRPM: 33
+ThermalController:
+  RevId: 1
+  Type: 24
+  I2cLine: 0
+  I2cAddress: 0
+  FanParameters: 0
+  FanMinRPM: 0
+  FanMaxRPM: 0
+  Flags: 0
+SocclkDependencyTable:
+  RevId: 0
+  NumEntries: 6
+  entries:
+    entries 0:
+      Clk: 60000
+      VddInd: 0
+    entries 1:
+      Clk: 72000
+      VddInd: 1
+    entries 2:
+      Clk: 84700
+      VddInd: 2
+    entries 3:
+      Clk: 96000
+      VddInd: 3
+    entries 4:
+      Clk: 102800
+      VddInd: 4
+    entries 5:
+      Clk: 110700
+      VddInd: 5
+MclkDependencyTable:
+  RevId: 1
+  NumEntries: 4
+  entries:
+    entries 0:
+      MemClk: 16700
+      VddInd: 0
+      VddMemInd: 0
+      VddciInd: 0
+    entries 1:
+      MemClk: 50000
+      VddInd: 1
+      VddMemInd: 0
+      VddciInd: 0
+    entries 2:
+      MemClk: 80000
+      VddInd: 2
+      VddMemInd: 0
+      VddciInd: 0
+    entries 3:
+      MemClk: 94500
+      VddInd: 3
+      VddMemInd: 0
+      VddciInd: 0
+GfxclkDependencyTable:
+  RevId: 0
+  NumEntries: 8
+  entries:
+    entries 0:
+      Clk: 85200
+      VddInd: 0
+      CKSVOffsetandDisable: 32768
+      AVFSOffset: 0
+      ACGEnable: 28
+      Reserved:
+        Reserved 0: 131
+        Reserved 1: 1
+        Reserved 2: 0
+    entries 1:
+      Clk: 1
+      VddInd: 0
+      CKSVOffsetandDisable: 48264
+      AVFSOffset: 1
+      ACGEnable: 2
+      Reserved:
+        Reserved 0: 0
+        Reserved 1: 0
+        Reserved 2: 0
+    entries 2:
+      Clk: 32486400
+      VddInd: 0
+      CKSVOffsetandDisable: 3
+      AVFSOffset: 0
+      ACGEnable: 0
+      Reserved:
+        Reserved 0: 144
+        Reserved 1: 14
+        Reserved 2: 2
+    entries 3:
+      Clk: 1024
+      VddInd: 0
+      CKSVOffsetandDisable: 32768
+      AVFSOffset: 562
+      ACGEnable: 0
+      Reserved:
+        Reserved 0: 5
+        Reserved 1: 0
+        Reserved 2: 0
+    entries 4:
+      Clk: 1423966208
+      VddInd: 2
+      CKSVOffsetandDisable: 1536
+      AVFSOffset: 0
+      ACGEnable: 0
+      Reserved:
+        Reserved 0: 0
+        Reserved 1: 0
+        Reserved 2: 113
+    entries 5:
+      Clk: 458754
+      VddInd: 0
+      CKSVOffsetandDisable: 0
+      AVFSOffset: 768
+      ACGEnable: 96
+      Reserved:
+        Reserved 0: 234
+        Reserved 1: 0
+        Reserved 2: 0
+    entries 6:
+      Clk: 18432000
+      VddInd: 0
+      CKSVOffsetandDisable: 32768
+      AVFSOffset: 312
+      ACGEnable: 0
+      Reserved:
+        Reserved 0: 0
+        Reserved 1: 0
+        Reserved 2: 8
+    entries 7:
+      Clk: 28200
+      VddInd: 0
+      CKSVOffsetandDisable: 51500
+      AVFSOffset: 0
+      ACGEnable: 1
+      Reserved:
+        Reserved 0: 248
+        Reserved 1: 11
+        Reserved 2: 1
+DcefclkDependencyTable:
+  RevId: 0
+  NumEntries: 3
+  entries:
+    entries 0:
+      Clk: 60000
+      VddInd: 0
+    entries 1:
+      Clk: 72000
+      VddInd: 0
+    entries 2:
+      Clk: 80000
+      VddInd: 0
+VddcLookupTable:
+  RevId: 1
+  NumEntries: 8
+  entries:
+    entries 0:
+      Vdd: 800
+    entries 1:
+      Vdd: 900
+    entries 2:
+      Vdd: 950
+    entries 3:
+      Vdd: 1000
+    entries 4:
+      Vdd: 1050
+    entries 5:
+      Vdd: 1100
+    entries 6:
+      Vdd: 1150
+    entries 7:
+      Vdd: 1200
+VddmemLookupTable:
+  RevId: 1
+  NumEntries: 1
+  entries:
+    entries 0:
+      Vdd: 1350
+MMDependencyTable:
+  RevId: 1
+  NumEntries: 8
+  entries:
+    entries 0:
+      VddcInd: 0
+      DClk: 34200
+      VClk: 46200
+      EClk: 60000
+      PSPClk: 50000
+    entries 1:
+      VddcInd: 1
+      DClk: 48000
+      VClk: 60000
+      EClk: 68500
+      PSPClk: 50000
+    entries 2:
+      VddcInd: 2
+      DClk: 65400
+      VClk: 72000
+      EClk: 75700
+      PSPClk: 50000
+    entries 3:
+      VddcInd: 3
+      DClk: 75700
+      VClk: 84700
+      EClk: 84700
+      PSPClk: 50000
+    entries 4:
+      VddcInd: 4
+      DClk: 84700
+      VClk: 90000
+      EClk: 90000
+      PSPClk: 50000
+    entries 5:
+      VddcInd: 5
+      DClk: 96000
+      VClk: 102800
+      EClk: 96000
+      PSPClk: 50000
+    entries 6:
+      VddcInd: 6
+      DClk: 102800
+      VClk: 110700
+      EClk: 96000
+      PSPClk: 50000
+    entries 7:
+      VddcInd: 7
+      DClk: 110700
+      VClk: 110700
+      EClk: 102800
+      PSPClk: 50000
+VCEStateTable: UNUSED
+Reserve: 0
+PowerTuneTable:
+  RevId: 7
+  SocketPowerLimit: 220
+  BatteryPowerLimit: 220
+  SmallPowerLimit: 220
+  TdcLimit: 300
+  EdcLimit: 0
+  SoftwareShutdownTemp: 74
+  TemperatureLimitHotSpot: 105
+  TemperatureLimitLiquid1: 74
+  TemperatureLimitLiquid2: 74
+  TemperatureLimitHBM: 95
+  TemperatureLimitVrSoc: 115
+  TemperatureLimitVrMem: 115
+  TemperatureLimitPlx: 100
+  LoadLineResistance: 64
+  Liquid1_I2C_address: 144
+  Liquid2_I2C_address: 146
+  Liquid_I2C_Line: 151
+  Vr_I2C_address: 96
+  Vr_I2C_Line: 150
+  Plx_I2C_address: 0
+  Plx_I2C_Line: 144
+  TemperatureLimitTedge: 70
+  BoostStartTemperature: 0
+  BoostStopTemperature: 0
+  BoostClock: 0
+  Reserved:
+    Reserved 0: 0
+    Reserved 1: 0
+HardLimitTable: UNUSED
+VddciLookupTable:
+  RevId: 1
+  NumEntries: 1
+  entries:
+    entries 0:
+      Vdd: 900
+PCIETable:
+  RevId: 2
+  NumEntries: 2
+  entries:
+    entries 0:
+      LCLK: 12500
+      PCIEGenSpeed: 2
+      PCIELaneWidth: 16
+    entries 1:
+      LCLK: 60000
+      PCIEGenSpeed: 2
+      PCIELaneWidth: 16
+PixclkDependencyTable:
+  RevId: 0
+  NumEntries: 8
+  entries:
+    entries 0:
+      Clk: 14700
+      VddInd: 0
+    entries 1:
+      Clk: 24100
+      VddInd: 1
+    entries 2:
+      Clk: 34300
+      VddInd: 2
+    entries 3:
+      Clk: 48300
+      VddInd: 3
+    entries 4:
+      Clk: 53300
+      VddInd: 4
+    entries 5:
+      Clk: 93800
+      VddInd: 5
+    entries 6:
+      Clk: 104200
+      VddInd: 6
+    entries 7:
+      Clk: 107500
+      VddInd: 7
+DispClkDependencyTable:
+  RevId: 0
+  NumEntries: 8
+  entries:
+    entries 0:
+      Clk: 28200
+      VddInd: 0
+    entries 1:
+      Clk: 51500
+      VddInd: 1
+    entries 2:
+      Clk: 68600
+      VddInd: 2
+    entries 3:
+      Clk: 80000
+      VddInd: 3
+    entries 4:
+      Clk: 90000
+      VddInd: 4
+    entries 5:
+      Clk: 102900
+      VddInd: 5
+    entries 6:
+      Clk: 110800
+      VddInd: 6
+    entries 7:
+      Clk: 120000
+      VddInd: 7
+PhyClkDependencyTable:
+  RevId: 0
+  NumEntries: 1
+  entries:
+    entries 0:
+      Clk: 81000
+      VddInd: 0

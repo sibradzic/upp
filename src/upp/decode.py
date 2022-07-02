@@ -357,7 +357,7 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
     elif name == 'GfxclkDependencyTable':
         # This by default points to ATOM_Vega10_GFXCLK_Dependency_Record, but
         # we need to override it to ATOM_Vega10_GFXCLK_Dependency_Record_V2
-        if revid == 1:                   # ATOM_Vega10_GFXCLK_Dependency_Table
+        if revid in [0, 1]:              # ATOM_Vega10_GFXCLK_Dependency_Table
             cs = getattr(pp_module, resolve_cstruct(name))
             entries_class = cs._fields_[-1][-1]
             entry_name, entry_type = cs._fields_[-1]
