@@ -132,81 +132,41 @@ GfxclkDependencyTable:
       VddInd: 0
       CKSVOffsetandDisable: 32768
       AVFSOffset: 0
-      ACGEnable: 28
-      Reserved:
-        Reserved 0: 131
-        Reserved 1: 1
-        Reserved 2: 0
     entries 1:
-      Clk: 1
-      VddInd: 0
-      CKSVOffsetandDisable: 48264
-      AVFSOffset: 1
-      ACGEnable: 2
-      Reserved:
-        Reserved 0: 0
-        Reserved 1: 0
-        Reserved 2: 0
-    entries 2:
-      Clk: 32486400
-      VddInd: 0
-      CKSVOffsetandDisable: 3
-      AVFSOffset: 0
-      ACGEnable: 0
-      Reserved:
-        Reserved 0: 144
-        Reserved 1: 14
-        Reserved 2: 2
-    entries 3:
-      Clk: 1024
-      VddInd: 0
-      CKSVOffsetandDisable: 32768
-      AVFSOffset: 562
-      ACGEnable: 0
-      Reserved:
-        Reserved 0: 5
-        Reserved 1: 0
-        Reserved 2: 0
-    entries 4:
-      Clk: 1423966208
-      VddInd: 2
-      CKSVOffsetandDisable: 1536
-      AVFSOffset: 0
-      ACGEnable: 0
-      Reserved:
-        Reserved 0: 0
-        Reserved 1: 0
-        Reserved 2: 113
-    entries 5:
-      Clk: 458754
-      VddInd: 0
+      Clk: 99100
+      VddInd: 1
       CKSVOffsetandDisable: 0
-      AVFSOffset: 768
-      ACGEnable: 96
-      Reserved:
-        Reserved 0: 234
-        Reserved 1: 0
-        Reserved 2: 0
-    entries 6:
-      Clk: 18432000
-      VddInd: 0
-      CKSVOffsetandDisable: 32768
-      AVFSOffset: 312
-      ACGEnable: 0
-      Reserved:
-        Reserved 0: 0
-        Reserved 1: 0
-        Reserved 2: 8
-    entries 7:
-      Clk: 28200
-      VddInd: 0
-      CKSVOffsetandDisable: 51500
       AVFSOffset: 0
-      ACGEnable: 1
-      Reserved:
-        Reserved 0: 248
-        Reserved 1: 11
-        Reserved 2: 1
+    entries 2:
+      Clk: 113800
+      VddInd: 2
+      CKSVOffsetandDisable: 0
+      AVFSOffset: 0
+    entries 3:
+      Clk: 126900
+      VddInd: 3
+      CKSVOffsetandDisable: 0
+      AVFSOffset: 0
+    entries 4:
+      Clk: 134800
+      VddInd: 4
+      CKSVOffsetandDisable: 0
+      AVFSOffset: 0
+    entries 5:
+      Clk: 144000
+      VddInd: 5
+      CKSVOffsetandDisable: 0
+      AVFSOffset: 0
+    entries 6:
+      Clk: 152800
+      VddInd: 6
+      CKSVOffsetandDisable: 0
+      AVFSOffset: 0
+    entries 7:
+      Clk: 160000
+      VddInd: 7
+      CKSVOffsetandDisable: 0
+      AVFSOffset: 0
 DcefclkDependencyTable:
   RevId: 0
   NumEntries: 3
