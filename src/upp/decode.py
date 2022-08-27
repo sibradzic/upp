@@ -636,12 +636,11 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
     # Navi 21 (Sienna Cichlid) aka RX6900XT/RX6800(XT)
     # Navi 22 (Navy Flounder) aka RX6700(XT)/RX6800M
     # Navi 23 (Dimgrey Cavefish) aka RX6600(XT)/RX6600M
-    elif ((pp_ver[0] == 15 or pp_ver[0] == 16 or pp_ver[0] == 18) and
-          pp_ver[1] == 0):
-        gpugen = 'Navi 21 or 22 or 23'
+    # Navi 24 (Beige Goby) aka RX6500(XT)/RX6400
+    elif ((pp_ver[0] in [15, 16, 18, 19]) and pp_ver[1] == 0):
+        gpugen = 'Navi 2x'
         from upp.atom_gen import smu_v11_0_7_navi20 as pp_struct
         ctypes_strct = pp_struct.struct_smu_11_0_7_powerplay_table
-    # Navi 24? (Beige Goby?) aka RX6300(XT)?
     elif pp_ver is not None:
         msg = 'Can not decode PowerPlay table version {}.{}'
         print(msg.format(pp_ver[0], pp_ver[1]))
