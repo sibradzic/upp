@@ -389,8 +389,6 @@ def set(ctx, variable_path_set, to_registry, write):
     will produce the file test.reg in the current working directory.
     """
     debug = ctx.obj['DEBUG']
-    if debug:
-        print(variable_path_set, to_registry, write)
     pp_file = ctx.obj['PPBINARY']
     set_pairs = []
     for set_pair_str in variable_path_set:
