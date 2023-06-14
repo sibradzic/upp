@@ -115,6 +115,35 @@ def _write_pp_to_reg_file(filename, data, debug=False):
         print('Can not write to {}'.format(filename))
     return 0
 
+def _load_variable_set(dump_filename):
+    variable_set = []
+    with open(dump_filename, 'r') as file:
+        keys = []
+        indent = 0
+        prev_indent = 0
+        lines = file.readlines()
+        for line in lines:
+            prev_indent = indent
+            indent = (len(line) - len(line.lstrip()))//2
+            if line.strip() == "":
+                continue
+            if indent == 0:
+                keys.clear()
+            elif indent <= prev_indent:
+                keys = keys[0:indent]
+
+            key, value = line.split(':')
+            key = key.strip()
+            value = value.strip()
+            if key.find("Unused") == 0 or value.find("UNUSED") == 0:
+                continue
+            if len(keys) > 0 and key.find(keys[-1]) == 0:
+                key = key.split(' ')[1]
+            keys.append(key)
+            if value != "":
+                variable_set.append(f"{'/'.join(keys)}={value}")
+    return variable_set
+
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option('-p', '--pp-file', help='Input/output PP table binary file.',
@@ -206,6 +235,27 @@ def dump(ctx, raw):
     if from_registry:
         pp_file = _get_pp_data_from_registry(from_registry)
     decode.dump_pp_table(pp_file, rawdump=raw, debug=debug)
+    return 0
+
+@click.command(short_help='Undumps all PowerPlay parameters to to pp file or registry.')
+@click.option('-d', '--dump-filename', help='File path of dumped powerplay parameters.')
+@click.option('-t', '--to-registry', metavar='<filename>',
+              help='Output to Windows registry .reg file.')
+@click.option('-w', '--write', is_flag=True,
+              help='Write changes to PP binary.', default=False)
+@click.pass_context
+def undump(ctx, dump_filename, to_registry, write):
+    """Undumps all PowerPlay data to pp file or registry
+
+    Serializes previously dumped PowerPlay text to pp file or registry.
+    For example:
+
+    \b
+        upp --pp-file=radeon.pp_table undump -d pp.dump --write
+
+    """
+    variable_set = _load_variable_set(dump_filename)
+    ctx.invoke(set, variable_path_set=variable_set, to_registry=to_registry, write=write)
     return 0
 
 
@@ -339,6 +389,8 @@ def set(ctx, variable_path_set, to_registry, write):
     will produce the file test.reg in the current working directory.
     """
     debug = ctx.obj['DEBUG']
+    if debug:
+        print(variable_path_set, to_registry, write)
     pp_file = ctx.obj['PPBINARY']
     set_pairs = []
     for set_pair_str in variable_path_set:
@@ -378,6 +430,7 @@ def set(ctx, variable_path_set, to_registry, write):
 cli.add_command(extract)
 cli.add_command(inject)
 cli.add_command(dump)
+cli.add_command(undump)
 cli.add_command(get)
 cli.add_command(set)
 cli.add_command(version)
