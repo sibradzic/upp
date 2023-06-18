@@ -125,7 +125,7 @@ def _load_variable_set(dump_filename):
         for line in lines:
             prev_indent = indent
             indent = (len(line) - len(line.lstrip()))//2
-            if line.strip() == "":
+            if line.strip() == '':
                 continue
             if indent == 0:
                 keys.clear()
@@ -135,13 +135,13 @@ def _load_variable_set(dump_filename):
             key, value = line.split(':')
             key = key.strip()
             value = value.strip()
-            if key.find("Unused") == 0 or value.find("UNUSED") == 0:
+            if key.find('Unused') == 0 or value.find('UNUSED') == 0:
                 continue
             if len(keys) > 0 and key.find(keys[-1]) == 0:
                 key = key.split(' ')[1]
             keys.append(key)
-            if value != "":
-                variable_set.append(f"{'/'.join(keys)}={value}")
+            if value != '':
+                variable_set.append('{}={}'.format('/'.join(keys), value))
     return variable_set
 
 
@@ -237,7 +237,7 @@ def dump(ctx, raw):
     decode.dump_pp_table(pp_file, rawdump=raw, debug=debug)
     return 0
 
-@click.command(short_help='Undumps all PowerPlay parameters to to pp file or registry.')
+@click.command(short_help='Undumps all PowerPlay parameters to pp file or registry.')
 @click.option('-d', '--dump-filename', help='File path of dumped powerplay parameters.')
 @click.option('-t', '--to-registry', metavar='<filename>',
               help='Output to Windows registry .reg file.')
