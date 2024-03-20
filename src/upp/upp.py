@@ -414,7 +414,7 @@ def set(ctx, variable_path_set, to_registry, write):
         decode.set_value(pp_file, pp_bytes, set_list[:-1], set_list[-1],
                          data_dict=data, write=False, debug=debug)
     if write:
-        print("Commiting changes to '{}'.".format(pp_file))
+        print("Committing changes to '{}'.".format(pp_file))
         decode._write_binary_file(pp_file, pp_bytes)
     else:
         print("WARNING: Nothing was written to '{}'.".format(pp_file),

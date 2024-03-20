@@ -52,7 +52,7 @@ def _write_binary_file(filename, raw_data):
         f.close()
     except PermissionError as e:
         msg = 'ERROR: {}\n' + \
-              'To make PowerPlay table file writtable: sudo chmod o+w {}'
+              'To make PowerPlay table file writable: sudo chmod o+w {}'
         print(msg.format(e, filename, filename))
         print(e)
 
@@ -78,11 +78,11 @@ def _checksum(rom_bytes):
 
 def _rom_info(vrom_file):
     """
-    Displays the VROM image info and returns PowrPlay table offest and size
+    Displays the VROM image info and returns PowerPlay table offset and size
 
     Returns:
-    pp_offset, pp_lenght (touple): pp_offset (int): pp table offset in vROM
-                                   pp_lenght (int): pp table lenght
+    pp_offset, pp_length (tuple): pp_offset (int): pp table offset in vROM
+                                   pp_length (int): pp table length
 
     """
 
@@ -192,7 +192,7 @@ def inject_pp_table(input_rom, output_rom, pp_bin_file):
         return None
     pp_bytes = _read_binary_file(pp_bin_file)
     if len(pp_bytes) != pp_tbl_len:
-        msg = 'ERROR: The lenght of {} PowerPlay table must match the ' + \
+        msg = 'ERROR: The length of {} PowerPlay table must match the ' + \
               'length of PowerPlay table in {} vROM image ({} bytes)'
         print(msg.format(pp_bin_file, input_rom, pp_tbl_len))
         return None
@@ -217,7 +217,7 @@ def validate_pp(header, length, rawdump):
     pp_len = header.usStructureSize
 
     if pp_len != length:
-        msg = 'ERROR: Header length ({}) diffes from file length ({}). ' + \
+        msg = 'ERROR: Header length ({}) differs from file length ({}). ' + \
               'Is this a valid PowerPlay table?'
         print(msg.format(pp_len, length))
         return None
@@ -291,11 +291,11 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
     name (string): Name of the child table used for data structure resolution
     header_bytes (bytearray): A 2-byte array where 1st byte contains the nested
                               table revision id and 2nd byte number of entries
-    debug (bool): Debbuging output enabled
+    debug (bool): Debugging output enabled
 
     Returns:
-    cs, total_len (touple): cs (class): resolved C structure
-                            lotal_len (int): structure's data length in bytes
+    cs, total_len (tuple): cs (class): resolved C structure
+                           total_len (int): structure's data length in bytes
 
     """
 
@@ -418,7 +418,7 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         entry_len = cs_entries.size
         total_len = cs_entries.offset + cs_entries.size * entry_count
 
-        # Vega10 and older C strutures all have number of entries set to 1, we
+        # Vega10 and older C structures all have number of entries set to 1, we
         # override it with real value that we get from an actual pp_table data
         entry_name, entry_type = cs._fields_[-1]
 
@@ -454,12 +454,12 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
 
     Parameters:
     data (ctypes instance): Contains binary data that can be referenced by C
-                            veriable names that has been decoded using ctypes
+                            variable names that has been decoded using ctypes
                             from_buffer() call
     raw (bytearray): Raw PowerPlay data buffer in bytearray format
     decoded (OrderedDictdict): A special tree-like structure of nested ordered
                                dictionaries that describes binary data
-                               structures containing PowerPlay parameteres,
+                               structures containing PowerPlay parameters,
                                used as parameter due to recursive nature of
                                this function
     parent_name (string): Reference to a parent of data-structure currently
@@ -467,8 +467,8 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
     meta (dict): Containing 'size' and 'offset' keys, used for calculating
                  offsets & sizes for PowerPlay sub-structure tables
     rawdump (bool): Shows PowerPlay data in a table format showing offsets
-                    and hex values on a console instead of returing data dict
-    debug (bool): Debbuging output enabled
+                    and hex values on a console instead of returning data dict
+    debug (bool): Debugging output enabled
 
     Returns:
     decoded (dict): A resulting PowerPlay data-structure in a dictionary form
@@ -536,7 +536,7 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
             else:
                 d_offset = meta['ofs'] + d_meta.offset
 
-            # Base types parsed as is, excetption are floats & offseted tables
+            # Base types parsed as is, exception are floats & offset tables
             if ctyp_cls in primitives:
                 d_symbol = ctyp_cls._type_
                 d_size = d_meta.size
@@ -585,7 +585,7 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
             # Other types are recursed back into this very same function
             else:
                 if debug:
-                    msg = 'DEBUG: Recursive dive from {} stuct into "{}"'
+                    msg = 'DEBUG: Recursive dive from {} struct into "{}"'
                     print(msg.format(parent_name, name))
                 r_meta = {'ofs': d_offset, 'size': d_size}
                 decoded[name] = odict()
