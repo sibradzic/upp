@@ -17,7 +17,7 @@ Alternatively, one can use this tool to get PowerPlay data by:
 * Extracting PowerPlay table from Video ROM image (see extract command)
 * Importing "Soft PowerPlay" table from Windows registry, directly from
   offline Windows/System32/config/SYSTEM file on disk, so it would work
-  from Linux distro that has acces to mounted Windows partition
+  from Linux distro that has access to mounted Windows partition
   (path to SYSTEM registry file is specified with `--from-registry` option)
 
 This tool currently supports parsing and modifying PowerPlay tables found
@@ -39,7 +39,7 @@ PowerPlay control methods, this tool does not support them.
 **WARNING**: Authors of this tool are in no way responsible for any damage
 that may happen to your expansive graphics card if you choose to modify
 card voltages, power limits, or any other PowerPlay parameters. Always
-remember that you are doing it entierly on your own risk!
+remember that you are doing it entirely on your own risk!
 
 If you have bugs to report or features to request please create an issue on:
 https://github.com/sibradzic/upp
@@ -66,8 +66,9 @@ Radeon PowerPlay table data. Currently available commands are:
 * **dump** - Dumps all PowerPlay data to console
 * **extract** - Extracts PowerPlay data from full VBIOS ROM image
 * **inject** - Injects PowerPlay data from file into VBIOS ROM image
-* **get** - Retrieves current value of one or multiple PowerPlay parametter(s)
+* **get** - Retrieves current value of one or multiple PowerPlay parameter(s)
 * **set** - Sets value to one or multiple PowerPlay parameters
+* **undump** - Sets all PowerPlay parameters to pp file or registry
 * **version** - Shows UPP version
 
 So, an usage pattern would be like this:
@@ -112,11 +113,11 @@ optional `-o/--output-rom parameter`. For example:
 
     upp -p modded.pp_table inject -i original.rom -o modded.rom
 
-**WARNING**: Modified vROM image is probalby not going to work if flashed as is
+**WARNING**: Modified vROM image is probably not going to work if flashed as is
 to your card, due to ROM signature checks on recent Radeon cards. Authors of
 this tool are in no way responsible for any damage that may happen to your
 expansive graphics card if you choose to flash the modified video ROM, you are
-doing it entierly on your own risk.
+doing it entirely on your own risk.
 
 #### Getting PowerPlay table parameter value(s):
 
@@ -142,6 +143,21 @@ parameter(s). The parameter path and value must be specified in
       smc_pptable/SocketPowerLimitDc/0=100   \
       smc_pptable/FanStartTemp=100           \
       smc_pptable/FreqTableGfx/1=1550
+
+Note the `--write` parameter, which has to be specified to actually commit
+changes to the PowerPlay table file.
+
+#### Undumps all PowerPlay parameters:
+
+The **undump** command sets all values from previously dumped PowerPlay table parameter(s) back to pp_table or registry. It allows you to make changes in dumped text file and write back all changes at once. Basically it's a convenient way to set multiple values. For example:
+
+    # extract pp_table from vbios
+    upp --pp-file=vbios.pp_table extract -r vbios.rom
+    # dump powerplay table to text file
+    upp --pp-file=vbios.pp_table dump > vbios.pp_table.dump
+    # make changes in vbios.pp_table.dump
+    # undump all changes back into pp_table
+    upp --pp-file=vbios.pp_table undump -d vbios.pp_table.dump -w
 
 Note the `--write` parameter, which has to be specified to actually commit
 changes to the PowerPlay table file.
