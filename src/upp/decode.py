@@ -3,17 +3,19 @@ import struct
 import ctypes
 
 from upp.atom_gen import atombios
-
-from upp.atom_gen.atom import ATOM_ROM_TABLE_PTR, ATOM_ROM_PART_NUMBER_PTR
 from collections import OrderedDict
 from importlib import import_module
 
-rom_tbl_ptr = ATOM_ROM_TABLE_PTR
-part_num_ptr = ATOM_ROM_PART_NUMBER_PTR
+# These two used to be imported from drivers/gpu/drm/amd/amdgpu/atom.h, but
+# from kernel v 6.6 the ATOM_ROM_PART_NUMBER_PTR got removed, so harcoding them
+rom_tbl_ptr = 0x48
+part_num_ptr = 0x6e
+
 common_hdr = atombios.struct__ATOM_COMMON_TABLE_HEADER
 master_dt_tbl_struct = atombios.struct__ATOM_MASTER_DATA_TABLE
 atom_rom_header = atombios.struct__ATOM_ROM_HEADER
 atom_rom_header_v2 = atombios.struct__ATOM_ROM_HEADER_V2_1
+leagcy_vrom_offset = 0x40000
 
 # Base ctypes variables, in order to distinguish from structures and arrays
 primitives = [
@@ -25,7 +27,9 @@ primitives = [
 # Defined as uint in kernel, but in reality these are float
 float_fields = ['a', 'b', 'c', 'm',
                 'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA', 'VcBtcVminB']
-float_arrays = ['Fset', 'Vdroop']
+float_arrays = ['Fset', 'Vdroop', 'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA',
+                'VcBtcVminB', 'Droop_PWL_F', 'Droop_PWL_a', 'Droop_PWL_b',
+                'Droop_PWL_c']
 
 
 def odict(init_data=None):
@@ -91,6 +95,18 @@ def _rom_info(vrom_file):
     # VROM magic validation
     rom_magic_bytes = rom_bytes[:2]
     rom_magic_str = _bytes2hex(rom_magic_bytes).upper()
+    rom_offset = 0
+
+    # Since Navi 3x the UEFI VBIOS comes first, the legacy VBIOS is at 0x40000
+    if rom_magic_str == 'AA55':
+        rom_offset = leagcy_vrom_offset
+        msg = 'UEFIU video ROM magic detected: {}, using legacy VBIOS ' + \
+              'at offset 0x{:X}'
+        print(msg.format(rom_magic_str, rom_offset))
+        rom_bytes = rom_bytes[rom_offset:]
+        rom_magic_bytes = rom_bytes[:2]
+        rom_magic_str = _bytes2hex(rom_magic_bytes).upper()
+
     if rom_magic_str != '55AA':
         err_msg = 'Invalid Video ROM magic: {}, must be 55AA'
         print(err_msg.format(rom_magic_str))
@@ -147,6 +163,10 @@ def _rom_info(vrom_file):
 
     # Fetching 'Master Data Table'
     master_dt_tbl_ofst = rom_tbl.usMasterDataTableOffset
+
+    msg = 'Looking into MasterDataTable at offset 0x{:04X}'
+    print(msg.format(master_dt_tbl_ofst))
+
     master_dt_hdr_bytes = rom_bytes[master_dt_tbl_ofst:master_dt_tbl_ofst+5]
     master_dt_tbl_header = common_hdr.from_buffer(master_dt_hdr_bytes)
     master_dt_tbl_len = master_dt_tbl_header.usStructureSize
@@ -156,15 +176,33 @@ def _rom_info(vrom_file):
 
     # Fetching 'PowerPlayInfo' table
     pp_tbl_offset = master_dt_tbl.ListOfDataTables.PowerPlayInfo
+
+    # TODO: For The PowerPlayInfo table offset info on RDNA3+ VBIOS is not at
+    # expected place. It seems to be right behind $PS1P magic. Investigate.
+    if (rom_offset != 0 and pp_tbl_offset == 0):
+        print('Invalid PowerPlayInfo offset, checking for $PS1P magic...')
+        ps1p_offset = rom_bytes.find(b'$PS1P')
+        if ps1p_offset > 0:
+            print('Found $PS1P at 0x{:X}'.format(rom_offset + ps1p_offset))
+            pp_tbl_offset = ps1p_offset + 0x110
+            print('OFFSET at 0x{:X}'.format(pp_tbl_offset))
+        else:
+            print('ERROR: Can not find PowerPlay table!')
+            return 0, 0
+
+    msg = 'Looking into PowerPlayInfo at offset 0x{:04X}'
+    print(msg.format(rom_offset + pp_tbl_offset))
+
     pp_tbl_header_bytes = rom_bytes[pp_tbl_offset:pp_tbl_offset+5]
     pp_tbl_header = common_hdr.from_buffer(pp_tbl_header_bytes)
     pp_tbl_len = pp_tbl_header.usStructureSize
 
     msg = 'Found {} bytes long PowerPlayInfo table v{}.{} at offset 0x{:04X}'
     print(msg.format(pp_tbl_len, pp_tbl_header.ucTableFormatRevision,
-                     pp_tbl_header.ucTableContentRevision, pp_tbl_offset))
+                     pp_tbl_header.ucTableContentRevision,
+                     rom_offset + pp_tbl_offset))
 
-    return pp_tbl_offset, pp_tbl_len
+    return rom_offset + pp_tbl_offset, pp_tbl_len
 
 
 def extract_rom(vrom_file, out_pp_file):
@@ -408,7 +446,17 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
 
     # Here we get the byte-length of the offset-ed C structures
     if 'ucNumEntries' in cs._fields_[1]:
+        # Vega10 and older C structures all have number of entries set to 0, we
+        # override it with real value that we get from an actual pp_table data
+        entry_name, entry_type = cs._fields_[-1]
         entry_count = struct.unpack('B', header_bytes[1:2])[0]
+
+        class FixedEntriesCountArray(ctypes.LittleEndianStructure):
+            _pack_ = cs._pack_
+            _fields_ = cs._fields_[:-1] + [(entry_name,
+                                            entry_type._type_ * entry_count)]
+
+        cs = FixedEntriesCountArray
 
         # This workarounds the oddity of last field in ATOM_Vega10_State_Array
         # being named 'states', yet all other C structs names it 'entries'
@@ -418,16 +466,6 @@ def _get_ofst_cstruct(module, name, header_bytes, debug=False):
         entry_len = cs_entries.size
         total_len = cs_entries.offset + cs_entries.size * entry_count
 
-        # Vega10 and older C structures all have number of entries set to 1, we
-        # override it with real value that we get from an actual pp_table data
-        entry_name, entry_type = cs._fields_[-1]
-
-        class FixedEntriesCountArray(ctypes.LittleEndianStructure):
-            _pack_ = cs._pack_
-            _fields_ = cs._fields_[:-1] + [(entry_name,
-                                            entry_type._type_ * entry_count)]
-
-        cs = FixedEntriesCountArray
     else:
         total_len = 0
         for field in cs._fields_:
@@ -540,7 +578,10 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
             if ctyp_cls in primitives:
                 d_symbol = ctyp_cls._type_
                 d_size = d_meta.size
-                d_bytes = d_value.to_bytes(d_size, 'little')
+                if ctyp_cls._type_ in ['b', 'h']:
+                    d_bytes = d_value.to_bytes(d_size, 'little', signed=True)
+                else:
+                    d_bytes = d_value.to_bytes(d_size, 'little')
                 if ctyp_cls == ctypes.c_uint and name in float_fields:
                     d_symbol = 'f'
                     d_value = struct.unpack(d_symbol, d_bytes)[0]
@@ -641,6 +682,11 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
         gpugen = 'Navi 2x'
         from upp.atom_gen import smu_v11_0_7_navi20 as pp_struct
         ctypes_strct = pp_struct.struct_smu_11_0_7_powerplay_table
+    # Navi 31, 32, 33
+    elif ((pp_ver[0] in [20, 21, 22]) and pp_ver[1] == 0):
+        gpugen = 'Navi 3x'
+        from upp.atom_gen import smu_v13_0_7_navi30 as pp_struct
+        ctypes_strct = pp_struct.struct_smu_13_0_7_powerplay_table
     elif pp_ver is not None:
         msg = 'Can not decode PowerPlay table version {}.{}'
         print(msg.format(pp_ver[0], pp_ver[1]))
@@ -671,7 +717,7 @@ def dump_pp_table(pp_bin_file, data_dict=None, indent=0, parent='',
     for member in data_dict:
         name = member
         if isinstance(member, int):
-            name = parent + ' ' + str(member)
+            name = str(parent) + ' ' + str(member)
         if data_dict[member] is None:
             print('{}{}: UNUSED'.format(' '*indent, member))
         elif 'value' in data_dict[member]:

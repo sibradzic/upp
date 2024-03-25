@@ -12,6 +12,9 @@ allow PowerPlay tables to be dynamically modified on runtime, which may be
 known as "soft" PowerPlay table. On Linux, the PowerPlay table is by default
 found at: `/sys/class/drm/card0/device/pp_table`.
 
+This tool does very minimal interpretation of actual PowerPlay table values.
+By design, it is mostly up to the user to do such thing.
+
 Alternatively, one can use this tool to get PowerPlay data by:
 
 * Extracting PowerPlay table from Video ROM image (see extract command)
@@ -19,6 +22,8 @@ Alternatively, one can use this tool to get PowerPlay data by:
   offline Windows/System32/config/SYSTEM file on disk, so it would work
   from Linux distro that has access to mounted Windows partition
   (path to SYSTEM registry file is specified with `--from-registry` option)
+* Importing "Soft PowerPlay" table from "More Powe Tool" MPT file
+  (path to MPT file is specified with `--from-mpt option`)
 
 This tool currently supports parsing and modifying PowerPlay tables found
 on the following AMD GPU families:
@@ -32,6 +37,7 @@ on the following AMD GPU families:
 * Navi 21 (Sienna Cichlid)
 * Navi 22 (Navy Flounder)
 * Navi 23 (Dimgrey Cavefish)
+* Navi 3x *experimental support
 
 Note: iGPUs found in many recent AMD APUs are using completely different
 PowerPlay control methods, this tool does not support them.
@@ -46,9 +52,20 @@ https://github.com/sibradzic/upp
 
 ### Requirements
 
-Python 3.6+, click library. Optionally, for reading "soft" PowerPlay table
+Python 3.7+, click library. Optionally, for reading "soft" PowerPlay table
 from Windows registry: python-registry. Should work on Windows as well
 (testers wanted).
+
+### Installation
+
+Either get it with pip:
+
+    pip install upp
+
+or use it as is directly from the source tree:
+
+    cd src
+    python3 -m upp.upp --help
 
 ### Usage
 
@@ -78,10 +95,13 @@ So, an usage pattern would be like this:
 Some generic options applicable to all commands may be used, but please note
 that they have to be specified *before* an actual command:
 
-    -p, --pp-file <filename>        Input/output PP table file.
+    -p, --pp-file <filename>        Input/output PP table binary file.
     -f, --from-registry <filename>  Import PP_PhmSoftPowerPlayTable from Windows
+                                    registry (overrides -p / --pp-file option).
+    -m, --from-mpt <filename>       Import PowerPlay Table from More Power Tool
+                                    (overrides --pp-file and --from-registry optios).
     -d, --debug / --no-debug        Debug mode.
-    -h, --help                      Show help.
+    -h, --help                      Show this message and exit.
 
 #### Dumping all data:
 

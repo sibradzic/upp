@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='upp',
-    version='0.1.8',
+    version='0.2.0',
     author='Samir Ibradžić',
     description='Uplift Power Play',
     long_description=long_description,
@@ -15,15 +15,15 @@ setuptools.setup(
     packages=['upp', 'upp/atom_gen'],
     classifiers=[
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.6, <4',
+    python_requires='>=3.7, <4',
     install_requires=[
         'click',
         'setuptools'

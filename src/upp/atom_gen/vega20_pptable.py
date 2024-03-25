@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '--include', 'linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if.h', '']
+# TARGET arch is: ['--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '--include', 'linux/drivers/gpu/drm/amd/pm/powerplay/inc/smu11_driver_if.h', '']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -131,6 +131,68 @@ ATOM_VEGA20_TABLE_REVISION_VEGA20 = 11 # macro
 ATOM_VEGA20_ODFEATURE_MAX_COUNT = 32 # macro
 ATOM_VEGA20_ODSETTING_MAX_COUNT = 32 # macro
 ATOM_VEGA20_PPCLOCK_MAX_COUNT = 16 # macro
+
+# values for enumeration 'ATOM_VEGA20_ODFEATURE_ID'
+ATOM_VEGA20_ODFEATURE_ID__enumvalues = {
+    0: 'ATOM_VEGA20_ODFEATURE_GFXCLK_LIMITS',
+    1: 'ATOM_VEGA20_ODFEATURE_GFXCLK_CURVE',
+    2: 'ATOM_VEGA20_ODFEATURE_UCLK_MAX',
+    3: 'ATOM_VEGA20_ODFEATURE_POWER_LIMIT',
+    4: 'ATOM_VEGA20_ODFEATURE_FAN_ACOUSTIC_LIMIT',
+    5: 'ATOM_VEGA20_ODFEATURE_FAN_SPEED_MIN',
+    6: 'ATOM_VEGA20_ODFEATURE_TEMPERATURE_FAN',
+    7: 'ATOM_VEGA20_ODFEATURE_TEMPERATURE_SYSTEM',
+    8: 'ATOM_VEGA20_ODFEATURE_MEMORY_TIMING_TUNE',
+    9: 'ATOM_VEGA20_ODFEATURE_FAN_ZERO_RPM_CONTROL',
+    10: 'ATOM_VEGA20_ODFEATURE_COUNT',
+}
+ATOM_VEGA20_ODFEATURE_GFXCLK_LIMITS = 0
+ATOM_VEGA20_ODFEATURE_GFXCLK_CURVE = 1
+ATOM_VEGA20_ODFEATURE_UCLK_MAX = 2
+ATOM_VEGA20_ODFEATURE_POWER_LIMIT = 3
+ATOM_VEGA20_ODFEATURE_FAN_ACOUSTIC_LIMIT = 4
+ATOM_VEGA20_ODFEATURE_FAN_SPEED_MIN = 5
+ATOM_VEGA20_ODFEATURE_TEMPERATURE_FAN = 6
+ATOM_VEGA20_ODFEATURE_TEMPERATURE_SYSTEM = 7
+ATOM_VEGA20_ODFEATURE_MEMORY_TIMING_TUNE = 8
+ATOM_VEGA20_ODFEATURE_FAN_ZERO_RPM_CONTROL = 9
+ATOM_VEGA20_ODFEATURE_COUNT = 10
+ATOM_VEGA20_ODFEATURE_ID = ctypes.c_uint32 # enum
+
+# values for enumeration 'ATOM_VEGA20_ODSETTING_ID'
+ATOM_VEGA20_ODSETTING_ID__enumvalues = {
+    0: 'ATOM_VEGA20_ODSETTING_GFXCLKFMAX',
+    1: 'ATOM_VEGA20_ODSETTING_GFXCLKFMIN',
+    2: 'ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P1',
+    3: 'ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P1',
+    4: 'ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P2',
+    5: 'ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P2',
+    6: 'ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P3',
+    7: 'ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P3',
+    8: 'ATOM_VEGA20_ODSETTING_UCLKFMAX',
+    9: 'ATOM_VEGA20_ODSETTING_POWERPERCENTAGE',
+    10: 'ATOM_VEGA20_ODSETTING_FANRPMMIN',
+    11: 'ATOM_VEGA20_ODSETTING_FANRPMACOUSTICLIMIT',
+    12: 'ATOM_VEGA20_ODSETTING_FANTARGETTEMPERATURE',
+    13: 'ATOM_VEGA20_ODSETTING_OPERATINGTEMPMAX',
+    14: 'ATOM_VEGA20_ODSETTING_COUNT',
+}
+ATOM_VEGA20_ODSETTING_GFXCLKFMAX = 0
+ATOM_VEGA20_ODSETTING_GFXCLKFMIN = 1
+ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P1 = 2
+ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P1 = 3
+ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P2 = 4
+ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P2 = 5
+ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P3 = 6
+ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P3 = 7
+ATOM_VEGA20_ODSETTING_UCLKFMAX = 8
+ATOM_VEGA20_ODSETTING_POWERPERCENTAGE = 9
+ATOM_VEGA20_ODSETTING_FANRPMMIN = 10
+ATOM_VEGA20_ODSETTING_FANRPMACOUSTICLIMIT = 11
+ATOM_VEGA20_ODSETTING_FANTARGETTEMPERATURE = 12
+ATOM_VEGA20_ODSETTING_OPERATINGTEMPMAX = 13
+ATOM_VEGA20_ODSETTING_COUNT = 14
+ATOM_VEGA20_ODSETTING_ID = ctypes.c_uint32 # enum
 class struct__ATOM_VEGA20_OVERDRIVE8_RECORD(Structure):
     pass
 
@@ -145,6 +207,35 @@ struct__ATOM_VEGA20_OVERDRIVE8_RECORD._fields_ = [
 ]
 
 ATOM_VEGA20_OVERDRIVE8_RECORD = struct__ATOM_VEGA20_OVERDRIVE8_RECORD
+
+# values for enumeration 'ATOM_VEGA20_PPCLOCK_ID'
+ATOM_VEGA20_PPCLOCK_ID__enumvalues = {
+    0: 'ATOM_VEGA20_PPCLOCK_GFXCLK',
+    1: 'ATOM_VEGA20_PPCLOCK_VCLK',
+    2: 'ATOM_VEGA20_PPCLOCK_DCLK',
+    3: 'ATOM_VEGA20_PPCLOCK_ECLK',
+    4: 'ATOM_VEGA20_PPCLOCK_SOCCLK',
+    5: 'ATOM_VEGA20_PPCLOCK_UCLK',
+    6: 'ATOM_VEGA20_PPCLOCK_FCLK',
+    7: 'ATOM_VEGA20_PPCLOCK_DCEFCLK',
+    8: 'ATOM_VEGA20_PPCLOCK_DISPCLK',
+    9: 'ATOM_VEGA20_PPCLOCK_PIXCLK',
+    10: 'ATOM_VEGA20_PPCLOCK_PHYCLK',
+    11: 'ATOM_VEGA20_PPCLOCK_COUNT',
+}
+ATOM_VEGA20_PPCLOCK_GFXCLK = 0
+ATOM_VEGA20_PPCLOCK_VCLK = 1
+ATOM_VEGA20_PPCLOCK_DCLK = 2
+ATOM_VEGA20_PPCLOCK_ECLK = 3
+ATOM_VEGA20_PPCLOCK_SOCCLK = 4
+ATOM_VEGA20_PPCLOCK_UCLK = 5
+ATOM_VEGA20_PPCLOCK_FCLK = 6
+ATOM_VEGA20_PPCLOCK_DCEFCLK = 7
+ATOM_VEGA20_PPCLOCK_DISPCLK = 8
+ATOM_VEGA20_PPCLOCK_PIXCLK = 9
+ATOM_VEGA20_PPCLOCK_PHYCLK = 10
+ATOM_VEGA20_PPCLOCK_COUNT = 11
+ATOM_VEGA20_PPCLOCK_ID = ctypes.c_uint32 # enum
 class struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD(Structure):
     pass
 
@@ -160,56 +251,46 @@ ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD = struct__ATOM_VEGA20_POWER_SAVING_CLOCK_R
 class struct__ATOM_VEGA20_POWERPLAYTABLE(Structure):
     pass
 
-class struct_c__SA_PPTable_t(Structure):
+class struct_PPTable_t(Structure):
     pass
 
-class struct_c__SA_DroopInt_t(Structure):
+class struct_DpmDescriptor_t(Structure):
     pass
 
-struct_c__SA_DroopInt_t._pack_ = 1 # source:False
-struct_c__SA_DroopInt_t._fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
-]
-
-class struct_c__SA_DpmDescriptor_t(Structure):
+class struct_LinearInt_t(Structure):
     pass
 
-class struct_c__SA_LinearInt_t(Structure):
-    pass
-
-struct_c__SA_LinearInt_t._pack_ = 1 # source:False
-struct_c__SA_LinearInt_t._fields_ = [
+struct_LinearInt_t._pack_ = 1 # source:False
+struct_LinearInt_t._fields_ = [
     ('m', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
 ]
 
-class struct_c__SA_QuadraticInt_t(Structure):
+class struct_QuadraticInt_t(Structure):
     pass
 
-struct_c__SA_QuadraticInt_t._pack_ = 1 # source:False
-struct_c__SA_QuadraticInt_t._fields_ = [
+struct_QuadraticInt_t._pack_ = 1 # source:False
+struct_QuadraticInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
 ]
 
-struct_c__SA_DpmDescriptor_t._pack_ = 1 # source:False
-struct_c__SA_DpmDescriptor_t._fields_ = [
+struct_DpmDescriptor_t._pack_ = 1 # source:False
+struct_DpmDescriptor_t._fields_ = [
     ('VoltageMode', ctypes.c_ubyte),
     ('SnapToDiscrete', ctypes.c_ubyte),
     ('NumDiscreteLevels', ctypes.c_ubyte),
     ('padding', ctypes.c_ubyte),
-    ('ConversionToAvfsClk', struct_c__SA_LinearInt_t),
-    ('SsCurve', struct_c__SA_QuadraticInt_t),
+    ('ConversionToAvfsClk', struct_LinearInt_t),
+    ('SsCurve', struct_QuadraticInt_t),
 ]
 
-class struct_c__SA_I2cControllerConfig_t(Structure):
+class struct_I2cControllerConfig_t(Structure):
     pass
 
-struct_c__SA_I2cControllerConfig_t._pack_ = 1 # source:False
-struct_c__SA_I2cControllerConfig_t._fields_ = [
+struct_I2cControllerConfig_t._pack_ = 1 # source:False
+struct_I2cControllerConfig_t._fields_ = [
     ('Enabled', ctypes.c_uint32),
     ('SlaveAddress', ctypes.c_uint32),
     ('ControllerPort', ctypes.c_uint32),
@@ -219,8 +300,18 @@ struct_c__SA_I2cControllerConfig_t._fields_ = [
     ('I2cSpeed', ctypes.c_uint32),
 ]
 
-struct_c__SA_PPTable_t._pack_ = 1 # source:False
-struct_c__SA_PPTable_t._fields_ = [
+class struct_DroopInt_t(Structure):
+    pass
+
+struct_DroopInt_t._pack_ = 1 # source:False
+struct_DroopInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
+]
+
+struct_PPTable_t._pack_ = 1 # source:False
+struct_PPTable_t._fields_ = [
     ('Version', ctypes.c_uint32),
     ('FeaturesToRun', ctypes.c_uint32 * 2),
     ('SocketPowerLimitAc0', ctypes.c_uint16),
@@ -263,7 +354,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('MaxVoltageSoc', ctypes.c_uint16),
     ('LoadLineResistanceGfx', ctypes.c_uint16),
     ('LoadLineResistanceSoc', ctypes.c_uint16),
-    ('DpmDescriptor', struct_c__SA_DpmDescriptor_t * 11),
+    ('DpmDescriptor', struct_DpmDescriptor_t * 11),
     ('FreqTableGfx', ctypes.c_uint16 * 16),
     ('FreqTableVclk', ctypes.c_uint16 * 8),
     ('FreqTableDclk', ctypes.c_uint16 * 8),
@@ -283,7 +374,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('GfxclkSlewRate', ctypes.c_uint16),
     ('CksEnableFreq', ctypes.c_uint16),
     ('Padding789', ctypes.c_uint16),
-    ('CksVoltageOffset', struct_c__SA_QuadraticInt_t),
+    ('CksVoltageOffset', struct_QuadraticInt_t),
     ('Padding567', ctypes.c_ubyte * 4),
     ('GfxclkDsMaxFreq', ctypes.c_uint16),
     ('GfxclkSource', ctypes.c_ubyte),
@@ -320,13 +411,13 @@ struct_c__SA_PPTable_t._fields_ = [
     ('FuzzyFan_Reserved', ctypes.c_uint16),
     ('OverrideAvfsGb', ctypes.c_ubyte * 2),
     ('Padding8_Avfs', ctypes.c_ubyte * 2),
-    ('qAvfsGb', struct_c__SA_QuadraticInt_t * 2),
-    ('dBtcGbGfxCksOn', struct_c__SA_DroopInt_t),
-    ('dBtcGbGfxCksOff', struct_c__SA_DroopInt_t),
-    ('dBtcGbGfxAfll', struct_c__SA_DroopInt_t),
-    ('dBtcGbSoc', struct_c__SA_DroopInt_t),
-    ('qAgingGb', struct_c__SA_LinearInt_t * 2),
-    ('qStaticVoltageOffset', struct_c__SA_QuadraticInt_t * 2),
+    ('qAvfsGb', struct_QuadraticInt_t * 2),
+    ('dBtcGbGfxCksOn', struct_DroopInt_t),
+    ('dBtcGbGfxCksOff', struct_DroopInt_t),
+    ('dBtcGbGfxAfll', struct_DroopInt_t),
+    ('dBtcGbSoc', struct_DroopInt_t),
+    ('qAgingGb', struct_LinearInt_t * 2),
+    ('qStaticVoltageOffset', struct_QuadraticInt_t * 2),
     ('DcTol', ctypes.c_uint16 * 2),
     ('DcBtcEnabled', ctypes.c_ubyte * 2),
     ('Padding8_GfxBtc', ctypes.c_ubyte * 2),
@@ -339,10 +430,10 @@ struct_c__SA_PPTable_t._fields_ = [
     ('XgmiSocclkFreq', ctypes.c_uint16 * 2),
     ('XgmiSocVoltage', ctypes.c_uint16 * 2),
     ('DebugOverrides', ctypes.c_uint32),
-    ('ReservedEquation0', struct_c__SA_QuadraticInt_t),
-    ('ReservedEquation1', struct_c__SA_QuadraticInt_t),
-    ('ReservedEquation2', struct_c__SA_QuadraticInt_t),
-    ('ReservedEquation3', struct_c__SA_QuadraticInt_t),
+    ('ReservedEquation0', struct_QuadraticInt_t),
+    ('ReservedEquation1', struct_QuadraticInt_t),
+    ('ReservedEquation2', struct_QuadraticInt_t),
+    ('ReservedEquation3', struct_QuadraticInt_t),
     ('MinVoltageUlvGfx', ctypes.c_uint16),
     ('MinVoltageUlvSoc', ctypes.c_uint16),
     ('MGpuFanBoostLimitRpm', ctypes.c_uint16),
@@ -398,7 +489,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('FllGfxclkSpreadEnabled', ctypes.c_ubyte),
     ('FllGfxclkSpreadPercent', ctypes.c_ubyte),
     ('FllGfxclkSpreadFreq', ctypes.c_uint16),
-    ('I2cControllers', struct_c__SA_I2cControllerConfig_t * 7),
+    ('I2cControllers', struct_I2cControllerConfig_t * 7),
     ('BoardReserved', ctypes.c_uint32 * 10),
     ('MmHubPadding', ctypes.c_uint32 * 8),
 ]
@@ -432,16 +523,47 @@ struct__ATOM_VEGA20_POWERPLAYTABLE._fields_ = [
     ('PowerSavingClockTable', ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD),
     ('OverDrive8Table', ATOM_VEGA20_OVERDRIVE8_RECORD),
     ('usReserve', ctypes.c_uint16 * 5),
-    ('smcPPTable', struct_c__SA_PPTable_t),
+    ('smcPPTable', struct_PPTable_t),
 ]
 
 ATOM_Vega20_POWERPLAYTABLE = struct__ATOM_VEGA20_POWERPLAYTABLE
 __all__ = \
-    ['ATOM_VEGA20_ODFEATURE_MAX_COUNT',
+    ['ATOM_VEGA20_ODFEATURE_COUNT',
+    'ATOM_VEGA20_ODFEATURE_FAN_ACOUSTIC_LIMIT',
+    'ATOM_VEGA20_ODFEATURE_FAN_SPEED_MIN',
+    'ATOM_VEGA20_ODFEATURE_FAN_ZERO_RPM_CONTROL',
+    'ATOM_VEGA20_ODFEATURE_GFXCLK_CURVE',
+    'ATOM_VEGA20_ODFEATURE_GFXCLK_LIMITS', 'ATOM_VEGA20_ODFEATURE_ID',
+    'ATOM_VEGA20_ODFEATURE_MAX_COUNT',
+    'ATOM_VEGA20_ODFEATURE_MEMORY_TIMING_TUNE',
+    'ATOM_VEGA20_ODFEATURE_POWER_LIMIT',
+    'ATOM_VEGA20_ODFEATURE_TEMPERATURE_FAN',
+    'ATOM_VEGA20_ODFEATURE_TEMPERATURE_SYSTEM',
+    'ATOM_VEGA20_ODFEATURE_UCLK_MAX', 'ATOM_VEGA20_ODSETTING_COUNT',
+    'ATOM_VEGA20_ODSETTING_FANRPMACOUSTICLIMIT',
+    'ATOM_VEGA20_ODSETTING_FANRPMMIN',
+    'ATOM_VEGA20_ODSETTING_FANTARGETTEMPERATURE',
+    'ATOM_VEGA20_ODSETTING_GFXCLKFMAX',
+    'ATOM_VEGA20_ODSETTING_GFXCLKFMIN', 'ATOM_VEGA20_ODSETTING_ID',
     'ATOM_VEGA20_ODSETTING_MAX_COUNT',
+    'ATOM_VEGA20_ODSETTING_OPERATINGTEMPMAX',
+    'ATOM_VEGA20_ODSETTING_POWERPERCENTAGE',
+    'ATOM_VEGA20_ODSETTING_UCLKFMAX',
+    'ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P1',
+    'ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P2',
+    'ATOM_VEGA20_ODSETTING_VDDGFXCURVEFREQ_P3',
+    'ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P1',
+    'ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P2',
+    'ATOM_VEGA20_ODSETTING_VDDGFXCURVEVOLTAGEOFFSET_P3',
     'ATOM_VEGA20_OVERDRIVE8_RECORD',
     'ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD',
-    'ATOM_VEGA20_PPCLOCK_MAX_COUNT',
+    'ATOM_VEGA20_PPCLOCK_COUNT', 'ATOM_VEGA20_PPCLOCK_DCEFCLK',
+    'ATOM_VEGA20_PPCLOCK_DCLK', 'ATOM_VEGA20_PPCLOCK_DISPCLK',
+    'ATOM_VEGA20_PPCLOCK_ECLK', 'ATOM_VEGA20_PPCLOCK_FCLK',
+    'ATOM_VEGA20_PPCLOCK_GFXCLK', 'ATOM_VEGA20_PPCLOCK_ID',
+    'ATOM_VEGA20_PPCLOCK_MAX_COUNT', 'ATOM_VEGA20_PPCLOCK_PHYCLK',
+    'ATOM_VEGA20_PPCLOCK_PIXCLK', 'ATOM_VEGA20_PPCLOCK_SOCCLK',
+    'ATOM_VEGA20_PPCLOCK_UCLK', 'ATOM_VEGA20_PPCLOCK_VCLK',
     'ATOM_VEGA20_PP_PLATFORM_CAP_BACO',
     'ATOM_VEGA20_PP_PLATFORM_CAP_BAMACO',
     'ATOM_VEGA20_PP_PLATFORM_CAP_ENABLESHADOWPSTATE',
@@ -451,10 +573,10 @@ __all__ = \
     'ATOM_VEGA20_PP_THERMALCONTROLLER_NONE',
     'ATOM_VEGA20_PP_THERMALCONTROLLER_VEGA20',
     'ATOM_VEGA20_TABLE_REVISION_VEGA20', 'ATOM_Vega20_POWERPLAYTABLE',
-    '_VEGA20_PPTABLE_H_', 'struct__ATOM_VEGA20_OVERDRIVE8_RECORD',
+    '_VEGA20_PPTABLE_H_', 'struct_DpmDescriptor_t',
+    'struct_DroopInt_t', 'struct_I2cControllerConfig_t',
+    'struct_LinearInt_t', 'struct_PPTable_t', 'struct_QuadraticInt_t',
+    'struct__ATOM_VEGA20_OVERDRIVE8_RECORD',
     'struct__ATOM_VEGA20_POWERPLAYTABLE',
     'struct__ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD',
-    'struct_atom_common_table_header', 'struct_c__SA_DpmDescriptor_t',
-    'struct_c__SA_DroopInt_t', 'struct_c__SA_I2cControllerConfig_t',
-    'struct_c__SA_LinearInt_t', 'struct_c__SA_PPTable_t',
-    'struct_c__SA_QuadraticInt_t']
+    'struct_atom_common_table_header']

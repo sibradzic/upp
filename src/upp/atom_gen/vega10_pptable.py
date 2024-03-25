@@ -233,7 +233,7 @@ struct__ATOM_Vega10_State_Array._pack_ = 1 # source:False
 struct__ATOM_Vega10_State_Array._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('states', struct__ATOM_Vega10_State * 1),
+    ('states', struct__ATOM_Vega10_State * 0),
 ]
 
 ATOM_Vega10_State_Array = struct__ATOM_Vega10_State_Array
@@ -303,7 +303,7 @@ struct__ATOM_Vega10_MCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_MCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_MCLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Vega10_MCLK_Dependency_Record * 0),
 ]
 
 ATOM_Vega10_MCLK_Dependency_Table = struct__ATOM_Vega10_MCLK_Dependency_Table
@@ -314,7 +314,7 @@ struct__ATOM_Vega10_SOCCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_SOCCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 0),
 ]
 
 ATOM_Vega10_SOCCLK_Dependency_Table = struct__ATOM_Vega10_SOCCLK_Dependency_Table
@@ -325,7 +325,7 @@ struct__ATOM_Vega10_DCEFCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_DCEFCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 0),
 ]
 
 ATOM_Vega10_DCEFCLK_Dependency_Table = struct__ATOM_Vega10_DCEFCLK_Dependency_Table
@@ -336,7 +336,7 @@ struct__ATOM_Vega10_PIXCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_PIXCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 0),
 ]
 
 ATOM_Vega10_PIXCLK_Dependency_Table = struct__ATOM_Vega10_PIXCLK_Dependency_Table
@@ -347,7 +347,7 @@ struct__ATOM_Vega10_DISPCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_DISPCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 0),
 ]
 
 ATOM_Vega10_DISPCLK_Dependency_Table = struct__ATOM_Vega10_DISPCLK_Dependency_Table
@@ -358,7 +358,7 @@ struct__ATOM_Vega10_PHYCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_PHYCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Vega10_CLK_Dependency_Record * 0),
 ]
 
 ATOM_Vega10_PHYCLK_Dependency_Table = struct__ATOM_Vega10_PHYCLK_Dependency_Table
@@ -382,7 +382,7 @@ struct__ATOM_Vega10_MM_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_MM_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_MM_Dependency_Record * 1),
+    ('entries', struct__ATOM_Vega10_MM_Dependency_Record * 0),
 ]
 
 ATOM_Vega10_MM_Dependency_Table = struct__ATOM_Vega10_MM_Dependency_Table
@@ -404,7 +404,7 @@ struct__ATOM_Vega10_PCIE_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_PCIE_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_PCIE_Record * 1),
+    ('entries', struct__ATOM_Vega10_PCIE_Record * 0),
 ]
 
 ATOM_Vega10_PCIE_Table = struct__ATOM_Vega10_PCIE_Table
@@ -424,7 +424,7 @@ struct__ATOM_Vega10_Voltage_Lookup_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_Voltage_Lookup_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_Voltage_Lookup_Record * 1),
+    ('entries', struct__ATOM_Vega10_Voltage_Lookup_Record * 0),
 ]
 
 ATOM_Vega10_Voltage_Lookup_Table = struct__ATOM_Vega10_Voltage_Lookup_Table
@@ -546,7 +546,7 @@ struct__ATOM_Vega10_VCE_State_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_VCE_State_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_VCE_State_Record * 1),
+    ('entries', struct__ATOM_Vega10_VCE_State_Record * 0),
 ]
 
 ATOM_Vega10_VCE_State_Table = struct__ATOM_Vega10_VCE_State_Table
@@ -671,7 +671,7 @@ struct__ATOM_Vega10_Hard_Limit_Table._pack_ = 1 # source:False
 struct__ATOM_Vega10_Hard_Limit_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Vega10_Hard_Limit_Record * 1),
+    ('entries', struct__ATOM_Vega10_Hard_Limit_Record * 0),
 ]
 
 ATOM_Vega10_Hard_Limit_Table = struct__ATOM_Vega10_Hard_Limit_Table

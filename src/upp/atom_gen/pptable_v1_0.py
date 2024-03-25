@@ -239,7 +239,7 @@ struct__ATOM_Tonga_State_Array._pack_ = 1 # source:False
 struct__ATOM_Tonga_State_Array._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_State * 1),
+    ('entries', struct__ATOM_Tonga_State * 0),
 ]
 
 ATOM_Tonga_State_Array = struct__ATOM_Tonga_State_Array
@@ -264,7 +264,7 @@ struct__ATOM_Tonga_MCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Tonga_MCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_MCLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Tonga_MCLK_Dependency_Record * 0),
 ]
 
 ATOM_Tonga_MCLK_Dependency_Table = struct__ATOM_Tonga_MCLK_Dependency_Table
@@ -289,7 +289,7 @@ struct__ATOM_Tonga_SCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Tonga_SCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_SCLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Tonga_SCLK_Dependency_Record * 0),
 ]
 
 ATOM_Tonga_SCLK_Dependency_Table = struct__ATOM_Tonga_SCLK_Dependency_Table
@@ -315,7 +315,7 @@ struct__ATOM_Polaris_SCLK_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Polaris_SCLK_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Polaris_SCLK_Dependency_Record * 1),
+    ('entries', struct__ATOM_Polaris_SCLK_Dependency_Record * 0),
 ]
 
 ATOM_Polaris_SCLK_Dependency_Table = struct__ATOM_Polaris_SCLK_Dependency_Table
@@ -337,7 +337,7 @@ struct__ATOM_Tonga_PCIE_Table._pack_ = 1 # source:False
 struct__ATOM_Tonga_PCIE_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_PCIE_Record * 1),
+    ('entries', struct__ATOM_Tonga_PCIE_Record * 0),
 ]
 
 ATOM_Tonga_PCIE_Table = struct__ATOM_Tonga_PCIE_Table
@@ -360,7 +360,7 @@ struct__ATOM_Polaris10_PCIE_Table._pack_ = 1 # source:False
 struct__ATOM_Polaris10_PCIE_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Polaris10_PCIE_Record * 1),
+    ('entries', struct__ATOM_Polaris10_PCIE_Record * 0),
 ]
 
 ATOM_Polaris10_PCIE_Table = struct__ATOM_Polaris10_PCIE_Table
@@ -386,7 +386,7 @@ struct__ATOM_Tonga_MM_Dependency_Table._pack_ = 1 # source:False
 struct__ATOM_Tonga_MM_Dependency_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_MM_Dependency_Record * 1),
+    ('entries', struct__ATOM_Tonga_MM_Dependency_Record * 0),
 ]
 
 ATOM_Tonga_MM_Dependency_Table = struct__ATOM_Tonga_MM_Dependency_Table
@@ -409,7 +409,7 @@ struct__ATOM_Tonga_Voltage_Lookup_Table._pack_ = 1 # source:False
 struct__ATOM_Tonga_Voltage_Lookup_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_Voltage_Lookup_Record * 1),
+    ('entries', struct__ATOM_Tonga_Voltage_Lookup_Record * 0),
 ]
 
 ATOM_Tonga_Voltage_Lookup_Table = struct__ATOM_Tonga_Voltage_Lookup_Table
@@ -541,7 +541,7 @@ struct__ATOM_Tonga_VCE_State_Table._pack_ = 1 # source:False
 struct__ATOM_Tonga_VCE_State_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_VCE_State_Record * 1),
+    ('entries', struct__ATOM_Tonga_VCE_State_Record * 0),
 ]
 
 ATOM_Tonga_VCE_State_Table = struct__ATOM_Tonga_VCE_State_Table
@@ -683,7 +683,7 @@ struct__ATOM_Tonga_Hard_Limit_Table._pack_ = 1 # source:False
 struct__ATOM_Tonga_Hard_Limit_Table._fields_ = [
     ('ucRevId', ctypes.c_ubyte),
     ('ucNumEntries', ctypes.c_ubyte),
-    ('entries', struct__ATOM_Tonga_Hard_Limit_Record * 1),
+    ('entries', struct__ATOM_Tonga_Hard_Limit_Record * 0),
 ]
 
 ATOM_Tonga_Hard_Limit_Table = struct__ATOM_Tonga_Hard_Limit_Table

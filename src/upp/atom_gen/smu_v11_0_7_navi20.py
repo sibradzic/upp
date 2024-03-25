@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# TARGET arch is: ['--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '--include', 'linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if_sienna_cichlid.h', '']
+# TARGET arch is: ['--include', 'stdint.h', '--include', 'linux/drivers/gpu/drm/amd/include/atom-types.h', '--include', 'linux/drivers/gpu/drm/amd/include/atomfirmware.h', '--include', 'linux/drivers/gpu/drm/amd/pm/swsmu/inc/pmfw_if/smu11_driver_if_sienna_cichlid.h', '']
 # WORD_SIZE is: 8
 # POINTER_SIZE is: 8
 # LONGDOUBLE_SIZE is: 16
@@ -134,10 +134,176 @@ SMU_11_0_7_MAX_ODFEATURE = 32 # macro
 SMU_11_0_7_MAX_ODSETTING = 64 # macro
 SMU_11_0_7_MAX_PMSETTING = 32 # macro
 SMU_11_0_7_MAX_PPCLOCK = 16 # macro
+
+# values for enumeration 'SMU_11_0_7_ODFEATURE_CAP'
+SMU_11_0_7_ODFEATURE_CAP__enumvalues = {
+    0: 'SMU_11_0_7_ODCAP_GFXCLK_LIMITS',
+    1: 'SMU_11_0_7_ODCAP_GFXCLK_CURVE',
+    2: 'SMU_11_0_7_ODCAP_UCLK_LIMITS',
+    3: 'SMU_11_0_7_ODCAP_POWER_LIMIT',
+    4: 'SMU_11_0_7_ODCAP_FAN_ACOUSTIC_LIMIT',
+    5: 'SMU_11_0_7_ODCAP_FAN_SPEED_MIN',
+    6: 'SMU_11_0_7_ODCAP_TEMPERATURE_FAN',
+    7: 'SMU_11_0_7_ODCAP_TEMPERATURE_SYSTEM',
+    8: 'SMU_11_0_7_ODCAP_MEMORY_TIMING_TUNE',
+    9: 'SMU_11_0_7_ODCAP_FAN_ZERO_RPM_CONTROL',
+    10: 'SMU_11_0_7_ODCAP_AUTO_UV_ENGINE',
+    11: 'SMU_11_0_7_ODCAP_AUTO_OC_ENGINE',
+    12: 'SMU_11_0_7_ODCAP_AUTO_OC_MEMORY',
+    13: 'SMU_11_0_7_ODCAP_FAN_CURVE',
+    14: 'SMU_11_0_ODCAP_AUTO_FAN_ACOUSTIC_LIMIT',
+    15: 'SMU_11_0_7_ODCAP_POWER_MODE',
+    16: 'SMU_11_0_7_ODCAP_COUNT',
+}
+SMU_11_0_7_ODCAP_GFXCLK_LIMITS = 0
+SMU_11_0_7_ODCAP_GFXCLK_CURVE = 1
+SMU_11_0_7_ODCAP_UCLK_LIMITS = 2
+SMU_11_0_7_ODCAP_POWER_LIMIT = 3
+SMU_11_0_7_ODCAP_FAN_ACOUSTIC_LIMIT = 4
+SMU_11_0_7_ODCAP_FAN_SPEED_MIN = 5
+SMU_11_0_7_ODCAP_TEMPERATURE_FAN = 6
+SMU_11_0_7_ODCAP_TEMPERATURE_SYSTEM = 7
+SMU_11_0_7_ODCAP_MEMORY_TIMING_TUNE = 8
+SMU_11_0_7_ODCAP_FAN_ZERO_RPM_CONTROL = 9
+SMU_11_0_7_ODCAP_AUTO_UV_ENGINE = 10
+SMU_11_0_7_ODCAP_AUTO_OC_ENGINE = 11
+SMU_11_0_7_ODCAP_AUTO_OC_MEMORY = 12
+SMU_11_0_7_ODCAP_FAN_CURVE = 13
+SMU_11_0_ODCAP_AUTO_FAN_ACOUSTIC_LIMIT = 14
+SMU_11_0_7_ODCAP_POWER_MODE = 15
+SMU_11_0_7_ODCAP_COUNT = 16
+SMU_11_0_7_ODFEATURE_CAP = ctypes.c_uint32 # enum
+
+# values for enumeration 'SMU_11_0_7_ODFEATURE_ID'
+SMU_11_0_7_ODFEATURE_ID__enumvalues = {
+    1: 'SMU_11_0_7_ODFEATURE_GFXCLK_LIMITS',
+    2: 'SMU_11_0_7_ODFEATURE_GFXCLK_CURVE',
+    4: 'SMU_11_0_7_ODFEATURE_UCLK_LIMITS',
+    8: 'SMU_11_0_7_ODFEATURE_POWER_LIMIT',
+    16: 'SMU_11_0_7_ODFEATURE_FAN_ACOUSTIC_LIMIT',
+    32: 'SMU_11_0_7_ODFEATURE_FAN_SPEED_MIN',
+    64: 'SMU_11_0_7_ODFEATURE_TEMPERATURE_FAN',
+    128: 'SMU_11_0_7_ODFEATURE_TEMPERATURE_SYSTEM',
+    256: 'SMU_11_0_7_ODFEATURE_MEMORY_TIMING_TUNE',
+    512: 'SMU_11_0_7_ODFEATURE_FAN_ZERO_RPM_CONTROL',
+    1024: 'SMU_11_0_7_ODFEATURE_AUTO_UV_ENGINE',
+    2048: 'SMU_11_0_7_ODFEATURE_AUTO_OC_ENGINE',
+    4096: 'SMU_11_0_7_ODFEATURE_AUTO_OC_MEMORY',
+    8192: 'SMU_11_0_7_ODFEATURE_FAN_CURVE',
+    16384: 'SMU_11_0_ODFEATURE_AUTO_FAN_ACOUSTIC_LIMIT',
+    32768: 'SMU_11_0_7_ODFEATURE_POWER_MODE',
+    16: 'SMU_11_0_7_ODFEATURE_COUNT',
+}
+SMU_11_0_7_ODFEATURE_GFXCLK_LIMITS = 1
+SMU_11_0_7_ODFEATURE_GFXCLK_CURVE = 2
+SMU_11_0_7_ODFEATURE_UCLK_LIMITS = 4
+SMU_11_0_7_ODFEATURE_POWER_LIMIT = 8
+SMU_11_0_7_ODFEATURE_FAN_ACOUSTIC_LIMIT = 16
+SMU_11_0_7_ODFEATURE_FAN_SPEED_MIN = 32
+SMU_11_0_7_ODFEATURE_TEMPERATURE_FAN = 64
+SMU_11_0_7_ODFEATURE_TEMPERATURE_SYSTEM = 128
+SMU_11_0_7_ODFEATURE_MEMORY_TIMING_TUNE = 256
+SMU_11_0_7_ODFEATURE_FAN_ZERO_RPM_CONTROL = 512
+SMU_11_0_7_ODFEATURE_AUTO_UV_ENGINE = 1024
+SMU_11_0_7_ODFEATURE_AUTO_OC_ENGINE = 2048
+SMU_11_0_7_ODFEATURE_AUTO_OC_MEMORY = 4096
+SMU_11_0_7_ODFEATURE_FAN_CURVE = 8192
+SMU_11_0_ODFEATURE_AUTO_FAN_ACOUSTIC_LIMIT = 16384
+SMU_11_0_7_ODFEATURE_POWER_MODE = 32768
+SMU_11_0_7_ODFEATURE_COUNT = 16
+SMU_11_0_7_ODFEATURE_ID = ctypes.c_uint32 # enum
+
+# values for enumeration 'SMU_11_0_7_ODSETTING_ID'
+SMU_11_0_7_ODSETTING_ID__enumvalues = {
+    0: 'SMU_11_0_7_ODSETTING_GFXCLKFMAX',
+    1: 'SMU_11_0_7_ODSETTING_GFXCLKFMIN',
+    2: 'SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_A',
+    3: 'SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_B',
+    4: 'SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_C',
+    5: 'SMU_11_0_7_ODSETTING_CUSTOM_CURVE_VFT_FMIN',
+    6: 'SMU_11_0_7_ODSETTING_UCLKFMIN',
+    7: 'SMU_11_0_7_ODSETTING_UCLKFMAX',
+    8: 'SMU_11_0_7_ODSETTING_POWERPERCENTAGE',
+    9: 'SMU_11_0_7_ODSETTING_FANRPMMIN',
+    10: 'SMU_11_0_7_ODSETTING_FANRPMACOUSTICLIMIT',
+    11: 'SMU_11_0_7_ODSETTING_FANTARGETTEMPERATURE',
+    12: 'SMU_11_0_7_ODSETTING_OPERATINGTEMPMAX',
+    13: 'SMU_11_0_7_ODSETTING_ACTIMING',
+    14: 'SMU_11_0_7_ODSETTING_FAN_ZERO_RPM_CONTROL',
+    15: 'SMU_11_0_7_ODSETTING_AUTOUVENGINE',
+    16: 'SMU_11_0_7_ODSETTING_AUTOOCENGINE',
+    17: 'SMU_11_0_7_ODSETTING_AUTOOCMEMORY',
+    18: 'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_1',
+    19: 'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_1',
+    20: 'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_2',
+    21: 'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_2',
+    22: 'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_3',
+    23: 'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_3',
+    24: 'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_4',
+    25: 'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_4',
+    26: 'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_5',
+    27: 'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_5',
+    28: 'SMU_11_0_7_ODSETTING_AUTO_FAN_ACOUSTIC_LIMIT',
+    29: 'SMU_11_0_7_ODSETTING_POWER_MODE',
+    30: 'SMU_11_0_7_ODSETTING_COUNT',
+}
+SMU_11_0_7_ODSETTING_GFXCLKFMAX = 0
+SMU_11_0_7_ODSETTING_GFXCLKFMIN = 1
+SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_A = 2
+SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_B = 3
+SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_C = 4
+SMU_11_0_7_ODSETTING_CUSTOM_CURVE_VFT_FMIN = 5
+SMU_11_0_7_ODSETTING_UCLKFMIN = 6
+SMU_11_0_7_ODSETTING_UCLKFMAX = 7
+SMU_11_0_7_ODSETTING_POWERPERCENTAGE = 8
+SMU_11_0_7_ODSETTING_FANRPMMIN = 9
+SMU_11_0_7_ODSETTING_FANRPMACOUSTICLIMIT = 10
+SMU_11_0_7_ODSETTING_FANTARGETTEMPERATURE = 11
+SMU_11_0_7_ODSETTING_OPERATINGTEMPMAX = 12
+SMU_11_0_7_ODSETTING_ACTIMING = 13
+SMU_11_0_7_ODSETTING_FAN_ZERO_RPM_CONTROL = 14
+SMU_11_0_7_ODSETTING_AUTOUVENGINE = 15
+SMU_11_0_7_ODSETTING_AUTOOCENGINE = 16
+SMU_11_0_7_ODSETTING_AUTOOCMEMORY = 17
+SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_1 = 18
+SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_1 = 19
+SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_2 = 20
+SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_2 = 21
+SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_3 = 22
+SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_3 = 23
+SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_4 = 24
+SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_4 = 25
+SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_5 = 26
+SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_5 = 27
+SMU_11_0_7_ODSETTING_AUTO_FAN_ACOUSTIC_LIMIT = 28
+SMU_11_0_7_ODSETTING_POWER_MODE = 29
+SMU_11_0_7_ODSETTING_COUNT = 30
+SMU_11_0_7_ODSETTING_ID = ctypes.c_uint32 # enum
+
+# values for enumeration 'SMU_11_0_7_PWRMODE_SETTING'
+SMU_11_0_7_PWRMODE_SETTING__enumvalues = {
+    0: 'SMU_11_0_7_PMSETTING_POWER_LIMIT_QUIET',
+    1: 'SMU_11_0_7_PMSETTING_POWER_LIMIT_BALANCE',
+    2: 'SMU_11_0_7_PMSETTING_POWER_LIMIT_TURBO',
+    3: 'SMU_11_0_7_PMSETTING_POWER_LIMIT_RAGE',
+    4: 'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_QUIET',
+    5: 'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_BALANCE',
+    6: 'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_TURBO',
+    7: 'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_RAGE',
+}
+SMU_11_0_7_PMSETTING_POWER_LIMIT_QUIET = 0
+SMU_11_0_7_PMSETTING_POWER_LIMIT_BALANCE = 1
+SMU_11_0_7_PMSETTING_POWER_LIMIT_TURBO = 2
+SMU_11_0_7_PMSETTING_POWER_LIMIT_RAGE = 3
+SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_QUIET = 4
+SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_BALANCE = 5
+SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_TURBO = 6
+SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_RAGE = 7
+SMU_11_0_7_PWRMODE_SETTING = ctypes.c_uint32 # enum
 class struct_smu_11_0_7_overdrive_table(Structure):
     pass
 
-struct_smu_11_0_7_overdrive_table._pack_ = 1 # source:True
+struct_smu_11_0_7_overdrive_table._pack_ = 1 # source:False
 struct_smu_11_0_7_overdrive_table._fields_ = [
     ('revision', ctypes.c_ubyte),
     ('reserve', ctypes.c_ubyte * 3),
@@ -149,10 +315,43 @@ struct_smu_11_0_7_overdrive_table._fields_ = [
     ('pm_setting', ctypes.c_int16 * 32),
 ]
 
+
+# values for enumeration 'SMU_11_0_7_PPCLOCK_ID'
+SMU_11_0_7_PPCLOCK_ID__enumvalues = {
+    0: 'SMU_11_0_7_PPCLOCK_GFXCLK',
+    1: 'SMU_11_0_7_PPCLOCK_SOCCLK',
+    2: 'SMU_11_0_7_PPCLOCK_UCLK',
+    3: 'SMU_11_0_7_PPCLOCK_FCLK',
+    4: 'SMU_11_0_7_PPCLOCK_DCLK_0',
+    5: 'SMU_11_0_7_PPCLOCK_VCLK_0',
+    6: 'SMU_11_0_7_PPCLOCK_DCLK_1',
+    7: 'SMU_11_0_7_PPCLOCK_VCLK_1',
+    8: 'SMU_11_0_7_PPCLOCK_DCEFCLK',
+    9: 'SMU_11_0_7_PPCLOCK_DISPCLK',
+    10: 'SMU_11_0_7_PPCLOCK_PIXCLK',
+    11: 'SMU_11_0_7_PPCLOCK_PHYCLK',
+    12: 'SMU_11_0_7_PPCLOCK_DTBCLK',
+    13: 'SMU_11_0_7_PPCLOCK_COUNT',
+}
+SMU_11_0_7_PPCLOCK_GFXCLK = 0
+SMU_11_0_7_PPCLOCK_SOCCLK = 1
+SMU_11_0_7_PPCLOCK_UCLK = 2
+SMU_11_0_7_PPCLOCK_FCLK = 3
+SMU_11_0_7_PPCLOCK_DCLK_0 = 4
+SMU_11_0_7_PPCLOCK_VCLK_0 = 5
+SMU_11_0_7_PPCLOCK_DCLK_1 = 6
+SMU_11_0_7_PPCLOCK_VCLK_1 = 7
+SMU_11_0_7_PPCLOCK_DCEFCLK = 8
+SMU_11_0_7_PPCLOCK_DISPCLK = 9
+SMU_11_0_7_PPCLOCK_PIXCLK = 10
+SMU_11_0_7_PPCLOCK_PHYCLK = 11
+SMU_11_0_7_PPCLOCK_DTBCLK = 12
+SMU_11_0_7_PPCLOCK_COUNT = 13
+SMU_11_0_7_PPCLOCK_ID = ctypes.c_uint32 # enum
 class struct_smu_11_0_7_power_saving_clock_table(Structure):
     pass
 
-struct_smu_11_0_7_power_saving_clock_table._pack_ = 1 # source:True
+struct_smu_11_0_7_power_saving_clock_table._pack_ = 1 # source:False
 struct_smu_11_0_7_power_saving_clock_table._fields_ = [
     ('revision', ctypes.c_ubyte),
     ('reserve', ctypes.c_ubyte * 3),
@@ -164,14 +363,32 @@ struct_smu_11_0_7_power_saving_clock_table._fields_ = [
 class struct_smu_11_0_7_powerplay_table(Structure):
     pass
 
-class struct_c__SA_PPTable_t(Structure):
+class struct_PPTable_t(Structure):
     pass
 
-class struct_c__SA_I2cControllerConfig_t(Structure):
+class struct_PiecewiseLinearDroopInt_t(Structure):
     pass
 
-struct_c__SA_I2cControllerConfig_t._pack_ = 1 # source:False
-struct_c__SA_I2cControllerConfig_t._fields_ = [
+struct_PiecewiseLinearDroopInt_t._pack_ = 1 # source:False
+struct_PiecewiseLinearDroopInt_t._fields_ = [
+    ('Fset', ctypes.c_uint32 * 5),
+    ('Vdroop', ctypes.c_uint32 * 5),
+]
+
+class struct_LinearInt_t(Structure):
+    pass
+
+struct_LinearInt_t._pack_ = 1 # source:False
+struct_LinearInt_t._fields_ = [
+    ('m', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+]
+
+class struct_I2cControllerConfig_t(Structure):
+    pass
+
+struct_I2cControllerConfig_t._pack_ = 1 # source:False
+struct_I2cControllerConfig_t._fields_ = [
     ('Enabled', ctypes.c_ubyte),
     ('Speed', ctypes.c_ubyte),
     ('SlaveAddress', ctypes.c_ubyte),
@@ -182,70 +399,52 @@ struct_c__SA_I2cControllerConfig_t._fields_ = [
     ('PaddingConfig', ctypes.c_ubyte),
 ]
 
-class struct_c__SA_DpmDescriptor_t(Structure):
+class struct_QuadraticInt_t(Structure):
     pass
 
-class struct_c__SA_LinearInt_t(Structure):
-    pass
-
-struct_c__SA_LinearInt_t._pack_ = 1 # source:False
-struct_c__SA_LinearInt_t._fields_ = [
-    ('m', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-]
-
-class struct_c__SA_QuadraticInt_t(Structure):
-    pass
-
-struct_c__SA_QuadraticInt_t._pack_ = 1 # source:False
-struct_c__SA_QuadraticInt_t._fields_ = [
+struct_QuadraticInt_t._pack_ = 1 # source:False
+struct_QuadraticInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
 ]
 
-struct_c__SA_DpmDescriptor_t._pack_ = 1 # source:False
-struct_c__SA_DpmDescriptor_t._fields_ = [
+class struct_DpmDescriptor_t(Structure):
+    pass
+
+struct_DpmDescriptor_t._pack_ = 1 # source:False
+struct_DpmDescriptor_t._fields_ = [
     ('VoltageMode', ctypes.c_ubyte),
     ('SnapToDiscrete', ctypes.c_ubyte),
     ('NumDiscreteLevels', ctypes.c_ubyte),
     ('Padding', ctypes.c_ubyte),
-    ('ConversionToAvfsClk', struct_c__SA_LinearInt_t),
-    ('SsCurve', struct_c__SA_QuadraticInt_t),
+    ('ConversionToAvfsClk', struct_LinearInt_t),
+    ('SsCurve', struct_QuadraticInt_t),
     ('SsFmin', ctypes.c_uint16),
     ('Padding16', ctypes.c_uint16),
 ]
 
-class struct_c__SA_PiecewiseLinearDroopInt_t(Structure):
+class struct_UclkDpmChangeRange_t(Structure):
     pass
 
-struct_c__SA_PiecewiseLinearDroopInt_t._pack_ = 1 # source:False
-struct_c__SA_PiecewiseLinearDroopInt_t._fields_ = [
-    ('Fset', ctypes.c_uint32 * 5),
-    ('Vdroop', ctypes.c_uint32 * 5),
+struct_UclkDpmChangeRange_t._pack_ = 1 # source:False
+struct_UclkDpmChangeRange_t._fields_ = [
+    ('Fmin', ctypes.c_uint16),
+    ('Fmax', ctypes.c_uint16),
 ]
 
-class struct_c__SA_DroopInt_t(Structure):
+class struct_DroopInt_t(Structure):
     pass
 
-struct_c__SA_DroopInt_t._pack_ = 1 # source:False
-struct_c__SA_DroopInt_t._fields_ = [
+struct_DroopInt_t._pack_ = 1 # source:False
+struct_DroopInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
 ]
 
-class struct_c__SA_UclkDpmChangeRange_t(Structure):
-    pass
-
-struct_c__SA_UclkDpmChangeRange_t._pack_ = 1 # source:False
-struct_c__SA_UclkDpmChangeRange_t._fields_ = [
-    ('Fmin', ctypes.c_uint16),
-    ('Fmax', ctypes.c_uint16),
-]
-
-struct_c__SA_PPTable_t._pack_ = 1 # source:False
-struct_c__SA_PPTable_t._fields_ = [
+struct_PPTable_t._pack_ = 1 # source:False
+struct_PPTable_t._fields_ = [
     ('Version', ctypes.c_uint32),
     ('FeaturesToRun', ctypes.c_uint32 * 2),
     ('SocketPowerLimitAc', ctypes.c_uint16 * 4),
@@ -288,7 +487,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('VDDSOC_Vmin_LoTemp', ctypes.c_uint16),
     ('VDDGFX_TVminHystersis', ctypes.c_uint16),
     ('VDDSOC_TVminHystersis', ctypes.c_uint16),
-    ('DpmDescriptor', struct_c__SA_DpmDescriptor_t * 13),
+    ('DpmDescriptor', struct_DpmDescriptor_t * 13),
     ('FreqTableGfx', ctypes.c_uint16 * 16),
     ('FreqTableVclk', ctypes.c_uint16 * 8),
     ('FreqTableDclk', ctypes.c_uint16 * 8),
@@ -301,7 +500,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('FreqTableDtbclk', ctypes.c_uint16 * 8),
     ('FreqTableFclk', ctypes.c_uint16 * 8),
     ('Paddingclks', ctypes.c_uint32),
-    ('PerPartDroopModelGfxDfll', struct_c__SA_DroopInt_t * 5),
+    ('PerPartDroopModelGfxDfll', struct_DroopInt_t * 5),
     ('DcModeMaxFreq', ctypes.c_uint32 * 13),
     ('FreqTableUclkDiv', ctypes.c_ubyte * 4),
     ('FclkBoostFreq', ctypes.c_uint16),
@@ -335,8 +534,8 @@ struct_c__SA_PPTable_t._fields_ = [
     ('LowestUclkReservedForUlv', ctypes.c_ubyte),
     ('PaddingMem', ctypes.c_ubyte * 3),
     ('UclkDpmPstates', ctypes.c_ubyte * 4),
-    ('UclkDpmSrcFreqRange', struct_c__SA_UclkDpmChangeRange_t),
-    ('UclkDpmTargFreqRange', struct_c__SA_UclkDpmChangeRange_t),
+    ('UclkDpmSrcFreqRange', struct_UclkDpmChangeRange_t),
+    ('UclkDpmTargFreqRange', struct_UclkDpmChangeRange_t),
     ('UclkDpmMidstepFreq', ctypes.c_uint16),
     ('UclkMidstepPadding', ctypes.c_uint16),
     ('PcieGenSpeed', ctypes.c_ubyte * 2),
@@ -364,13 +563,13 @@ struct_c__SA_PPTable_t._fields_ = [
     ('OverrideAvfsGb', ctypes.c_ubyte * 2),
     ('dBtcGbGfxDfllModelSelect', ctypes.c_ubyte),
     ('Padding8_Avfs', ctypes.c_ubyte),
-    ('qAvfsGb', struct_c__SA_QuadraticInt_t * 2),
-    ('dBtcGbGfxPll', struct_c__SA_DroopInt_t),
-    ('dBtcGbGfxDfll', struct_c__SA_DroopInt_t),
-    ('dBtcGbSoc', struct_c__SA_DroopInt_t),
-    ('qAgingGb', struct_c__SA_LinearInt_t * 2),
-    ('PiecewiseLinearDroopIntGfxDfll', struct_c__SA_PiecewiseLinearDroopInt_t),
-    ('qStaticVoltageOffset', struct_c__SA_QuadraticInt_t * 2),
+    ('qAvfsGb', struct_QuadraticInt_t * 2),
+    ('dBtcGbGfxPll', struct_DroopInt_t),
+    ('dBtcGbGfxDfll', struct_DroopInt_t),
+    ('dBtcGbSoc', struct_DroopInt_t),
+    ('qAgingGb', struct_LinearInt_t * 2),
+    ('PiecewiseLinearDroopIntGfxDfll', struct_PiecewiseLinearDroopInt_t),
+    ('qStaticVoltageOffset', struct_QuadraticInt_t * 2),
     ('DcTol', ctypes.c_uint16 * 2),
     ('DcBtcEnabled', ctypes.c_ubyte * 2),
     ('Padding8_GfxBtc', ctypes.c_ubyte * 2),
@@ -380,10 +579,10 @@ struct_c__SA_PPTable_t._fields_ = [
     ('XgmiDpmPstates', ctypes.c_ubyte * 2),
     ('XgmiDpmSpare', ctypes.c_ubyte * 2),
     ('DebugOverrides', ctypes.c_uint32),
-    ('ReservedEquation0', struct_c__SA_QuadraticInt_t),
-    ('ReservedEquation1', struct_c__SA_QuadraticInt_t),
-    ('ReservedEquation2', struct_c__SA_QuadraticInt_t),
-    ('ReservedEquation3', struct_c__SA_QuadraticInt_t),
+    ('ReservedEquation0', struct_QuadraticInt_t),
+    ('ReservedEquation1', struct_QuadraticInt_t),
+    ('ReservedEquation2', struct_QuadraticInt_t),
+    ('ReservedEquation3', struct_QuadraticInt_t),
     ('CustomerVariant', ctypes.c_ubyte),
     ('VcBtcEnabled', ctypes.c_ubyte),
     ('VcBtcVminT0', ctypes.c_uint16),
@@ -397,7 +596,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('GfxPowerStagesGpio', ctypes.c_uint16),
     ('SkuReserved', ctypes.c_uint32 * 8),
     ('GamingClk', ctypes.c_uint32 * 6),
-    ('I2cControllers', struct_c__SA_I2cControllerConfig_t * 16),
+    ('I2cControllers', struct_I2cControllerConfig_t * 16),
     ('GpioScl', ctypes.c_ubyte),
     ('GpioSda', ctypes.c_ubyte),
     ('FchUsbPdSlaveAddr', ctypes.c_ubyte),
@@ -420,7 +619,7 @@ struct_c__SA_PPTable_t._fields_ = [
     ('Mem0Offset', ctypes.c_byte),
     ('Padding_TelemetryMem0', ctypes.c_ubyte),
     ('Mem1MaxCurrent', ctypes.c_uint16),
-    ('Mem1Offset', ctypes.c_ubyte),
+    ('Mem1Offset', ctypes.c_byte),
     ('Padding_TelemetryMem1', ctypes.c_ubyte),
     ('MvddRatio', ctypes.c_uint32),
     ('AcDcGpio', ctypes.c_ubyte),
@@ -476,7 +675,7 @@ struct_atom_common_table_header._fields_ = [
     ('content_revision', ctypes.c_ubyte),
 ]
 
-struct_smu_11_0_7_powerplay_table._pack_ = 1 # source:True
+struct_smu_11_0_7_powerplay_table._pack_ = 1 # source:False
 struct_smu_11_0_7_powerplay_table._fields_ = [
     ('header', struct_atom_common_table_header),
     ('table_revision', ctypes.c_ubyte),
@@ -493,13 +692,87 @@ struct_smu_11_0_7_powerplay_table._fields_ = [
     ('reserve', ctypes.c_uint16 * 8),
     ('power_saving_clock', struct_smu_11_0_7_power_saving_clock_table),
     ('overdrive_table', struct_smu_11_0_7_overdrive_table),
-    ('smc_pptable', struct_c__SA_PPTable_t),
+    ('smc_pptable', struct_PPTable_t),
 ]
 
 __all__ = \
     ['SMU_11_0_7_MAX_ODFEATURE', 'SMU_11_0_7_MAX_ODSETTING',
     'SMU_11_0_7_MAX_PMSETTING', 'SMU_11_0_7_MAX_PPCLOCK',
-    'SMU_11_0_7_PPTABLE_H', 'SMU_11_0_7_PP_OVERDRIVE_VERSION',
+    'SMU_11_0_7_ODCAP_AUTO_OC_ENGINE',
+    'SMU_11_0_7_ODCAP_AUTO_OC_MEMORY',
+    'SMU_11_0_7_ODCAP_AUTO_UV_ENGINE', 'SMU_11_0_7_ODCAP_COUNT',
+    'SMU_11_0_7_ODCAP_FAN_ACOUSTIC_LIMIT',
+    'SMU_11_0_7_ODCAP_FAN_CURVE', 'SMU_11_0_7_ODCAP_FAN_SPEED_MIN',
+    'SMU_11_0_7_ODCAP_FAN_ZERO_RPM_CONTROL',
+    'SMU_11_0_7_ODCAP_GFXCLK_CURVE', 'SMU_11_0_7_ODCAP_GFXCLK_LIMITS',
+    'SMU_11_0_7_ODCAP_MEMORY_TIMING_TUNE',
+    'SMU_11_0_7_ODCAP_POWER_LIMIT', 'SMU_11_0_7_ODCAP_POWER_MODE',
+    'SMU_11_0_7_ODCAP_TEMPERATURE_FAN',
+    'SMU_11_0_7_ODCAP_TEMPERATURE_SYSTEM',
+    'SMU_11_0_7_ODCAP_UCLK_LIMITS',
+    'SMU_11_0_7_ODFEATURE_AUTO_OC_ENGINE',
+    'SMU_11_0_7_ODFEATURE_AUTO_OC_MEMORY',
+    'SMU_11_0_7_ODFEATURE_AUTO_UV_ENGINE', 'SMU_11_0_7_ODFEATURE_CAP',
+    'SMU_11_0_7_ODFEATURE_COUNT',
+    'SMU_11_0_7_ODFEATURE_FAN_ACOUSTIC_LIMIT',
+    'SMU_11_0_7_ODFEATURE_FAN_CURVE',
+    'SMU_11_0_7_ODFEATURE_FAN_SPEED_MIN',
+    'SMU_11_0_7_ODFEATURE_FAN_ZERO_RPM_CONTROL',
+    'SMU_11_0_7_ODFEATURE_GFXCLK_CURVE',
+    'SMU_11_0_7_ODFEATURE_GFXCLK_LIMITS', 'SMU_11_0_7_ODFEATURE_ID',
+    'SMU_11_0_7_ODFEATURE_MEMORY_TIMING_TUNE',
+    'SMU_11_0_7_ODFEATURE_POWER_LIMIT',
+    'SMU_11_0_7_ODFEATURE_POWER_MODE',
+    'SMU_11_0_7_ODFEATURE_TEMPERATURE_FAN',
+    'SMU_11_0_7_ODFEATURE_TEMPERATURE_SYSTEM',
+    'SMU_11_0_7_ODFEATURE_UCLK_LIMITS',
+    'SMU_11_0_7_ODSETTING_ACTIMING',
+    'SMU_11_0_7_ODSETTING_AUTOOCENGINE',
+    'SMU_11_0_7_ODSETTING_AUTOOCMEMORY',
+    'SMU_11_0_7_ODSETTING_AUTOUVENGINE',
+    'SMU_11_0_7_ODSETTING_AUTO_FAN_ACOUSTIC_LIMIT',
+    'SMU_11_0_7_ODSETTING_COUNT',
+    'SMU_11_0_7_ODSETTING_CUSTOM_CURVE_VFT_FMIN',
+    'SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_A',
+    'SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_B',
+    'SMU_11_0_7_ODSETTING_CUSTOM_GFX_VF_CURVE_C',
+    'SMU_11_0_7_ODSETTING_FANRPMACOUSTICLIMIT',
+    'SMU_11_0_7_ODSETTING_FANRPMMIN',
+    'SMU_11_0_7_ODSETTING_FANTARGETTEMPERATURE',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_1',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_2',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_3',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_4',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_SPEED_5',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_1',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_2',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_3',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_4',
+    'SMU_11_0_7_ODSETTING_FAN_CURVE_TEMPERATURE_5',
+    'SMU_11_0_7_ODSETTING_FAN_ZERO_RPM_CONTROL',
+    'SMU_11_0_7_ODSETTING_GFXCLKFMAX',
+    'SMU_11_0_7_ODSETTING_GFXCLKFMIN', 'SMU_11_0_7_ODSETTING_ID',
+    'SMU_11_0_7_ODSETTING_OPERATINGTEMPMAX',
+    'SMU_11_0_7_ODSETTING_POWERPERCENTAGE',
+    'SMU_11_0_7_ODSETTING_POWER_MODE',
+    'SMU_11_0_7_ODSETTING_UCLKFMAX', 'SMU_11_0_7_ODSETTING_UCLKFMIN',
+    'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_BALANCE',
+    'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_QUIET',
+    'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_RAGE',
+    'SMU_11_0_7_PMSETTING_ACOUSTIC_TEMP_TURBO',
+    'SMU_11_0_7_PMSETTING_POWER_LIMIT_BALANCE',
+    'SMU_11_0_7_PMSETTING_POWER_LIMIT_QUIET',
+    'SMU_11_0_7_PMSETTING_POWER_LIMIT_RAGE',
+    'SMU_11_0_7_PMSETTING_POWER_LIMIT_TURBO',
+    'SMU_11_0_7_PPCLOCK_COUNT', 'SMU_11_0_7_PPCLOCK_DCEFCLK',
+    'SMU_11_0_7_PPCLOCK_DCLK_0', 'SMU_11_0_7_PPCLOCK_DCLK_1',
+    'SMU_11_0_7_PPCLOCK_DISPCLK', 'SMU_11_0_7_PPCLOCK_DTBCLK',
+    'SMU_11_0_7_PPCLOCK_FCLK', 'SMU_11_0_7_PPCLOCK_GFXCLK',
+    'SMU_11_0_7_PPCLOCK_ID', 'SMU_11_0_7_PPCLOCK_PHYCLK',
+    'SMU_11_0_7_PPCLOCK_PIXCLK', 'SMU_11_0_7_PPCLOCK_SOCCLK',
+    'SMU_11_0_7_PPCLOCK_UCLK', 'SMU_11_0_7_PPCLOCK_VCLK_0',
+    'SMU_11_0_7_PPCLOCK_VCLK_1', 'SMU_11_0_7_PPTABLE_H',
+    'SMU_11_0_7_PP_OVERDRIVE_VERSION',
     'SMU_11_0_7_PP_PLATFORM_CAP_BACO',
     'SMU_11_0_7_PP_PLATFORM_CAP_HARDWAREDC',
     'SMU_11_0_7_PP_PLATFORM_CAP_MACO',
@@ -509,13 +782,14 @@ __all__ = \
     'SMU_11_0_7_PP_POWERSAVINGCLOCK_VERSION',
     'SMU_11_0_7_PP_THERMALCONTROLLER_NONE',
     'SMU_11_0_7_PP_THERMALCONTROLLER_SIENNA_CICHLID',
-    'SMU_11_0_7_TABLE_FORMAT_REVISION',
-    'struct_atom_common_table_header', 'struct_c__SA_DpmDescriptor_t',
-    'struct_c__SA_DroopInt_t', 'struct_c__SA_I2cControllerConfig_t',
-    'struct_c__SA_LinearInt_t', 'struct_c__SA_PPTable_t',
-    'struct_c__SA_PiecewiseLinearDroopInt_t',
-    'struct_c__SA_QuadraticInt_t',
-    'struct_c__SA_UclkDpmChangeRange_t',
+    'SMU_11_0_7_PWRMODE_SETTING', 'SMU_11_0_7_TABLE_FORMAT_REVISION',
+    'SMU_11_0_ODCAP_AUTO_FAN_ACOUSTIC_LIMIT',
+    'SMU_11_0_ODFEATURE_AUTO_FAN_ACOUSTIC_LIMIT',
+    'struct_DpmDescriptor_t', 'struct_DroopInt_t',
+    'struct_I2cControllerConfig_t', 'struct_LinearInt_t',
+    'struct_PPTable_t', 'struct_PiecewiseLinearDroopInt_t',
+    'struct_QuadraticInt_t', 'struct_UclkDpmChangeRange_t',
+    'struct_atom_common_table_header',
     'struct_smu_11_0_7_overdrive_table',
     'struct_smu_11_0_7_power_saving_clock_table',
     'struct_smu_11_0_7_powerplay_table']

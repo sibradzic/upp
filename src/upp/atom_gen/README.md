@@ -3,23 +3,17 @@
 
 ## Reguirements
 
-    sudo apt install clang-6.0
+    sudo apt install clang
     pip3 install --user ctypeslib2 clang
+
 
 ## Get latest Linux kernel
 
     git clone --depth=1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 
-Generated against 36a21d517 (5.14-rc5) (Sun Aug 8 13:49:31 2021 -0700)
-
-
-## atom.py
-
-    sed -i 's|\tstruct mutex mutex;|//\0|' linux/drivers/gpu/drm/amd/amdgpu/atom.h
-    clang2py -k 'm' --clang-args="\
-        -Ilinux/include -Ilinux/drivers/gpu/drm/amd/include" \
-      linux/drivers/gpu/drm/amd/amdgpu/atom.h > atom.py
-    pushd linux && git checkout drivers/gpu/drm/amd/amdgpu/atom.h && popd
+Generated against e8f897f4a (v6.8) (Sun Mar 10 13:38:09 2024 -0700)
+clang version 17.0.6
+clang2py version 2.3.4
 
 
 ## atombios.py
@@ -28,6 +22,8 @@ Generated against 36a21d517 (5.14-rc5) (Sun Aug 8 13:49:31 2021 -0700)
         --include stdint.h \
         --include linux/drivers/gpu/drm/amd/include/atom-types.h \
         " \
+      -s struct__ATOM_COMMON_TABLE_HEADER -s struct__ATOM_MASTER_DATA_TABLE \
+      -s struct__ATOM_ROM_HEADER -s struct__ATOM_ROM_HEADER_V2_1 \
       linux/drivers/gpu/drm/amd/include/atombios.h > atombios.py
 
 
@@ -46,7 +42,7 @@ Generated against 36a21d517 (5.14-rc5) (Sun Aug 8 13:49:31 2021 -0700)
 
 ## vega10_pptable.py (Vega10 aka Vega 56/64)
 
-    clang2py -k 'mst' \
+    clang2py -k 'mste' \
       --clang-args="--include stdint.h \
                     --include linux/drivers/gpu/drm/amd/include/atom-types.h \
                     --include linux/drivers/gpu/drm/amd/include/atomfirmware.h \
@@ -56,41 +52,40 @@ Generated against 36a21d517 (5.14-rc5) (Sun Aug 8 13:49:31 2021 -0700)
 
 ## vega20_pptable.py (Vega20 aka Radeon7)
 
-    clang2py -k 'mst' \
+    clang2py -k 'mste' \
       --clang-args="--include stdint.h \
                     --include linux/drivers/gpu/drm/amd/include/atom-types.h \
                     --include linux/drivers/gpu/drm/amd/include/atomfirmware.h \
-                    --include linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if.h " \
+                    --include linux/drivers/gpu/drm/amd/pm/powerplay/inc/smu11_driver_if.h " \
        linux/drivers/gpu/drm/amd/pm/powerplay/hwmgr/vega20_pptable.h > vega20_pptable.py
 
 
 ##  smu_v11_0_navi10.py (Navi10/14)
 
-    clang2py -k 'mst' \
+    clang2py -k 'mste' \
       --clang-args="--include stdint.h \
                     --include linux/drivers/gpu/drm/amd/include/atom-types.h \
                     --include linux/drivers/gpu/drm/amd/include/atomfirmware.h \
-                    --include linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if_navi10.h " \
-       linux/drivers/gpu/drm/amd/pm/inc/smu_v11_0_pptable.h > smu_v11_0_navi10.py
+                    --include linux/drivers/gpu/drm/amd/pm/swsmu/inc/pmfw_if/smu11_driver_if_navi10.h " \
+       linux/drivers/gpu/drm/amd/pm/swsmu/inc/smu_v11_0_pptable.h > smu_v11_0_navi10.py
 
 
 ##  smu_v11_0_navi20.py (Navi21/22/23)
 
-### An ugly workadound for Navi 23
-
-Something is totally weird with Navi 23 (RX6600) PP table, data at the end of
-the table seems to be totally messed up. Since VBIOSes of various RX6600 card
-manufacturers contains very similar "garbage" there, it might be possible that
-PP table definition at smu11_driver_if_sienna_cichlid.h is wrong?
-
-    sed -i 's|  int8_t       Mem1Offset;|  uint8_t       Mem1Offset;|' linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if_sienna_cichlid.h
-
-    clang2py -k 'mst' \
+    clang2py -k 'mste' \
       --clang-args="--include stdint.h \
                     --include linux/drivers/gpu/drm/amd/include/atom-types.h \
                     --include linux/drivers/gpu/drm/amd/include/atomfirmware.h \
-                    --include linux/drivers/gpu/drm/amd/pm/inc/smu11_driver_if_sienna_cichlid.h " \
-       linux/drivers/gpu/drm/amd/pm/inc/smu_v11_0_7_pptable.h > smu_v11_0_7_navi20.py
+                    --include linux/drivers/gpu/drm/amd/pm/swsmu/inc/pmfw_if/smu11_driver_if_sienna_cichlid.h " \
+       linux/drivers/gpu/drm/amd/pm/swsmu/inc/smu_v11_0_7_pptable.h > smu_v11_0_7_navi20.py
 
-    pushd linux && git checkout drivers/gpu/drm/amd/pm/inc/smu11_driver_if_sienna_cichlid.h && popd
+
+##  smu_v13_0 (Navi 3x)
+
+    clang2py -k 'mste' \
+      --clang-args="--include stdint.h \
+                    --include linux/drivers/gpu/drm/amd/include/atom-types.h \
+                    --include linux/drivers/gpu/drm/amd/include/atomfirmware.h \
+                    --include linux/drivers/gpu/drm/amd/pm/swsmu/inc/pmfw_if/smu13_driver_if_v13_0_7.h " \
+       linux/drivers/gpu/drm/amd/pm/swsmu/inc/smu_v13_0_7_pptable.h > smu_v13_0_7_navi30.py
 

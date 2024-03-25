@@ -1,10 +1,10 @@
-# To run without install relative imports needs to match the module ones, which
-# is true when in 'src' directory, then: python3 -m upp.upp --help
+# To run without installing, relative imports must match the module imports,
+# which is satisfied when in 'src' directory: python3 -m upp.upp --help
 
 import click
 import tempfile
 from upp import decode
-import pkg_resources
+import importlib.metadata
 import os.path
 import sys
 
@@ -87,6 +87,21 @@ def _get_pp_data_from_registry(reg_file_path):
     return tmp_pp_file.name
 
 
+def _get_pp_data_from_mpt(mpt_filename):
+
+    try:
+        mpt_bytes = decode._read_binary_file(mpt_filename)
+    except Exception as e:
+        print('ERROR: Can not access', mpt_filename)
+        print(e)
+        sys.exit(-2)
+    mpt_table_filename = mpt_filename + '.pp_table'
+    print('Saving MPT PP table data to', mpt_table_filename)
+    decode._write_binary_file(mpt_table_filename, mpt_bytes[0x100:])
+
+    return mpt_table_filename
+
+
 def _check_file_writeable(filename):
     if os.path.exists(filename):
         if os.path.isfile(filename):
@@ -114,6 +129,7 @@ def _write_pp_to_reg_file(filename, data, debug=False):
     else:
         print('Can not write to {}'.format(filename))
     return 0
+
 
 def _load_variable_set(dump_filename):
     variable_set = []
@@ -153,10 +169,14 @@ def _load_variable_set(dump_filename):
               help='Import PP_PhmSoftPowerPlayTable from Windows registry ' +
                    '(overrides -p / --pp-file option).',
               metavar='<filename>')
+@click.option('-m', '--from-mpt',
+              help='Import PowerPlay Table from More Power Tool ' +
+                   '(overrides --pp-file and --from-registry optios).',
+              metavar='<filename>')
 @click.option('--debug/--no-debug', '-d/ ', default='False',
               help='Debug mode.')
 @click.pass_context
-def cli(ctx, debug, pp_file, from_registry):
+def cli(ctx, debug, pp_file, from_registry, from_mpt):
     """UPP: Uplift Power Play
 
     A tool for parsing, dumping and modifying data in Radeon PowerPlay tables.
@@ -179,6 +199,8 @@ def cli(ctx, debug, pp_file, from_registry):
        offline Windows/System32/config/SYSTEM file on disk, so it would work
        from Linux distro that has acces to mounted Windows partition
        (path to SYSTEM registry file is specified with --from-registry option)
+     - Import "Soft PowerPlay" table from "More Powe Tool" MPT file
+       (path to MPT file is specified with --from-mpt option)
 
     This tool currently supports parsing and modifying PowerPlay tables
     found on the following AMD GPU families:
@@ -189,6 +211,7 @@ def cli(ctx, debug, pp_file, from_registry):
       - Radeon VII
       - Navi 10, 12, 14
       - Navi 21, 22, 23
+      - Navi 3x (experimental)
 
     Note: iGPUs found in many recent AMD APUs are using completely different
     PowerPlay control methods, this tool does not support them.
@@ -201,12 +224,13 @@ def cli(ctx, debug, pp_file, from_registry):
     ctx.obj['DEBUG'] = debug
     ctx.obj['PPBINARY'] = pp_file
     ctx.obj['FROMREGISTRY'] = from_registry
+    ctx.obj['FROMMPT'] = from_mpt
 
 
 @click.command(short_help='Show UPP version.')
 def version():
     """Shows UPP version."""
-    version = pkg_resources.require("upp")[0].version
+    version = importlib.metadata.version('upp')
     click.echo(version)
 
 
@@ -232,13 +256,19 @@ def dump(ctx, raw):
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
     from_registry = ctx.obj['FROMREGISTRY']
+    from_mpt = ctx.obj['FROMMPT']
     if from_registry:
         pp_file = _get_pp_data_from_registry(from_registry)
+    if from_mpt:
+        pp_file = _get_pp_data_from_mpt(from_mpt)
     decode.dump_pp_table(pp_file, rawdump=raw, debug=debug)
     return 0
 
-@click.command(short_help='Undumps all PowerPlay parameters to pp file or registry.')
-@click.option('-d', '--dump-filename', help='File path of dumped powerplay parameters.')
+
+@click.command(short_help='Undumps all PowerPlay parameters to a binary' +
+                          'PP Table file or a Registry')
+@click.option('-d', '--dump-filename',
+              help='File path of dumped powerplay parameters.')
 @click.option('-t', '--to-registry', metavar='<filename>',
               help='Output to Windows registry .reg file.')
 @click.option('-w', '--write', is_flag=True,
@@ -255,7 +285,8 @@ def undump(ctx, dump_filename, to_registry, write):
 
     """
     variable_set = _load_variable_set(dump_filename)
-    ctx.invoke(set, variable_path_set=variable_set, to_registry=to_registry, write=write)
+    ctx.invoke(set, variable_path_set=variable_set,
+               to_registry=to_registry, write=write)
     return 0
 
 
