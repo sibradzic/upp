@@ -30,16 +30,16 @@ power_saving_clock:
     reserve 2: 0
   count: 10
   max:
-    max 0: 2100
-    max 1: 1267
-    max 2: 1086
-    max 3: 1267
-    max 4: 1267
-    max 5: 875
-    max 6: 1267
-    max 7: 1284
-    max 8: 1284
-    max 9: 810
+    max 0: 2100 (GFXCLK)
+    max 1: 1267 (VCLK)
+    max 2: 1086 (DCLK)
+    max 3: 1267 (ECLK)
+    max 4: 1267 (SOCCLK)
+    max 5: 875 (UCLK)
+    max 6: 1267 (DCEFCLK)
+    max 7: 1284 (DISPCLK)
+    max 8: 1284 (PIXCLK)
+    max 9: 810 (PHYCLK)
     max 10: 0
     max 11: 0
     max 12: 0
@@ -47,16 +47,16 @@ power_saving_clock:
     max 14: 0
     max 15: 0
   min:
-    min 0: 300
-    min 1: 100
-    min 2: 100
-    min 3: 100
-    min 4: 507
-    min 5: 100
-    min 6: 507
-    min 7: 308
-    min 8: 300
-    min 9: 300
+    min 0: 300 (GFXCLK)
+    min 1: 100 (VCLK)
+    min 2: 100 (DCLK)
+    min 3: 100 (ECLK)
+    min 4: 507 (SOCCLK)
+    min 5: 100 (UCLK)
+    min 6: 507 (DCEFCLK)
+    min 7: 308 (DISPCLK)
+    min 8: 300 (PIXCLK)
+    min 9: 300 (PHYCLK)
     min 10: 0
     min 11: 0
     min 12: 0
@@ -72,20 +72,20 @@ overdrive_table:
   feature_count: 14
   setting_count: 30
   cap:
-    cap 0: 1
-    cap 1: 1
-    cap 2: 1
-    cap 3: 1
-    cap 4: 1
-    cap 5: 1
-    cap 6: 1
-    cap 7: 1
-    cap 8: 1
-    cap 9: 0
-    cap 10: 1
-    cap 11: 1
-    cap 12: 1
-    cap 13: 1
+    cap 0: 1 (GFXCLK_LIMITS)
+    cap 1: 1 (GFXCLK_CURVE)
+    cap 2: 1 (UCLK_MAX)
+    cap 3: 1 (POWER_LIMIT)
+    cap 4: 1 (FAN_ACOUSTIC_LIMIT)
+    cap 5: 1 (FAN_SPEED_MIN)
+    cap 6: 1 (TEMPERATURE_FAN)
+    cap 7: 1 (TEMPERATURE_SYSTEM)
+    cap 8: 1 (MEMORY_TIMING_TUNE)
+    cap 9: 0 (FAN_ZERO_RPM_CONTROL)
+    cap 10: 1 (AUTO_UV_ENGINE)
+    cap 11: 1 (AUTO_OC_ENGINE)
+    cap 12: 1 (AUTO_OC_MEMORY)
+    cap 13: 1 (FAN_CURVE)
     cap 14: 0
     cap 15: 0
     cap 16: 0
@@ -105,25 +105,25 @@ overdrive_table:
     cap 30: 0
     cap 31: 0
   max:
-    max 0: 2150
-    max 1: 2150
-    max 2: 2150
-    max 3: 1200
-    max 4: 2150
-    max 5: 1200
-    max 6: 2150
-    max 7: 1200
-    max 8: 950
-    max 9: 50
-    max 10: 4950
-    max 11: 4950
-    max 12: 100
-    max 13: 110
-    max 14: 2
-    max 15: 0
-    max 16: 1
-    max 17: 1
-    max 18: 1
+    max 0: 2150 (GFXCLKFMAX)
+    max 1: 2150 (GFXCLKFMIN)
+    max 2: 2150 (VDDGFXCURVEFREQ_P1)
+    max 3: 1200 (VDDGFXCURVEVOLTAGE_P1)
+    max 4: 2150 (VDDGFXCURVEFREQ_P2)
+    max 5: 1200 (VDDGFXCURVEVOLTAGE_P2)
+    max 6: 2150 (VDDGFXCURVEFREQ_P3)
+    max 7: 1200 (VDDGFXCURVEVOLTAGE_P3)
+    max 8: 950 (UCLKFMAX)
+    max 9: 50 (POWERPERCENTAGE)
+    max 10: 4950 (FANRPMMIN)
+    max 11: 4950 (FANRPMACOUSTICLIMIT)
+    max 12: 100 (FANTARGETTEMPERATURE)
+    max 13: 110 (OPERATINGTEMPMAX)
+    max 14: 2 (ACTIMING)
+    max 15: 0 (FAN_ZERO_RPM_CONTROL)
+    max 16: 1 (AUTOUVENGINE)
+    max 17: 1 (AUTOOCENGINE)
+    max 18: 1 (AUTOOCMEMORY)
     max 19: 100
     max 20: 100
     max 21: 100
@@ -138,25 +138,25 @@ overdrive_table:
     max 30: 0
     max 31: 0
   min:
-    min 0: 800
-    min 1: 800
-    min 2: 800
-    min 3: 750
-    min 4: 800
-    min 5: 750
-    min 6: 800
-    min 7: 750
-    min 8: 625
-    min 9: 50
-    min 10: 1100
-    min 11: 1100
-    min 12: 25
-    min 13: 50
-    min 14: 0
-    min 15: 0
-    min 16: 0
-    min 17: 0
-    min 18: 0
+    min 0: 800 (GFXCLKFMAX)
+    min 1: 800 (GFXCLKFMIN)
+    min 2: 800 (VDDGFXCURVEFREQ_P1)
+    min 3: 750 (VDDGFXCURVEVOLTAGE_P1)
+    min 4: 800 (VDDGFXCURVEFREQ_P2)
+    min 5: 750 (VDDGFXCURVEVOLTAGE_P2)
+    min 6: 800 (VDDGFXCURVEFREQ_P3)
+    min 7: 750 (VDDGFXCURVEVOLTAGE_P3)
+    min 8: 625 (UCLKFMAX)
+    min 9: 50 (POWERPERCENTAGE)
+    min 10: 1100 (FANRPMMIN)
+    min 11: 1100 (FANRPMACOUSTICLIMIT)
+    min 12: 25 (FANTARGETTEMPERATURE)
+    min 13: 50 (OPERATINGTEMPMAX)
+    min 14: 0 (ACTIMING)
+    min 15: 0 (FAN_ZERO_RPM_CONTROL)
+    min 16: 0 (AUTOUVENGINE)
+    min 17: 0 (AUTOOCENGINE)
+    min 18: 0 (AUTOOCMEMORY)
     min 19: 25
     min 20: 10
     min 21: 25

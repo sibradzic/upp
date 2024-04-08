@@ -245,7 +245,7 @@ def inject_pp_table(input_rom, output_rom, pp_bin_file):
     return True
 
 
-def validate_pp(header, length, rawdump):
+def validate_pp(header, rawbytes, rawdump):
     """
     Validates PowerPlay master table header
     """
@@ -253,11 +253,18 @@ def validate_pp(header, length, rawdump):
     pp_frev = header.ucTableFormatRevision
     pp_crev = header.ucTableContentRevision
     pp_len = header.usStructureSize
+    rw_len = len(rawbytes)
 
-    if pp_len != length:
+    if pp_len != rw_len and pp_frev in [20, 21, 22] and rw_len == 4095:
+        msg = 'WARNING: Trying to work around rev {}.{} table truncated ' + \
+              'at 0x{:04x}, setting all missing values to zeroes.'
+        print(msg.format(pp_frev, pp_crev, rw_len))
+        rawbytes.extend(bytearray(pp_len-rw_len))
+        rw_len = len(rawbytes)
+    if pp_len != rw_len:
         msg = 'ERROR: Header length ({}) differs from file length ({}). ' + \
               'Is this a valid PowerPlay table?'
-        print(msg.format(pp_len, length))
+        print(msg.format(pp_len, rw_len))
         return None
     if rawdump:
         msg = 'PowerPlay table rev {}.{} size {} bytes'
@@ -300,13 +307,15 @@ def _get_bigcap_indices(string):
     return indices
 
 
-def _print_raw_value(offset, symbol, rawbytes, name, value):
+def _print_raw_value(offset, symbol, rawbytes, name, desc, value):
     hexval = _bytes2hex(rawbytes)
-    raw_msg = ' 0x{:04x} ({:04n}) {} {:>8} {:32s}:{: n}'
+    raw_msg = ' 0x{:04x} ({:04n}) {} {:>8} {:42s}:{: n}'
     # Polaris variable names have small-caps prefixes that we don't want
     big_caps = _get_bigcap_indices(name)
     if big_caps:
         name = name[big_caps[0]:]
+    if desc:
+        name = name + ' ' + desc
     print(raw_msg.format(offset, offset, symbol, hexval, name, value))
 
 
@@ -517,8 +526,8 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
     if decoded is None:
         decoded = odict()
         if rawdump:
-            print(' Offset (dec.) t Raw val. Variable name ' + ' '*18 +
-                  'Decoded value\n' + '-'*71)
+            print(' Offset (dec.) t Raw val. Variable name ' + ' '*24 +
+                  'Decoded value\n' + '-'*78)
 
     # Here we parse data items in C Arrays (all items are same type)
     if issubclass(type(data), ctypes.Array):
@@ -538,9 +547,13 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
                 decoded[child_key] = {'value':  d_value,
                                       'offset': d_offset,
                                       'type':   d_symbol}
+                desc = ''
+                if 'desc' in meta and index < len(meta['desc']) - 1:
+                    desc = meta['desc'][index]
+                    decoded[child_key]['desc'] = desc
                 if rawdump:
                     _print_raw_value(d_offset, d_symbol, d_bytes,
-                                     parent_name, d_value)
+                                     parent_name, desc, d_value)
                 d_offset += d_size
                 index += 1
 
@@ -569,7 +582,7 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
             d_size = d_meta.size
             if name.startswith(('uc', 'us', 'ul')):
                 name = name[2:]
-            if not meta:
+            if 'ofs' not in meta:
                 d_offset = d_meta.offset
             else:
                 d_offset = meta['ofs'] + d_meta.offset
@@ -587,7 +600,7 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
                     d_value = struct.unpack(d_symbol, d_bytes)[0]
                 if rawdump:
                     _print_raw_value(d_offset, d_symbol, d_bytes,
-                                     name, d_value)
+                                     name, '', d_value)
                 # Check if this is a pointer to an offset-ed table:
                 if not name.endswith(('ArrayOffset',
                                       'TableOffset',
@@ -629,6 +642,14 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
                     msg = 'DEBUG: Recursive dive from {} struct into "{}"'
                     print(msg.format(parent_name, name))
                 r_meta = {'ofs': d_offset, 'size': d_size}
+                if 'enum' in meta:
+                    if name in meta['enum']:
+                        r_meta['enum'] = {name: meta['enum'][name]}
+                    if parent_name in meta['enum'] and name in ['min', 'max']:
+                        r_meta['desc'] = meta['enum'][parent_name]['enum']
+                    if parent_name in meta['enum'] and name in ['cap']:
+                        r_meta['desc'] = meta['enum'][parent_name]['cap']
+
                 decoded[name] = odict()
                 build_data_tree(d_value, raw, decoded[name], name, r_meta,
                                 rawdump, debug)
@@ -647,7 +668,8 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
     """
 
     pp_header = common_hdr.from_buffer(rawbytes[:4])
-    pp_ver = validate_pp(pp_header, len(rawbytes), rawdump)
+    pp_ver = validate_pp(pp_header, rawbytes, rawdump)
+    enum_structs = {}
 
     # Polaris aka RX470/RX480/RX570/RX580/RX590
     if pp_ver == (7, 1):
@@ -669,6 +691,18 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
         gpugen = 'Navi 10 or 14'
         from upp.atom_gen import smu_v11_0_navi10 as pp_struct
         ctypes_strct = pp_struct.struct_smu_11_0_powerplay_table
+        enum_structs = {
+            'power_saving_clock': {
+                'prefix': 'SMU_11_0_PPCLOCK_',
+                'struct': pp_struct.SMU_11_0_PPCLOCK_ID__enumvalues
+            },
+            'overdrive_table': {
+                'prefix': 'SMU_11_0_ODSETTING_',
+                'struct': pp_struct.SMU_11_0_ODSETTING_ID__enumvalues,
+                'cappfx': 'SMU_11_0_ODCAP_',
+                'capstr': pp_struct.SMU_11_0_ODFEATURE_CAP__enumvalues,
+            }
+        }
     # Navi 12 aka PRO V520
     elif pp_ver == (14, 0):
         gpugen = 'Navi 12'
@@ -682,11 +716,35 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
         gpugen = 'Navi 2x'
         from upp.atom_gen import smu_v11_0_7_navi20 as pp_struct
         ctypes_strct = pp_struct.struct_smu_11_0_7_powerplay_table
+        enum_structs = {
+            'power_saving_clock': {
+                'prefix': 'SMU_11_0_7_PPCLOCK_',
+                'struct': pp_struct.SMU_11_0_7_PPCLOCK_ID__enumvalues
+            },
+            'overdrive_table': {
+                'prefix': 'SMU_11_0_7_ODSETTING_',
+                'struct': pp_struct.SMU_11_0_7_ODSETTING_ID__enumvalues,
+                'cappfx': 'SMU_11_0_7_ODCAP_',
+                'capstr': pp_struct.SMU_11_0_7_ODFEATURE_CAP__enumvalues,
+            }
+        }
     # Navi 31, 32, 33
     elif ((pp_ver[0] in [20, 21, 22]) and pp_ver[1] == 0):
         gpugen = 'Navi 3x'
         from upp.atom_gen import smu_v13_0_7_navi30 as pp_struct
         ctypes_strct = pp_struct.struct_smu_13_0_7_powerplay_table
+        enum_structs = {
+            'power_saving_clock': {
+                'prefix': 'SMU_13_0_7_PPCLOCK_',
+                'struct': pp_struct.SMU_13_0_7_PPCLOCK_ID__enumvalues
+            },
+            'overdrive_table': {
+                'prefix': 'SMU_13_0_7_ODSETTING_',
+                'struct': pp_struct.SMU_13_0_7_ODSETTING_ID__enumvalues,
+                'cappfx': 'SMU_13_0_7_ODCAP_',
+                'capstr': pp_struct.SMU_13_0_7_ODFEATURE_CAP__enumvalues,
+            }
+        }
     elif pp_ver is not None:
         msg = 'Can not decode PowerPlay table version {}.{}'
         print(msg.format(pp_ver[0], pp_ver[1]))
@@ -694,12 +752,36 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
     else:
         return None
 
+    # Unpack and sanitize enm_structs, if any
+    if enum_structs:
+        for tbl in enum_structs:
+            prefix = enum_structs[tbl].pop('prefix')
+            for enum in enum_structs[tbl]['struct']:
+                txt = enum_structs[tbl]['struct'][enum]
+                enum_structs[tbl]['struct'][enum] = txt.replace(prefix, '')
+            enum_structs[tbl]['enum'] = enum_structs[tbl]['struct']
+            enum_structs[tbl].pop('struct')
+            if 'capstr' in enum_structs[tbl]:
+                cappfx = enum_structs[tbl].pop('cappfx')
+                for cap in enum_structs[tbl]['capstr']:
+                    cpt = enum_structs[tbl]['capstr'][cap]
+                    enum_structs[tbl]['capstr'][cap] = cpt.replace(cappfx, '')
+                enum_structs[tbl]['cap'] = enum_structs[tbl]['capstr']
+                enum_structs[tbl].pop('capstr')
+        if debug:
+            print('DEBUG: unpacked enumeration data:')
+            for table in enum_structs:
+                print('  min/max enum in', table, enum_structs[tbl]['enum'])
+                if 'cap' in enum_structs[table]:
+                    print('  cap enum in', table, enum_structs[tbl]['cap'])
+
     if debug:
         print('DEBUG: This is a', gpugen,
               'PP table, using', pp_struct.__name__)
 
     data = decode_pp_table(rawbytes, ctypes_strct)
-    data_dict = build_data_tree(data, rawbytes, rawdump=rawdump, debug=debug)
+    data_dict = build_data_tree(data, rawbytes, meta={'enum': enum_structs},
+                                rawdump=rawdump, debug=debug)
     return data_dict
 
 
@@ -724,7 +806,12 @@ def dump_pp_table(pp_bin_file, data_dict=None, indent=0, parent='',
             msg = '{}{}: {}'
             if data_dict[member]['type'] == 'f':
                 msg = '{}{}:{: n}'
-            print(msg.format(' '*indent, name, data_dict[member]['value']))
+            desc = ''
+            if 'desc' in data_dict[member]:
+                desc = '(' + data_dict[member]['desc'] + ')'
+                msg = '{}{}: {} {}'
+            print(msg.format(' '*indent, name,
+                             data_dict[member]['value'], desc))
         else:
             print('{}{}:'.format(' '*indent, name))
             dump_pp_table(None, data_dict[member], indent+2, parent=member)

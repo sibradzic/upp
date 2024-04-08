@@ -71,22 +71,22 @@ overdrive_table:
   feature_count: 22
   setting_count: 41
   cap:
-    cap 0: 1
-    cap 1: 1
-    cap 2: 1
-    cap 3: 1
-    cap 4: 1
-    cap 5: 1
-    cap 6: 1
-    cap 7: 1
-    cap 8: 1
-    cap 9: 1
-    cap 10: 1
-    cap 11: 1
-    cap 12: 1
-    cap 13: 0
-    cap 14: 1
-    cap 15: 0
+    cap 0: 1 (GFXCLK_LIMITS)
+    cap 1: 1 (UCLK_LIMITS)
+    cap 2: 1 (POWER_LIMIT)
+    cap 3: 1 (FAN_ACOUSTIC_LIMIT)
+    cap 4: 1 (FAN_SPEED_MIN)
+    cap 5: 1 (TEMPERATURE_FAN)
+    cap 6: 1 (TEMPERATURE_SYSTEM)
+    cap 7: 1 (MEMORY_TIMING_TUNE)
+    cap 8: 1 (FAN_ZERO_RPM_CONTROL)
+    cap 9: 1 (AUTO_UV_ENGINE)
+    cap 10: 1 (AUTO_OC_ENGINE)
+    cap 11: 1 (AUTO_OC_MEMORY)
+    cap 12: 1 (FAN_CURVE)
+    cap 13: 0 (AUTO_FAN_ACOUSTIC_LIMIT)
+    cap 14: 1 (POWER_MODE)
+    cap 15: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET)
     cap 16: 0
     cap 17: 1
     cap 18: 0
@@ -104,38 +104,38 @@ overdrive_table:
     cap 30: 0
     cap 31: 0
   max:
-    max 0: 5000
-    max 1: 5000
-    max 2: 1500
-    max 3: 1500
-    max 4: 15
-    max 5: 3300
-    max 6: 3300
-    max 7: 105
-    max 8: 110
-    max 9: 1
-    max 10: 1
-    max 11: 1
-    max 12: 1
-    max 13: 1
-    max 14: 100
-    max 15: 100
-    max 16: 100
-    max 17: 100
-    max 18: 100
-    max 19: 100
-    max 20: 100
-    max 21: 100
-    max 22: 100
-    max 23: 100
-    max 24: 0
-    max 25: 1
-    max 26: 0
-    max 27: 0
-    max 28: 0
-    max 29: 0
-    max 30: 0
-    max 31: 0
+    max 0: 5000 (GFXCLKFMAX)
+    max 1: 5000 (GFXCLKFMIN)
+    max 2: 1500 (UCLKFMIN)
+    max 3: 1500 (UCLKFMAX)
+    max 4: 15 (POWERPERCENTAGE)
+    max 5: 3300 (FANRPMMIN)
+    max 6: 3300 (FANRPMACOUSTICLIMIT)
+    max 7: 105 (FANTARGETTEMPERATURE)
+    max 8: 110 (OPERATINGTEMPMAX)
+    max 9: 1 (ACTIMING)
+    max 10: 1 (FAN_ZERO_RPM_CONTROL)
+    max 11: 1 (AUTOUVENGINE)
+    max 12: 1 (AUTOOCENGINE)
+    max 13: 1 (AUTOOCMEMORY)
+    max 14: 100 (FAN_CURVE_TEMPERATURE_1)
+    max 15: 100 (FAN_CURVE_SPEED_1)
+    max 16: 100 (FAN_CURVE_TEMPERATURE_2)
+    max 17: 100 (FAN_CURVE_SPEED_2)
+    max 18: 100 (FAN_CURVE_TEMPERATURE_3)
+    max 19: 100 (FAN_CURVE_SPEED_3)
+    max 20: 100 (FAN_CURVE_TEMPERATURE_4)
+    max 21: 100 (FAN_CURVE_SPEED_4)
+    max 22: 100 (FAN_CURVE_TEMPERATURE_5)
+    max 23: 100 (FAN_CURVE_SPEED_5)
+    max 24: 0 (AUTO_FAN_ACOUSTIC_LIMIT)
+    max 25: 1 (POWER_MODE)
+    max 26: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_1)
+    max 27: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_2)
+    max 28: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_3)
+    max 29: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_4)
+    max 30: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_5)
+    max 31: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_6)
     max 32: 0
     max 33: 0
     max 34: 0
@@ -169,38 +169,38 @@ overdrive_table:
     max 62: 0
     max 63: 0
   min:
-    min 0: 500
-    min 1: 500
-    min 2: 97
-    min 3: 97
-    min 4: 10
-    min 5: 500
-    min 6: 500
-    min 7: 25
-    min 8: 50
-    min 9: 0
-    min 10: 0
-    min 11: 0
-    min 12: 0
-    min 13: 0
-    min 14: 25
-    min 15: 15
-    min 16: 25
-    min 17: 15
-    min 18: 25
-    min 19: 15
-    min 20: 25
-    min 21: 15
-    min 22: 25
-    min 23: 15
-    min 24: 0
-    min 25: 0
-    min 26: 0
-    min 27: 0
-    min 28: 0
-    min 29: 0
-    min 30: 0
-    min 31: 0
+    min 0: 500 (GFXCLKFMAX)
+    min 1: 500 (GFXCLKFMIN)
+    min 2: 97 (UCLKFMIN)
+    min 3: 97 (UCLKFMAX)
+    min 4: 10 (POWERPERCENTAGE)
+    min 5: 500 (FANRPMMIN)
+    min 6: 500 (FANRPMACOUSTICLIMIT)
+    min 7: 25 (FANTARGETTEMPERATURE)
+    min 8: 50 (OPERATINGTEMPMAX)
+    min 9: 0 (ACTIMING)
+    min 10: 0 (FAN_ZERO_RPM_CONTROL)
+    min 11: 0 (AUTOUVENGINE)
+    min 12: 0 (AUTOOCENGINE)
+    min 13: 0 (AUTOOCMEMORY)
+    min 14: 25 (FAN_CURVE_TEMPERATURE_1)
+    min 15: 15 (FAN_CURVE_SPEED_1)
+    min 16: 25 (FAN_CURVE_TEMPERATURE_2)
+    min 17: 15 (FAN_CURVE_SPEED_2)
+    min 18: 25 (FAN_CURVE_TEMPERATURE_3)
+    min 19: 15 (FAN_CURVE_SPEED_3)
+    min 20: 25 (FAN_CURVE_TEMPERATURE_4)
+    min 21: 15 (FAN_CURVE_SPEED_4)
+    min 22: 25 (FAN_CURVE_TEMPERATURE_5)
+    min 23: 15 (FAN_CURVE_SPEED_5)
+    min 24: 0 (AUTO_FAN_ACOUSTIC_LIMIT)
+    min 25: 0 (POWER_MODE)
+    min 26: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_1)
+    min 27: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_2)
+    min 28: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_3)
+    min 29: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_4)
+    min 30: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_5)
+    min 31: 0 (PER_ZONE_GFX_VOLTAGE_OFFSET_POINT_6)
     min 32: 0
     min 33: 10
     min 34: 0
