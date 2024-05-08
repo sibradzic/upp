@@ -703,6 +703,11 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
                 'capstr': pp_struct.SMU_11_0_ODFEATURE_CAP__enumvalues,
             }
         }
+    # Arcturus aka MI100
+    elif pp_ver == (13, 0):
+        gpugen = 'Arcturus'
+        from upp.atom_gen import smu_v11_0_arcturus as pp_struct
+        ctypes_strct = pp_struct.struct_smu_11_0_powerplay_table
     # Navi 12 aka PRO V520
     elif pp_ver == (14, 0):
         gpugen = 'Navi 12'

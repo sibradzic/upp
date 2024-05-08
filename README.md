@@ -32,6 +32,7 @@ on the following AMD GPU families:
 * Vega
 * Radeon VII
 * Navi 10
+* Arcturus (MI100)
 * Navi 12 (PRO V520)
 * Navi 14
 * Navi 21 (Sienna Cichlid)
