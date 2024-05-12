@@ -1,5 +1,3 @@
-ERROR: Unexpected data structure: <class 'int'>
-ERROR: Unexpected data structure: <class 'int'>
 header:
   structuresize: 5424
   format_revision: 20
@@ -779,10 +777,10 @@ smc_pptable:
       GfxoffSpare 12: 0
       GfxoffSpare 13: 0
       GfxoffSpare 14: 0
-    DfllBtcMasterScalerM: 1065353216
-    DfllBtcMasterScalerB:
-    DfllBtcSlaveScalerM: 1066192077
-    DfllBtcSlaveScalerB:
+    DfllBtcMasterScalerM: 1
+    DfllBtcMasterScalerB: 0
+    DfllBtcSlaveScalerM: 1.1
+    DfllBtcSlaveScalerB: 0
     DfllPccAsWaitCtrl: 6553700
     DfllPccAsStepCtrl: 2065455
     GfxGpoSpare:

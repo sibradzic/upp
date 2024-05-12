@@ -21,16 +21,18 @@ leagcy_vrom_offset = 0x40000
 primitives = [
     ctypes.c_byte, ctypes.c_ubyte,
     ctypes.c_int16, ctypes.c_uint16,
-    ctypes.c_uint32, ctypes.c_float
+    ctypes.c_int32, ctypes.c_uint32,
+    ctypes.c_float
 ]
 
 # Defined as uint in kernel, but in reality these are float
 float_fields = ['a', 'b', 'c', 'm',
-                'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA', 'VcBtcVminB']
+                'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA', 'VcBtcVminB',
+                'DfllBtcMasterScalerM', 'DfllBtcSlaveScalerM',
+                'DfllBtcMasterScalerB', 'DfllBtcSlaveScalerB']
 float_arrays = ['Fset', 'Vdroop', 'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA',
                 'VcBtcVminB', 'Droop_PWL_F', 'Droop_PWL_a', 'Droop_PWL_b',
                 'Droop_PWL_c']
-
 
 def odict(init_data=None):
     """
