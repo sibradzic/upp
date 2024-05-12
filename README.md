@@ -32,15 +32,19 @@ on the following AMD GPU families:
 * Vega
 * Radeon VII
 * Navi 10
+* Arcturus (MI100)
 * Navi 12 (PRO V520)
 * Navi 14
 * Navi 21 (Sienna Cichlid)
 * Navi 22 (Navy Flounder)
 * Navi 23 (Dimgrey Cavefish)
-* Navi 3x *experimental support
+* Navi 3x
 
-Note: iGPUs found in many recent AMD APUs are using completely different
-PowerPlay control methods, this tool does not support them.
+Notes:
+* iGPUs found in many recent AMD APUs are using completely different
+  PowerPlay control methods, this tool does not support them.
+* The kernel driver does not fully implement modifying the PowerPlay tables
+  on runtime for Navi 3x cards
 
 **WARNING**: Authors of this tool are in no way responsible for any damage
 that may happen to your expansive graphics card if you choose to modify

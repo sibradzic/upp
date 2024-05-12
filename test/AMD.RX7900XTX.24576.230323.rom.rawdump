@@ -682,10 +682,10 @@ PowerPlay table rev 20.0 size 5424 bytes
  0x072c (1836) I 00000000 GfxoffSpare                               : 0
  0x0730 (1840) I 00000000 GfxoffSpare                               : 0
  0x0734 (1844) I 00000000 GfxoffSpare                               : 0
- 0x0738 (1848) I 0000803f DfllBtcMasterScalerM                      : 1065353216
-ERROR: Unexpected data structure: <class 'int'>
- 0x0740 (1856) I cdcc8c3f DfllBtcSlaveScalerM                       : 1066192077
-ERROR: Unexpected data structure: <class 'int'>
+ 0x0738 (1848) f 0000803f DfllBtcMasterScalerM                      : 1
+ 0x073c (1852) i 00000000 DfllBtcMasterScalerB                      : 0
+ 0x0740 (1856) f cdcc8c3f DfllBtcSlaveScalerM                       : 1.1
+ 0x0744 (1860) i 00000000 DfllBtcSlaveScalerB                       : 0
  0x0748 (1864) I 64006400 DfllPccAsWaitCtrl                         : 6553700
  0x074c (1868) I 2f841f00 DfllPccAsStepCtrl                         : 2065455
  0x0750 (1872) I 713d8a3f GfxGpoSpare                               : 1066024305

@@ -70,6 +70,16 @@ clang2py version 2.3.4
        linux/drivers/gpu/drm/amd/pm/swsmu/inc/smu_v11_0_pptable.h > smu_v11_0_navi10.py
 
 
+##  smu_v11_0_arcturus.py (MI100)
+
+    clang2py -k 'mste' \
+      --clang-args="--include stdint.h \
+                    --include linux/drivers/gpu/drm/amd/include/atom-types.h \
+                    --include linux/drivers/gpu/drm/amd/include/atomfirmware.h \
+                    --include linux/drivers/gpu/drm/amd/pm/swsmu/inc/pmfw_if/smu11_driver_if_arcturus.h " \
+       linux/drivers/gpu/drm/amd/pm/swsmu/inc/smu_v11_0_pptable.h > smu_v11_0_arcturus.py
+
+
 ##  smu_v11_0_navi20.py (Navi21/22/23)
 
     clang2py -k 'mste' \

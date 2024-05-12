@@ -17,8 +17,16 @@ ROM_RX6800=226802/AMD.RX6800.16384.201007.rom
 ROM_RX6900=227070/AMD.RX6900.16384.201104.rom
 # RX 7900 XTX 24GB Reference
 ROM_RX7900=262809/AMD.RX7900XTX.24576.230323.rom
+# MI100
+ROM_MI100=MI100_000.000.000.000.016113_113-D3431401-100.rom
 
-TEST_ROMS="${ROM_RX480} ${ROM_VEGA64} ${ROM_VEGAFRONTIER} ${ROM_RADEON7} ${ROM_RX5700} ${ROM_RX6900} ${ROM_RX7900}"
+# Fetch ROMs not available at TechPowerUp from these links:
+ROM_LINKSs="
+https://github.com/sibradzic/upp/files/15254133/arcturus_vbios.zip
+"
+
+# ROMs to be tested:
+TEST_ROMS="${ROM_RX480} ${ROM_VEGA64} ${ROM_VEGAFRONTIER} ${ROM_RADEON7} ${ROM_RX5700} ${ROM_RX6900} ${ROM_RX7900} ${ROM_MI100}"
 TEST_ROOT=${PWD}
 ROM_DIR=${PWD}/ROMs
 TMP_DIR=${PWD}/tmp
@@ -28,6 +36,17 @@ TMP_DIR=${PWD}/tmp
 
 pushd ../src
 
+# Fetch non TehcPowerUp ROMs
+for VBIOS in ${ROM_LINKSs}; do
+  if [ ! -r ${ROM_DIR}/${VBIOS##*/} ]; then
+    wget -P ${ROM_DIR} ${VBIOS}
+    if [[ "${VBIOS##*.}" == "zip" ]]; then
+      unzip ${ROM_DIR}/${VBIOS##*/} -d ${ROM_DIR}
+    fi
+  fi
+done
+
+# Fetch TehcPowerUp ROMs and test all ROMs
 for VBIOS in ${TEST_ROMS}; do
   if [ ! -r ${ROM_DIR}/${VBIOS#*/} ]; then
     wget -P ${ROM_DIR} ${TPU_VBIOS_URL}/${VBIOS}
@@ -39,16 +58,23 @@ for VBIOS in ${TEST_ROMS}; do
   if [ $? -ne "0" ]; then
     echo "ERROR in ${TMP_DIR}/${VBIOS#*/}.dump:"
     diff -u ${TEST_ROOT}/${VBIOS#*/}.dump ${TMP_DIR}/${VBIOS#*/}.dump
+    printf "\033[1m${VBIOS#*/} dump check \033[1;31mERROR\033[0m\n"
     exit 2
+  else
+    printf "\033[1m${VBIOS#*/} dump check \033[1;32mOK\033[0m\n\n"
   fi
   diff -s ${TEST_ROOT}/${VBIOS#*/}.rawdump ${TMP_DIR}/${VBIOS#*/}.rawdump
   if [ $? -ne "0" ]; then
     echo "ERROR in ${TMP_DIR}/${VBIOS#*/}.rawdump:"
     diff -u ${TEST_ROOT}/${VBIOS#*/}.rawdump ${TMP_DIR}/${VBIOS#*/}.rawdump
+    printf "\033[1m${VBIOS#*/} raw dump check \033[1;31mERROR\033[0m\n"
     exit 2
+  else
+    printf "\033[1m${VBIOS#*/} raw dump check \033[1;32mOK\033[0m\n\n"
   fi
 done
 
+# Value write test
 python3 -m upp.upp -p ${TMP_DIR}/${ROM_RX5700#*/}.pp_table set --write \
   smc_pptable/SocketPowerLimitAc/0=110        \
   smc_pptable/SocketPowerLimitDc/0=110        \
@@ -98,5 +124,8 @@ diff -s ${TEST_ROOT}/${ROM_RX5700#*/}.check ${TMP_DIR}/${ROM_RX5700#*/}.check
 if [ $? -ne "0" ]; then
   echo "ERROR in ${TMP_DIR}/${ROM_RX5700#*/}.check:"
   diff -u ${TEST_ROOT}/${ROM_RX5700#*/}.check ${TMP_DIR}/${ROM_RX5700#*/}.check
+  printf "\033[1m${ROM_RX5700#*/} value write check \033[1;31mERROR\033[0m\n"
   exit 2
+else
+  printf "\033[1m${ROM_RX5700#*/} value write check \033[1;32mOK\033[0m\n\n"
 fi
