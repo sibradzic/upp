@@ -151,6 +151,8 @@ def _load_variable_set(dump_filename):
             key, value = line.split(':')
             key = key.strip()
             value = value.strip()
+            if len(value) > 0:
+                value = value.split()[0]
             if key.find('Unused') == 0 or value.find('UNUSED') == 0:
                 continue
             if len(keys) > 0 and key.find(keys[-1]) == 0:
@@ -428,10 +430,10 @@ def set(ctx, variable_path_set, to_registry, write):
             var_path = _normalize_var_path(var)
             res = decode.get_value(pp_file, var_path)
             if res:
-                if (val.isdigit()):
-                    set_pairs += [var_path + [int(val)]]
-                else:
+                if res["type"] == 'f':
                     set_pairs += [var_path + [float(val)]]
+                else:
+                    set_pairs += [var_path + [int(val)]]
             else:
                 print('ERROR: Incorrect variable path:', var)
                 return 2
