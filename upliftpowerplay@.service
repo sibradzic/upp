@@ -1,0 +1,9 @@
+[Unit]
+Description=Uplift Power Play
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/upp --pp-file=/sys/class/drm/%i/device/pp_table set --from-config=/etc/upliftpowerplay/%i.conf
+
+[Install]
+WantedBy=multi-user.target
