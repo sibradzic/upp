@@ -414,7 +414,7 @@ def set(ctx, variable_path_set, to_registry, write, from_conf):
     --write option is set.
 
     It is possible to set parameters from a configuration file with one
-    "/<param>=<value>" per line using -c/--from-config instead of directly 
+    "/<param>=<value>" per line using -c/--from-conf instead of directly 
     passing parameters from command line
 
     \b
@@ -433,7 +433,7 @@ def set(ctx, variable_path_set, to_registry, write, from_conf):
 
     if from_conf is not None:
         if (len(variable_path_set) > 0):
-            print("ERROR: VARIABLE_PATH_SET found when using -c/--from-config.")
+            print("ERROR: VARIABLE_PATH_SET found when using -c/--from-conf.")
             return 2
         if not os.path.isfile(from_conf):
             print("ERROR: file {} not found.".format(from_conf))
