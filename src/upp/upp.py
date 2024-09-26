@@ -439,7 +439,7 @@ def set(ctx, variable_path_set, to_registry, write, from_conf):
             print("ERROR: file {} not found.".format(from_conf))
             exit(2)
         with open(from_conf, 'r') as config:
-            variable_path_set = config.read().splitlines()
+            variable_path_set = list(filter(''.__ne__, config.read().splitlines()))
     elif (len(variable_path_set) == 0):
         print("ERROR: no parameters given to set to pp table.")
         exit(2)
