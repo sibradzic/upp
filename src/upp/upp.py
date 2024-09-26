@@ -386,7 +386,7 @@ def get(ctx, variable_path_set):
             print('{:n}'.format(res['value']))
         else:
             print('ERROR: Incorrect variable path:', set_pair_str)
-            return 2
+            exit(2)
 
     return 0
 
@@ -434,15 +434,15 @@ def set(ctx, variable_path_set, to_registry, write, from_conf):
     if from_conf is not None:
         if (len(variable_path_set) > 0):
             print("ERROR: VARIABLE_PATH_SET found when using -c/--from-conf.")
-            return 2
+            exit(2)
         if not os.path.isfile(from_conf):
             print("ERROR: file {} not found.".format(from_conf))
-            return 2
+            exit(2)
         with open(from_conf, 'r') as config:
             variable_path_set = config.read().splitlines()
     elif (len(variable_path_set) == 0):
         print("ERROR: no parameters given to set to pp table.")
-        return 2
+        exit(2)
 
     set_pairs = []
     for set_pair_str in variable_path_set:
@@ -457,9 +457,9 @@ def set(ctx, variable_path_set, to_registry, write, from_conf):
                     set_pairs += [var_path + [float(val)]]
             else:
                 print('ERROR: Incorrect variable path:', var)
-                return 2
+                exit(2)
         else:
-            return 2
+            exit(2)
 
     pp_bytes = decode._read_binary_file(pp_file)
     data = decode.select_pp_struct(pp_bytes)
