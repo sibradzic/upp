@@ -1,0 +1,13 @@
+[Unit]
+Description=Uplift Power Play
+Before=amdgpu-clocks.service
+Wants=modprobe@amdgpu.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/bash -c "echo "profile_peak" > /sys/class/drm/%i/device/power_dpm_force_performance_level"
+ExecStart=/usr/bin/upp --pp-file=/sys/class/drm/%i/device/pp_table set --from-conf=/etc/upliftpowerplay/%i.conf --write
+ExecStopPost=/usr/bin/bash -c "echo "auto" > /sys/class/drm/%i/device/power_dpm_force_performance_level"
+
+[Install]
+WantedBy=multi-user.target

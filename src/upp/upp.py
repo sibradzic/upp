@@ -388,19 +388,21 @@ def get(ctx, variable_path_set):
             print('{:n}'.format(res['value']))
         else:
             print('ERROR: Incorrect variable path:', set_pair_str)
-            return 2
+            exit(2)
 
     return 0
 
 
 @click.command(short_help='Set value to PowerPlay parameter(s).')
-@click.argument('variable-path-set', nargs=-1, required=True)
+@click.argument('variable-path-set', nargs=-1, required=False)
 @click.option('-w', '--write', is_flag=True,
               help='Write changes to PP binary.', default=False)
 @click.option('-t', '--to-registry', metavar='<filename>',
               help='Output to Windows registry .reg file.')
+@click.option('-c', '--from-conf', metavar='<filename>',
+              help='Input VARIABLE_PATH_SET from file.')
 @click.pass_context
-def set(ctx, variable_path_set, to_registry, write):
+def set(ctx, variable_path_set, to_registry, write, from_conf):
     """Sets value to one or multiple PP parameters
 
     The parameter path and value must be specified in
@@ -413,6 +415,13 @@ def set(ctx, variable_path_set, to_registry, write):
     The PP tables will not be changed unless additional
     --write option is set.
 
+    It is possible to set parameters from a configuration file with one
+    "/<param>=<value>" per line using -c/--from-conf instead of directly 
+    passing parameters from command line
+
+    \b
+        upp set --from-conf=card0.conf
+
     Optionally, if -t/--to-registry output is specified, an additional Windows
     registry format file with '.reg' extension will be generated, for example:
 
@@ -423,6 +432,20 @@ def set(ctx, variable_path_set, to_registry, write):
     """
     debug = ctx.obj['DEBUG']
     pp_file = ctx.obj['PPBINARY']
+
+    if from_conf is not None:
+        if (len(variable_path_set) > 0):
+            print("ERROR: VARIABLE_PATH_SET found when using -c/--from-conf.")
+            exit(2)
+        if not os.path.isfile(from_conf):
+            print("ERROR: file {} not found.".format(from_conf))
+            exit(2)
+        with open(from_conf, 'r') as config:
+            variable_path_set = list(filter(''.__ne__, config.read().splitlines()))
+    elif (len(variable_path_set) == 0):
+        print("ERROR: no parameters given to set to pp table.")
+        exit(2)
+
     set_pairs = []
     for set_pair_str in variable_path_set:
         var, val = _validate_set_pair(set_pair_str)
@@ -436,9 +459,9 @@ def set(ctx, variable_path_set, to_registry, write):
                     set_pairs += [var_path + [int(val)]]
             else:
                 print('ERROR: Incorrect variable path:', var)
-                return 2
+                exit(2)
         else:
-            return 2
+            exit(2)
 
     pp_bytes = decode._read_binary_file(pp_file)
     data = decode.select_pp_struct(pp_bytes)
