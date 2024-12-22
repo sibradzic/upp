@@ -34,6 +34,7 @@ float_arrays = ['Fset', 'Vdroop', 'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA',
                 'VcBtcVminB', 'Droop_PWL_F', 'Droop_PWL_a', 'Droop_PWL_b',
                 'Droop_PWL_c']
 
+
 def odict(init_data=None):
     """
     Returns ordered dictionary (for consistent behavior on Python 2.7 & 3.6+)
