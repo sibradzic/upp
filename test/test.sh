@@ -74,6 +74,8 @@ for VBIOS in ${TEST_ROMS}; do
   fi
 done
 
+cp ${TMP_DIR}/${ROM_RX5700#*/}.pp_table ${TMP_DIR}/${ROM_RX5700#*/}.conf.pp_table
+
 # Value write test
 python3 -m upp.upp -p ${TMP_DIR}/${ROM_RX5700#*/}.pp_table set --write \
   smc_pptable/SocketPowerLimitAc/0=110        \
@@ -128,4 +130,41 @@ if [ $? -ne "0" ]; then
   exit 2
 else
   printf "\033[1m${ROM_RX5700#*/} value write check \033[1;32mOK\033[0m\n\n"
+fi
+
+# Value write from .conf test
+python3 -m upp.upp -p ${TMP_DIR}/${ROM_RX5700#*/}.conf.pp_table set \
+  --from-conf=${TEST_ROOT}/${ROM_RX5700#*/}.conf --write
+
+python3 -m upp.upp -p ${TMP_DIR}/${ROM_RX5700#*/}.conf.pp_table get \
+  smc_pptable/SocketPowerLimitAc/0      \
+  smc_pptable/SocketPowerLimitDc/0      \
+  smc_pptable/FanStartTemp              \
+  smc_pptable/MinVoltageGfx             \
+  smc_pptable/MaxVoltageGfx             \
+  smc_pptable/MinVoltageSoc             \
+  smc_pptable/MaxVoltageSoc             \
+  smc_pptable/qStaticVoltageOffset/0/c  \
+  smc_pptable/UlvVoltageOffsetSoc       \
+  smc_pptable/UlvVoltageOffsetGfx       \
+  smc_pptable/FreqTableGfx/1            \
+  smc_pptable/MemMvddVoltage/0          \
+  smc_pptable/MemVddciVoltage/0         \
+  smc_pptable/MemMvddVoltage/1          \
+  smc_pptable/MemVddciVoltage/1         \
+  smc_pptable/MemMvddVoltage/2          \
+  smc_pptable/MemVddciVoltage/2         \
+  smc_pptable/MemMvddVoltage/3          \
+  smc_pptable/MemVddciVoltage/3         \
+  smc_pptable/FreqTableUclk/3           \
+  >  ${TMP_DIR}/${ROM_RX5700#*/}.conf.check
+
+diff -s ${TEST_ROOT}/${ROM_RX5700#*/}.check ${TMP_DIR}/${ROM_RX5700#*/}.check
+if [ $? -ne "0" ]; then
+  echo "ERROR in ${TMP_DIR}/${ROM_RX5700#*/}.check:"
+  diff -u ${TEST_ROOT}/${ROM_RX5700#*/}.check ${TMP_DIR}/${ROM_RX5700#*/}.check
+  printf "\033[1m${ROM_RX5700#*/} value write from conf check \033[1;31mERROR\033[0m\n"
+  exit 2
+else
+  printf "\033[1m${ROM_RX5700#*/} value write from conf check \033[1;32mOK\033[0m\n\n"
 fi

@@ -168,6 +168,12 @@ parameter(s). The parameter path and value must be specified in
       smc_pptable/FanStartTemp=100           \
       smc_pptable/FreqTableGfx/1=1550
 
+It is possible to set parameters from a configuration file with one
+"/<param>=<value>" per line using -c/--from-conf instead of directly
+passing parameters from command line
+
+    upp set --from-conf=card0.conf
+
 Note the `--write` parameter, which has to be specified to actually commit
 changes to the PowerPlay table file.
 
