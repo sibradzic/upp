@@ -27,11 +27,11 @@ class AsDictMixin:
             type_ = type(value)
             if hasattr(value, "_length_") and hasattr(value, "_type_"):
                 # array
-                if not hasattr(type_, "as_dict"):
-                    value = [v for v in value]
-                else:
-                    type_ = type_._type_
+                type_ = type_._type_
+                if hasattr(type_, 'as_dict'):
                     value = [type_.as_dict(v) for v in value]
+                else:
+                    value = [i for i in value]
             elif hasattr(value, "contents") and hasattr(value, "_type_"):
                 # pointer
                 try:
@@ -251,6 +251,16 @@ ATOM_VEGA20_POWER_SAVING_CLOCK_RECORD = struct__ATOM_VEGA20_POWER_SAVING_CLOCK_R
 class struct__ATOM_VEGA20_POWERPLAYTABLE(Structure):
     pass
 
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
+    ('structuresize', ctypes.c_uint16),
+    ('format_revision', ctypes.c_ubyte),
+    ('content_revision', ctypes.c_ubyte),
+]
+
 class struct_PPTable_t(Structure):
     pass
 
@@ -286,6 +296,16 @@ struct_DpmDescriptor_t._fields_ = [
     ('SsCurve', struct_QuadraticInt_t),
 ]
 
+class struct_DroopInt_t(Structure):
+    pass
+
+struct_DroopInt_t._pack_ = 1 # source:False
+struct_DroopInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
+]
+
 class struct_I2cControllerConfig_t(Structure):
     pass
 
@@ -298,16 +318,6 @@ struct_I2cControllerConfig_t._fields_ = [
     ('ThermalThrottler', ctypes.c_uint32),
     ('I2cProtocol', ctypes.c_uint32),
     ('I2cSpeed', ctypes.c_uint32),
-]
-
-class struct_DroopInt_t(Structure):
-    pass
-
-struct_DroopInt_t._pack_ = 1 # source:False
-struct_DroopInt_t._fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
 ]
 
 struct_PPTable_t._pack_ = 1 # source:False
@@ -492,16 +502,6 @@ struct_PPTable_t._fields_ = [
     ('I2cControllers', struct_I2cControllerConfig_t * 7),
     ('BoardReserved', ctypes.c_uint32 * 10),
     ('MmHubPadding', ctypes.c_uint32 * 8),
-]
-
-class struct_atom_common_table_header(Structure):
-    pass
-
-struct_atom_common_table_header._pack_ = 1 # source:False
-struct_atom_common_table_header._fields_ = [
-    ('structuresize', ctypes.c_uint16),
-    ('format_revision', ctypes.c_ubyte),
-    ('content_revision', ctypes.c_ubyte),
 ]
 
 struct__ATOM_VEGA20_POWERPLAYTABLE._pack_ = 1 # source:False

@@ -29,10 +29,19 @@ primitives = [
 float_fields = ['a', 'b', 'c', 'm',
                 'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA', 'VcBtcVminB',
                 'DfllBtcMasterScalerM', 'DfllBtcSlaveScalerM',
-                'DfllBtcMasterScalerB', 'DfllBtcSlaveScalerB']
-float_arrays = ['Fset', 'Vdroop', 'VcBtcPsmA', 'VcBtcPsmB', 'VcBtcVminA',
-                'VcBtcVminB', 'Droop_PWL_F', 'Droop_PWL_a', 'Droop_PWL_b',
-                'Droop_PWL_c']
+                'DfllBtcMasterScalerB', 'DfllBtcSlaveScalerB',
+                'DvoPsmDownThresholdVoltage', 'DvoPsmUpThresholdVoltage',
+                'DvoFmaxLowScaler', 'DcsPfGfxFopt', 'DcsPfUclkFopt',
+                'CacEdcCacLeakageC0', 'CacEdcCacLeakageC1',
+                'CacEdcCacLeakageC2', 'CacEdcCacLeakageC3',
+                'CacEdcCacLeakageC4', 'CacEdcCacLeakageC5',
+                'CacEdcCac_m', 'CacEdcCac_b', 'XVmin_Gfx_EdcThreshScalar',
+                'XVmin_Soc_EdcThreshScalar'
+                ]
+
+float_array_patterns = ['Fset', 'Vdroop', 'VcBtcPsm',
+                        'VcBtcVminA', 'VcBtcVminB', 'Droop_'
+                        ]
 
 
 def odict(init_data=None):
@@ -181,16 +190,25 @@ def _rom_info(vrom_file):
     pp_tbl_offset = master_dt_tbl.ListOfDataTables.PowerPlayInfo
 
     # TODO: For The PowerPlayInfo table offset info on RDNA3+ VBIOS is not at
-    # expected place. It seems to be right behind $PS1P magic. Investigate.
+    # expected place. It seems to be right after $PS1xx magic. Investigate...
+    ps1_grimoire = {
+        'RDNA3': (b'\x24\x50\x53\x31\x50\x15'),  # $PS1P
+        'RDNA4': (b'\x24\x50\x53\x31\xe0\x16'),  # $PS1à
+    }
+
     if (rom_offset != 0 and pp_tbl_offset == 0):
-        print('Invalid PowerPlayInfo offset, checking for $PS1P magic...')
-        ps1p_offset = rom_bytes.find(b'$PS1P')
-        if ps1p_offset > 0:
-            print('Found $PS1P at 0x{:X}'.format(rom_offset + ps1p_offset))
-            pp_tbl_offset = ps1p_offset + 0x110
-            print('OFFSET at 0x{:X}'.format(pp_tbl_offset))
+        print('Invalid PowerPlayInfo offset, checking for $PS1 magic...')
+        ps1_magic_offset = 0
+        for card_gen, ps1_magic in ps1_grimoire.items():
+            ps1_magic_offset = rom_bytes.find(ps1_magic)
+            if ps1_magic_offset > 0:
+                print('Found {} $PS1 magic at offset 0x{:X}'.format(card_gen,
+                      rom_offset + ps1_magic_offset))
+                break
+        if ps1_magic_offset > 0:
+            pp_tbl_offset = ps1_magic_offset + 0x110
         else:
-            print('ERROR: Can not find PowerPlay table!')
+            print('ERROR: Can not find PowerPlay table :(')
             return 0, 0
 
     msg = 'Looking into PowerPlayInfo at offset 0x{:04X}'
@@ -542,10 +560,12 @@ def build_data_tree(data, raw=None, decoded=None, parent_name='/',
         if data._type_ in primitives:
             d_symbol = data._type_._type_
             for d_value in data:
-                d_bytes = d_value.to_bytes(d_size, 'little')
-                if parent_name in float_arrays:
-                    d_symbol = 'f'
-                    d_value = struct.unpack(d_symbol, d_bytes)[0]
+                d_bytes = d_value.to_bytes(d_size, 'little',
+                                           signed=(d_value < 0))
+                for float_match_substring in float_array_patterns:
+                    if float_match_substring in parent_name:
+                        d_symbol = 'f'
+                        d_value = struct.unpack(d_symbol, d_bytes)[0]
                 child_key = index
                 decoded[child_key] = {'value':  d_value,
                                       'offset': d_offset,
@@ -753,6 +773,11 @@ def select_pp_struct(rawbytes, rawdump=False, debug=False):
                 'capstr': pp_struct.SMU_13_0_7_ODFEATURE_CAP__enumvalues,
             }
         }
+    # Navi 48
+    elif ((pp_ver[0] in [23,]) and pp_ver[1] == 0):
+        gpugen = 'Navi 48'
+        from upp.atom_gen import smu_v14_0_2_navi40 as pp_struct
+        ctypes_strct = pp_struct.struct_smu_14_0_2_powerplay_table
     elif pp_ver is not None:
         msg = 'Can not decode PowerPlay table version {}.{}'
         print(msg.format(pp_ver[0], pp_ver[1]))

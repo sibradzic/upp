@@ -39,12 +39,16 @@ on the following AMD GPU families:
 * Navi 22 (Navy Flounder)
 * Navi 23 (Dimgrey Cavefish)
 * Navi 3x
+* Navi 4x
 
 Notes:
 * iGPUs found in many recent AMD APUs are using completely different
   PowerPlay control methods, this tool does not support them.
-* The kernel driver does not fully implement modifying the PowerPlay tables
-  on runtime for Navi 3x cards
+* The amdgpu kernel driver does not fully implement modifying the PowerPlay
+  tables on runtime for Navi 3x and Navi 4x cards.
+* The amdgpu kernel driver does the incomplete PowerPlay table data dump
+  to the `/sys/class/drm/cardX/device/pp_table` file, for Navi 3x AND 4x.
+  The pp_table file is truncated to first 4095 bytes. Likely a driver bug.
 
 **WARNING**: Authors of this tool are in no way responsible for any damage
 that may happen to your expansive graphics card if you choose to modify

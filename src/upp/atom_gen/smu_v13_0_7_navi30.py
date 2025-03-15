@@ -27,11 +27,11 @@ class AsDictMixin:
             type_ = type(value)
             if hasattr(value, "_length_") and hasattr(value, "_type_"):
                 # array
-                if not hasattr(type_, "as_dict"):
-                    value = [v for v in value]
-                else:
-                    type_ = type_._type_
+                type_ = type_._type_
+                if hasattr(type_, 'as_dict'):
                     value = [type_.as_dict(v) for v in value]
+                else:
+                    value = [i for i in value]
             elif hasattr(value, "contents") and hasattr(value, "_type_"):
                 # pointer
                 try:
@@ -371,21 +371,34 @@ SMU_13_0_7_PPCLOCK_ID = ctypes.c_uint32 # enum
 class struct_smu_13_0_7_powerplay_table(Structure):
     pass
 
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
+    ('structuresize', ctypes.c_uint16),
+    ('format_revision', ctypes.c_ubyte),
+    ('content_revision', ctypes.c_ubyte),
+]
+
 class struct_PPTable_t(Structure):
     pass
 
 class struct_SkuTable_t(Structure):
     pass
 
-class struct_DroopInt_t(Structure):
+class struct_QuadraticInt_t(Structure):
     pass
 
-struct_DroopInt_t._pack_ = 1 # source:False
-struct_DroopInt_t._fields_ = [
+struct_QuadraticInt_t._pack_ = 1 # source:False
+struct_QuadraticInt_t._fields_ = [
     ('a', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
     ('c', ctypes.c_uint32),
 ]
+
+class struct_DpmDescriptor_t(Structure):
+    pass
 
 class struct_LinearInt_t(Structure):
     pass
@@ -394,6 +407,20 @@ struct_LinearInt_t._pack_ = 1 # source:False
 struct_LinearInt_t._fields_ = [
     ('m', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
+]
+
+struct_DpmDescriptor_t._pack_ = 1 # source:False
+struct_DpmDescriptor_t._fields_ = [
+    ('Padding', ctypes.c_ubyte),
+    ('SnapToDiscrete', ctypes.c_ubyte),
+    ('NumDiscreteLevels', ctypes.c_ubyte),
+    ('CalculateFopt', ctypes.c_ubyte),
+    ('ConversionToAvfsClk', struct_LinearInt_t),
+    ('Padding3', ctypes.c_uint32 * 3),
+    ('Padding4', ctypes.c_uint16),
+    ('FoptimalDc', ctypes.c_uint16),
+    ('FoptimalAc', ctypes.c_uint16),
+    ('Padding2', ctypes.c_uint16),
 ]
 
 class struct_AvfsDcBtcParams_t(Structure):
@@ -413,16 +440,6 @@ struct_AvfsDcBtcParams_t._fields_ = [
 class struct_AvfsFuseOverride_t(Structure):
     pass
 
-class struct_QuadraticInt_t(Structure):
-    pass
-
-struct_QuadraticInt_t._pack_ = 1 # source:False
-struct_QuadraticInt_t._fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
-]
-
 struct_AvfsFuseOverride_t._pack_ = 1 # source:False
 struct_AvfsFuseOverride_t._fields_ = [
     ('AvfsTemp', ctypes.c_uint16 * 2),
@@ -433,47 +450,14 @@ struct_AvfsFuseOverride_t._fields_ = [
     ('qAvfsGb2', struct_QuadraticInt_t),
 ]
 
-class struct_DriverReportedClocks_t(Structure):
+class struct_DroopInt_t(Structure):
     pass
 
-struct_DriverReportedClocks_t._pack_ = 1 # source:False
-struct_DriverReportedClocks_t._fields_ = [
-    ('BaseClockAc', ctypes.c_uint16),
-    ('GameClockAc', ctypes.c_uint16),
-    ('BoostClockAc', ctypes.c_uint16),
-    ('BaseClockDc', ctypes.c_uint16),
-    ('GameClockDc', ctypes.c_uint16),
-    ('BoostClockDc', ctypes.c_uint16),
-    ('Reserved', ctypes.c_uint32 * 4),
-]
-
-class struct_OverDriveLimits_t(Structure):
-    pass
-
-struct_OverDriveLimits_t._pack_ = 1 # source:False
-struct_OverDriveLimits_t._fields_ = [
-    ('FeatureCtrlMask', ctypes.c_uint32),
-    ('VoltageOffsetPerZoneBoundary', ctypes.c_int16),
-    ('Reserved1', ctypes.c_uint16),
-    ('Reserved2', ctypes.c_uint16),
-    ('GfxclkFmin', ctypes.c_int16),
-    ('GfxclkFmax', ctypes.c_int16),
-    ('UclkFmin', ctypes.c_uint16),
-    ('UclkFmax', ctypes.c_uint16),
-    ('Ppt', ctypes.c_int16),
-    ('Tdc', ctypes.c_int16),
-    ('FanLinearPwmPoints', ctypes.c_ubyte),
-    ('FanLinearTempPoints', ctypes.c_ubyte),
-    ('FanMinimumPwm', ctypes.c_uint16),
-    ('AcousticTargetRpmThreshold', ctypes.c_uint16),
-    ('AcousticLimitRpmThreshold', ctypes.c_uint16),
-    ('FanTargetTemperature', ctypes.c_uint16),
-    ('FanZeroRpmEnable', ctypes.c_ubyte),
-    ('FanZeroRpmStopTemp', ctypes.c_ubyte),
-    ('FanMode', ctypes.c_ubyte),
-    ('MaxOpTemp', ctypes.c_ubyte),
-    ('Padding', ctypes.c_ubyte * 4),
-    ('Spare', ctypes.c_uint32 * 12),
+struct_DroopInt_t._pack_ = 1 # source:False
+struct_DroopInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
 ]
 
 class struct_BootValues_t(Structure):
@@ -517,6 +501,20 @@ struct_BootValues_t._fields_ = [
     ('Spare', ctypes.c_uint32 * 8),
 ]
 
+class struct_DriverReportedClocks_t(Structure):
+    pass
+
+struct_DriverReportedClocks_t._pack_ = 1 # source:False
+struct_DriverReportedClocks_t._fields_ = [
+    ('BaseClockAc', ctypes.c_uint16),
+    ('GameClockAc', ctypes.c_uint16),
+    ('BoostClockAc', ctypes.c_uint16),
+    ('BaseClockDc', ctypes.c_uint16),
+    ('GameClockDc', ctypes.c_uint16),
+    ('BoostClockDc', ctypes.c_uint16),
+    ('Reserved', ctypes.c_uint32 * 4),
+]
+
 class struct_MsgLimits_t(Structure):
     pass
 
@@ -543,21 +541,33 @@ struct_MsgLimits_t._fields_ = [
     ('Spare', ctypes.c_uint32 * 11),
 ]
 
-class struct_DpmDescriptor_t(Structure):
+class struct_OverDriveLimits_t(Structure):
     pass
 
-struct_DpmDescriptor_t._pack_ = 1 # source:False
-struct_DpmDescriptor_t._fields_ = [
-    ('Padding', ctypes.c_ubyte),
-    ('SnapToDiscrete', ctypes.c_ubyte),
-    ('NumDiscreteLevels', ctypes.c_ubyte),
-    ('CalculateFopt', ctypes.c_ubyte),
-    ('ConversionToAvfsClk', struct_LinearInt_t),
-    ('Padding3', ctypes.c_uint32 * 3),
-    ('Padding4', ctypes.c_uint16),
-    ('FoptimalDc', ctypes.c_uint16),
-    ('FoptimalAc', ctypes.c_uint16),
-    ('Padding2', ctypes.c_uint16),
+struct_OverDriveLimits_t._pack_ = 1 # source:False
+struct_OverDriveLimits_t._fields_ = [
+    ('FeatureCtrlMask', ctypes.c_uint32),
+    ('VoltageOffsetPerZoneBoundary', ctypes.c_int16),
+    ('Reserved1', ctypes.c_uint16),
+    ('Reserved2', ctypes.c_uint16),
+    ('GfxclkFmin', ctypes.c_int16),
+    ('GfxclkFmax', ctypes.c_int16),
+    ('UclkFmin', ctypes.c_uint16),
+    ('UclkFmax', ctypes.c_uint16),
+    ('Ppt', ctypes.c_int16),
+    ('Tdc', ctypes.c_int16),
+    ('FanLinearPwmPoints', ctypes.c_ubyte),
+    ('FanLinearTempPoints', ctypes.c_ubyte),
+    ('FanMinimumPwm', ctypes.c_uint16),
+    ('AcousticTargetRpmThreshold', ctypes.c_uint16),
+    ('AcousticLimitRpmThreshold', ctypes.c_uint16),
+    ('FanTargetTemperature', ctypes.c_uint16),
+    ('FanZeroRpmEnable', ctypes.c_ubyte),
+    ('FanZeroRpmStopTemp', ctypes.c_ubyte),
+    ('FanMode', ctypes.c_ubyte),
+    ('MaxOpTemp', ctypes.c_ubyte),
+    ('Padding', ctypes.c_ubyte * 4),
+    ('Spare', ctypes.c_uint32 * 12),
 ]
 
 struct_SkuTable_t._pack_ = 1 # source:False
@@ -842,16 +852,6 @@ struct_PPTable_t._pack_ = 1 # source:False
 struct_PPTable_t._fields_ = [
     ('SkuTable', struct_SkuTable_t),
     ('BoardTable', struct_BoardTable_t),
-]
-
-class struct_atom_common_table_header(Structure):
-    pass
-
-struct_atom_common_table_header._pack_ = 1 # source:False
-struct_atom_common_table_header._fields_ = [
-    ('structuresize', ctypes.c_uint16),
-    ('format_revision', ctypes.c_ubyte),
-    ('content_revision', ctypes.c_ubyte),
 ]
 
 struct_smu_13_0_7_powerplay_table._pack_ = 1 # source:False

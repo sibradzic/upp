@@ -27,11 +27,11 @@ class AsDictMixin:
             type_ = type(value)
             if hasattr(value, "_length_") and hasattr(value, "_type_"):
                 # array
-                if not hasattr(type_, "as_dict"):
-                    value = [v for v in value]
-                else:
-                    type_ = type_._type_
+                type_ = type_._type_
+                if hasattr(type_, 'as_dict'):
                     value = [type_.as_dict(v) for v in value]
+                else:
+                    value = [i for i in value]
             elif hasattr(value, "contents") and hasattr(value, "_type_"):
                 # pointer
                 try:
@@ -363,17 +363,21 @@ struct_smu_11_0_7_power_saving_clock_table._fields_ = [
 class struct_smu_11_0_7_powerplay_table(Structure):
     pass
 
+class struct_atom_common_table_header(Structure):
+    pass
+
+struct_atom_common_table_header._pack_ = 1 # source:False
+struct_atom_common_table_header._fields_ = [
+    ('structuresize', ctypes.c_uint16),
+    ('format_revision', ctypes.c_ubyte),
+    ('content_revision', ctypes.c_ubyte),
+]
+
 class struct_PPTable_t(Structure):
     pass
 
-class struct_PiecewiseLinearDroopInt_t(Structure):
+class struct_DpmDescriptor_t(Structure):
     pass
-
-struct_PiecewiseLinearDroopInt_t._pack_ = 1 # source:False
-struct_PiecewiseLinearDroopInt_t._fields_ = [
-    ('Fset', ctypes.c_uint32 * 5),
-    ('Vdroop', ctypes.c_uint32 * 5),
-]
 
 class struct_LinearInt_t(Structure):
     pass
@@ -382,6 +386,56 @@ struct_LinearInt_t._pack_ = 1 # source:False
 struct_LinearInt_t._fields_ = [
     ('m', ctypes.c_uint32),
     ('b', ctypes.c_uint32),
+]
+
+class struct_QuadraticInt_t(Structure):
+    pass
+
+struct_QuadraticInt_t._pack_ = 1 # source:False
+struct_QuadraticInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
+]
+
+struct_DpmDescriptor_t._pack_ = 1 # source:False
+struct_DpmDescriptor_t._fields_ = [
+    ('VoltageMode', ctypes.c_ubyte),
+    ('SnapToDiscrete', ctypes.c_ubyte),
+    ('NumDiscreteLevels', ctypes.c_ubyte),
+    ('Padding', ctypes.c_ubyte),
+    ('ConversionToAvfsClk', struct_LinearInt_t),
+    ('SsCurve', struct_QuadraticInt_t),
+    ('SsFmin', ctypes.c_uint16),
+    ('Padding16', ctypes.c_uint16),
+]
+
+class struct_DroopInt_t(Structure):
+    pass
+
+struct_DroopInt_t._pack_ = 1 # source:False
+struct_DroopInt_t._fields_ = [
+    ('a', ctypes.c_uint32),
+    ('b', ctypes.c_uint32),
+    ('c', ctypes.c_uint32),
+]
+
+class struct_UclkDpmChangeRange_t(Structure):
+    pass
+
+struct_UclkDpmChangeRange_t._pack_ = 1 # source:False
+struct_UclkDpmChangeRange_t._fields_ = [
+    ('Fmin', ctypes.c_uint16),
+    ('Fmax', ctypes.c_uint16),
+]
+
+class struct_PiecewiseLinearDroopInt_t(Structure):
+    pass
+
+struct_PiecewiseLinearDroopInt_t._pack_ = 1 # source:False
+struct_PiecewiseLinearDroopInt_t._fields_ = [
+    ('Fset', ctypes.c_uint32 * 5),
+    ('Vdroop', ctypes.c_uint32 * 5),
 ]
 
 class struct_I2cControllerConfig_t(Structure):
@@ -397,50 +451,6 @@ struct_I2cControllerConfig_t._fields_ = [
     ('ThermalThrotter', ctypes.c_ubyte),
     ('I2cProtocol', ctypes.c_ubyte),
     ('PaddingConfig', ctypes.c_ubyte),
-]
-
-class struct_QuadraticInt_t(Structure):
-    pass
-
-struct_QuadraticInt_t._pack_ = 1 # source:False
-struct_QuadraticInt_t._fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
-]
-
-class struct_DpmDescriptor_t(Structure):
-    pass
-
-struct_DpmDescriptor_t._pack_ = 1 # source:False
-struct_DpmDescriptor_t._fields_ = [
-    ('VoltageMode', ctypes.c_ubyte),
-    ('SnapToDiscrete', ctypes.c_ubyte),
-    ('NumDiscreteLevels', ctypes.c_ubyte),
-    ('Padding', ctypes.c_ubyte),
-    ('ConversionToAvfsClk', struct_LinearInt_t),
-    ('SsCurve', struct_QuadraticInt_t),
-    ('SsFmin', ctypes.c_uint16),
-    ('Padding16', ctypes.c_uint16),
-]
-
-class struct_UclkDpmChangeRange_t(Structure):
-    pass
-
-struct_UclkDpmChangeRange_t._pack_ = 1 # source:False
-struct_UclkDpmChangeRange_t._fields_ = [
-    ('Fmin', ctypes.c_uint16),
-    ('Fmax', ctypes.c_uint16),
-]
-
-class struct_DroopInt_t(Structure):
-    pass
-
-struct_DroopInt_t._pack_ = 1 # source:False
-struct_DroopInt_t._fields_ = [
-    ('a', ctypes.c_uint32),
-    ('b', ctypes.c_uint32),
-    ('c', ctypes.c_uint32),
 ]
 
 struct_PPTable_t._pack_ = 1 # source:False
@@ -663,16 +673,6 @@ struct_PPTable_t._fields_ = [
     ('UclkSpreadPercent', ctypes.c_ubyte * 16),
     ('BoardReserved', ctypes.c_uint32 * 11),
     ('MmHubPadding', ctypes.c_uint32 * 8),
-]
-
-class struct_atom_common_table_header(Structure):
-    pass
-
-struct_atom_common_table_header._pack_ = 1 # source:False
-struct_atom_common_table_header._fields_ = [
-    ('structuresize', ctypes.c_uint16),
-    ('format_revision', ctypes.c_ubyte),
-    ('content_revision', ctypes.c_ubyte),
 ]
 
 struct_smu_11_0_7_powerplay_table._pack_ = 1 # source:False
